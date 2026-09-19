@@ -1,1 +1,2 @@
-Thong bao ban quyen cua Dev Thanh Chuong
+# Movies Plugins Repository
+All movie plugins are AES-256 encrypted.
