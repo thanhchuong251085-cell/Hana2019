@@ -1,0 +1,368 @@
+<!DOCTYPE html><html lang="vi"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KARAOKE HOME</title>
+  <link rel="manifest" href="./manifest.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="theme-color" content="#cc0000">
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600&amp;display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Baloo 2', cursive;
+      background: linear-gradient(to right, #1e3c72, #2a5298);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background-image: url('https://images.unsplash.com/photo-1534682309381-436a7edcd9c4?auto=format&fit=crop&w=1470&q=80');
+      background-size: cover;
+      background-position: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .overlay {
+      background-color: rgba(0, 0, 0, 0.6);
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 2rem;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      color: #fff;
+      text-shadow: 2px 2px 5px #000;
+      animation: shake 2s infinite alternate;
+      overflow-wrap: break-word;
+      word-wrap: break-word;
+      max-width: 90vw;
+      text-align: center;
+    }
+
+    @keyframes shake {
+      0% { transform: translateX(0); }
+      25% { transform: translateX(2px); }
+      50% { transform: translateX(-2px); }
+      75% { transform: translateX(2px); }
+      100% { transform: translateX(0); }
+    }
+
+    .buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      margin-top: 2rem;
+      align-items: center;
+    }
+
+    .buttons a {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      background-color: #ff4b2b;
+      color: white;
+      padding: 1rem 2rem;
+      border-radius: 2rem;
+      font-size: 1.2rem;
+      text-decoration: none;
+      transition: background 0.3s ease;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+      width: 100%;
+      max-width: 300px;
+    }
+
+    .buttons a:hover {
+      background-color: #ff3a1a;
+    }
+
+    .buttons a svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    @media (min-width: 768px) {
+      .buttons {
+        flex-direction: row;
+      }
+
+      .buttons a {
+        width: auto;
+      }
+    }
+
+    /* --- CSS mới cho QR code và chữ --- */
+ .qr-cafe {
+  position: fixed;
+  top: 15px;
+  left: 15px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column; /* Sắp xếp chữ và ảnh theo chiều dọc */
+  align-items: left;    /* Căn giữa nội dung ngang */
+  text-align: left;     /* Căn giữa chữ */
+}
+
+.qr-info {
+  display: flex;
+  flex-direction: column;
+  align-items: left; /* Căn giữa cụm chữ */
+  margin: 0;           /* Bỏ margin bên trái/phải */
+  padding-left: 1px;
+}
+
+.qr-cafe-text-main {
+  color: #ffdd00; /* Màu chữ vàng tươi */
+  font-size: 1rem;
+  font-weight: bold;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
+  animation: bounce 1.5s infinite; /* Hiệu ứng động */
+  opacity: 0.92;
+  margin-bottom: 5px; /* Khoảng cách giữa 2 dòng chữ */
+}
+
+    .qr-cafe-text-sub {
+      color: #add8e6; /* Màu xanh nhạt cho dòng tải về */
+      font-size: 0.75rem;
+      text-decoration: underline;
+      cursor: pointer;
+      opacity: 0.9;
+      transition: opacity 0.3s;
+    }
+    
+    .qr-cafe-text-sub:hover {
+        opacity: 1;
+    }
+    
+    .qr-cafe-image-container {
+        margin-top: 5px; /* Khoảng cách giữa chữ và QR code */
+    }
+
+    .qr-cafe img {
+      width: 120px;
+      height: 120px;
+      opacity: 99.2; /* Mờ 80% */
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+      transition: opacity 0.3s, transform 0.3s;
+      display: block;
+    }
+
+    .qr-cafe:hover img {
+      opacity: 1; /* Rõ 100% khi di chuột */
+      transform: scale(1.1); /* Phóng to nhẹ khi di chuột */
+    }
+
+    /* Hiệu ứng động vui vẻ cho chữ chính */
+    @keyframes bounce {
+      0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
+      40% {transform: translateY(-5px) rotate(1deg);}
+      60% {transform: translateY(-2px) rotate(-1deg);}
+    }
+    /* CSS mới cho Popup ảnh phóng to */
+    #qr-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.9); /* Nền đen đậm mờ */
+      display: none; /* Ẩn mặc định */
+      justify-content: center;
+      align-items: center;
+      z-index: 9999; /* Luôn nằm trên cùng */
+      cursor: pointer; /* Cho biết có thể đóng */
+    }
+
+    #qr-modal-overlay img {
+      max-width: 90%;
+      max-height: 90%;
+      border-radius: 8px;
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+    }
+    /* --- Hết CSS cho Popup --- */
+    
+    /* Căn chỉnh lại để QR code không còn là liên kết download */
+    .qr-cafe-image-container a {
+      cursor: zoom-in; /* Con trỏ phóng to khi chạm/nhấn */
+    }
+
+    
+    /* --- END CSS mới cho QR code và chữ --- */
+
+    /* --- CSS mới cho Phần Tải App (Góc trên bên phải) --- */
+    .app-download-links {
+      position: fixed;
+      top: 15px;
+      right: 15px; /* Căn lề phải */
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end; /* Căn lề phải cho cụm chữ */
+      text-align: right;
+    }
+
+    .app-download-links a {
+      color: #38bdf8; /* Màu xanh da trời sáng */
+      font-size: 0.95rem;
+      font-weight: bold;
+      text-decoration: none; /* Bỏ gạch chân mặc định */
+      margin-bottom: 5px;
+      padding: 5px 8px;
+      border-radius: 5px;
+      text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
+      background: rgba(0, 0, 0, 0.2); /* Nền mờ nhẹ cho dễ đọc */
+      transition: background 0.3s, color 0.3s, transform 0.2s;
+      
+      /* Hiệu ứng vui vẻ: Hơi rung nhẹ/lắc lư khi đứng yên */
+      animation: gentle-wobble 4s ease-in-out infinite; 
+    }
+
+    .app-download-links a:hover {
+      background: rgba(0, 0, 0, 0.5); /* Nền đậm hơn khi di chuột */
+      color: #ffffff; /* Chữ trắng sáng khi di chuột */
+      transform: scale(1.05); /* Phóng to nhẹ khi di chuột */
+    }
+
+    /* Hiệu ứng động lắc lư nhẹ */
+    @keyframes gentle-wobble {
+      0%, 100% { transform: rotate(0deg); }
+      25% { transform: rotate(0.5deg); }
+      75% { transform: rotate(-0.5deg); }
+    }
+    /* --- END CSS mới cho Phần Tải App --- */
+
+    
+
+  </style>
+
+  <!-- Google tag (gtag.js) -->
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=G-JCB7VEJF1Y"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-JCB7VEJF1Y');
+</script>
+</head>
+<body>
+<div id="qr-modal-overlay" onclick="closeQRModal()">
+    <img src="images/image_19ec01.png" alt="QR Code Phóng To">
+  </div>
+  <div class="qr-cafe" title="Chạm để phóng to mã QR">
+    <div class="qr-info">
+      <span class="qr-cafe-text-main">Cà phê cho coder nhé ☕️😊</span>
+      <a href="images/image_19ec01.png" download="QR_chuyen_khoan_cafe.png" class="qr-cafe-text-sub">
+        Tải QR chuyển khoản
+      </a>
+    </div>
+
+    <div class="qr-cafe-image-container">
+      <a href="#" onclick="openQRModal(event)">
+        <img src="images/image_19ec01.png" alt="QR Code Mời Cafe (Chuyển khoản)">
+      </a>
+    </div>
+  </div>
+
+  <!-- PHẦN TẢI APP MỚI (Góc trên bên phải) -->
+  <div class="app-download-links">
+    <!-- Link 1: Tải app cho TV -->
+    <a href="TV_Karaoke.apk" target="_blank" title="Ứng dụng Karaoke cho Android TV">
+      Tải app cho Android TV 📺
+    </a>
+    <!-- Link 2: Tải app Remote -->
+    <a href="Karaoke_v.apk" target="_blank" title="Ứng dụng điều khiển từ xa bằng điện thoại">
+      Tải app Remote bằng ĐT 📱
+    </a>
+    <!--   <a href="https://music4fun.vercel.app/Kara.apk" target="_blank" title="Ứng dụng điều khiển từ xa bằng điện thoại">
+      Tải app V2 cho Android TV 📺
+    </a> -->
+            <a href="https://drive.google.com/file/d/11VeH2fk1JbyJw6wzBs-iyt902-i4kkDP/view?usp=sharing" target="_blank" title="Cài Cốc cốc Browser TV">
+      Cài Cốc cốc Browser TV 📺
+    </a>
+    <a href="karaokeHomev2.apk" target="_blank" title="Ứng dụng điều khiển từ xa bằng điện thoại">
+      Tải app V2 Remote bằng ĐT 📱
+    </a>
+  </div>
+  <!-- KẾT THÚC PHẦN TẢI APP MỚI -->
+  
+  <div class="overlay"></div>
+  <div class="container">
+    <h1>🎵 Music Karaoke Fun 🎤</h1>
+    <h1>Thành Chương</h1>
+    <div class="buttons">
+      <a href="remote1.html" target="_blank">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-6h13v6M9 5v6h13V5M3 17h.01M3 5h.01"></path>
+        </svg>
+        Điều khiển bài hát
+      </a>
+      <a href="player1.html" target="_blank">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-6.518-3.757A1 1 0 007 8.157v7.686a1 1 0 001.234.97l6.518-1.757a1 1 0 00.518-.97v-2.918a1 1 0 00-.518-.97z"></path>
+        </svg>
+        Xem và phát karaoke
+      </a>
+    </div>
+  </div>
+  <script>
+    // ... Phần JavaScript cũ của bạn ...
+
+    // --- Chức năng Popup/Modal cho QR code ---
+function openQRModal(event) {
+    // Ngăn chặn hành vi mặc định của thẻ <a> (lên đầu trang)
+    event.preventDefault(); 
+    
+    const modal = document.getElementById('qr-modal-overlay');
+    modal.style.display = 'flex';
+}
+
+function closeQRModal() {
+    const modal = document.getElementById('qr-modal-overlay');
+    // Đóng Modal khi người dùng nhấn vào bất cứ đâu trên lớp phủ
+    modal.style.display = 'none';
+}
+
+// Ngăn chặn việc nhấn vào ảnh trong modal mà không đóng modal (chỉ đóng khi nhấn vào nền)
+document.getElementById('qr-modal-overlay').querySelector('img').onclick = function(e) {
+    e.stopPropagation();
+};
+// --- Hết chức năng Popup/Modal ---
+
+    // --- ĐĂNG KÝ SERVICE WORKER (CHO PWA) ---
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(registration => {
+            console.log('SW registered: ', registration);
+          })
+          .catch(registrationError => {
+            console.log('SW registration failed: ', registrationError);
+          });
+      });
+    }
+    // --- END ĐĂNG KÝ SERVICE WORKER ---
+  </script>
+<!-- Added by website-downloader.com to the free version of this archive. -->
+<div style="position:fixed;left:12px;bottom:12px;z-index:2147483647;font:13px/1.4 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#ffffff;color:#0f172a;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 2px 8px rgba(15,23,42,.12);padding:8px 12px;max-width:280px">
+  
+  <span style="color:#475569"> Chào mừng bạn đến Karaoke Thành Chương </span>
+</div>
+</body></html>

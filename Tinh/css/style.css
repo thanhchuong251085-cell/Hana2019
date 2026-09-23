@@ -1,0 +1,414 @@
+/* --- RESET & BASIC SETUP --- */
+html, body {
+    margin: 0; padding: 0; box-sizing: border-box;
+    width: 100vw; height: 100vh;
+    overflow: hidden;
+    background-color: #000;
+}
+
+body {
+    color: #fff;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+}
+
+/* Reset thẻ a để hỗ trợ SEO tốt hơn mà không làm hỏng giao diện */
+a {
+    text-decoration: none;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* --- BACKGROUND ĐEN TUYỀN --- */
+#galaxy-background {
+    position: absolute;
+    top: 0; left: 0; 
+    width: 100%; height: 100%;
+    background: url('../images/nen3.jpg') no-repeat center center;
+    background-size: cover; /* Đảm bảo ảnh nền phủ kín màn hình */
+    z-index: 0;
+}
+
+.overlay {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 1;
+    pointer-events: none;
+}
+
+/* --- HIỆU ỨNG MƯA SAO BĂNG --- */
+.meteor {
+    position: absolute;
+    width: 150px; height: 2px;
+    background: linear-gradient(to right, rgba(255,255,255,0), rgba(255,255,255,1));
+    transform: translate3d(0, 0, 0) rotate(-45deg); 
+    z-index: 2; pointer-events: none;
+    animation: shootingStar 2s linear infinite; opacity: 0;
+    will-change: transform, opacity;
+}
+.meteor::before {
+    content: ""; position: absolute; right: 0; top: -2px; width: 4px; height: 4px;
+    background: #fff; border-radius: 50%; box-shadow: 0 0 10px 2px #fff;
+}
+@keyframes shootingStar {
+    0% { transform: translate3d(200px, -200px, 0) rotate(-45deg); opacity: 1; }
+    100% { transform: translate3d(-800px, 800px, 0) rotate(-45deg); opacity: 0; }
+}
+
+/* --- HEADER --- */
+.header {
+    z-index: 10; text-align: center; margin-top: 5vh; text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+    will-change: opacity;
+}
+.header h1 {
+    font-size: 3rem; letter-spacing: 5px; color: #fff; text-transform: uppercase; margin-bottom: 0; animation: neon 2s infinite alternate;
+}
+
+.header p {
+    font-size: 1.2rem; color: #ffb6c1; letter-spacing: 2px; margin-top: 10px;
+    animation: neonPink 1.5s infinite alternate;
+}
+
+@keyframes neon {
+    from { text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 20px #0ff, 0 0 40px #0ff; }
+    to { text-shadow: 0 0 2px #fff, 0 0 5px #fff, 0 0 10px #0ff, 0 0 20px #0ff; }
+}
+
+@keyframes neonPink {
+    from { text-shadow: 0 0 5px #fff, 0 0 10px #ffb6c1, 0 0 20px #ff69b4, 0 0 40px #ff69b4; }
+    to { text-shadow: 0 0 2px #fff, 0 0 5px #ffb6c1, 0 0 10px #ff69b4, 0 0 20px #ff69b4; }
+}
+
+/* --- HỆ SINH THÁI ĐÁ VÔ CỰC --- */
+.universe {
+    position: relative; flex: 1; width: 100%; z-index: 10;
+    will-change: opacity;
+}
+
+.orbit-container {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 0; height: 0;
+    list-style: none; /* Xóa style của thẻ ul/li hỗ trợ SEO */
+    margin: 0; padding: 0;
+}
+
+.orbit-container:hover .orbit-item {
+    animation-play-state: paused;
+}
+
+.orbit-item {
+    position: absolute;
+    top: -75px; left: -50px; 
+    width: 100px; height: 150px;
+    --radius: clamp(140px, 22vw, 260px); 
+    animation: orbit 30s linear infinite;
+    will-change: transform;
+}
+
+/* Gán vị trí quỹ đạo */
+.pos-tv    { --angle: 0deg;   --glow-color: #ffff33; } /* Vàng (TIVI) */
+.pos-demo  { --angle: 60deg;  --glow-color: #00ff00; } /* Xanh lá (DEMO) */
+.pos-sport { --angle: 120deg; --glow-color: #3399ff; } /* Xanh dương (SPORT) */
+.pos-music { --angle: 180deg; --glow-color: #ff69b4; } /* Hồng (MUSIC) */
+.pos-movie { --angle: 240deg; --glow-color: #ff1a1a; } /* Đỏ (MOVIE) */
+.pos-study { --angle: 300deg; --glow-color: #ff8c00; } /* Cam (STUDY) */
+
+@keyframes orbit {
+    0% { transform: rotate(var(--angle)) translate3d(0, calc(-1 * var(--radius)), 0) rotate(calc(-1 * var(--angle))); }
+    100% { transform: rotate(calc(var(--angle) + 360deg)) translate3d(0, calc(-1 * var(--radius)), 0) rotate(calc(-1 * (var(--angle) + 360deg))); }
+}
+
+.stone-wrapper {
+    position: relative; text-align: center; cursor: pointer; transition: transform 0.3s ease;
+    width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    will-change: transform;
+}
+
+/* Tia sáng tỏa ra */
+.rays {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 250px; height: 250px;
+    transform: translate3d(-50%, -50%, 0);
+    background: repeating-conic-gradient(
+        rgba(255,255,255,0) 0deg,
+        var(--glow-color) 12deg,
+        rgba(255,255,255,0) 24deg
+    );
+    mask-image: radial-gradient(circle, rgba(0,0,0,1) 15%, rgba(0,0,0,0) 65%);
+    -webkit-mask-image: radial-gradient(circle, rgba(0,0,0,1) 15%, rgba(0,0,0,0) 65%);
+    opacity: 0.45;
+    z-index: 1; 
+    pointer-events: none;
+    animation: spinRays 20s linear infinite;
+    mix-blend-mode: screen;
+    transition: all 0.3s ease;
+    will-change: transform;
+}
+
+@keyframes spinRays {
+    from { transform: translate3d(-50%, -50%, 0) rotate(0deg); }
+    to { transform: translate3d(-50%, -50%, 0) rotate(360deg); }
+}
+
+/* KIỂU DÁNG TINH THỂ PHA LÊ */
+.infinity-stone {
+    width: 85px; height: 115px;
+    clip-path: polygon(25% 5%, 70% 0%, 100% 30%, 85% 90%, 50% 100%, 15% 90%, 0% 30%);
+    position: relative;
+    z-index: 2;
+    animation: float 4s ease-in-out infinite, pulseStone 1.2s alternate infinite ease-in-out;
+    will-change: transform, filter, box-shadow;
+    transition: all 0.3s ease;
+    overflow: hidden;
+
+    /* Sử dụng ảnh sprite */
+    background-image: url('../images/vocuc.jpg'); 
+    background-size: 300% 200%; 
+    background-repeat: no-repeat;
+}
+
+/* Vệt sáng quét ngang */
+.infinity-stone::before {
+    content: ""; position: absolute; top: 0; left: -150%; width: 50%; height: 100%;
+    background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.8) 50%, rgba(255,255,255,0) 100%);
+    transform: skewX(-25deg); z-index: 3; pointer-events: none;
+    animation: sweepGleam 3s infinite ease-in-out;
+    will-change: left, opacity;
+}
+
+@keyframes sweepGleam {
+    0%, 40% { left: -150%; opacity: 0; }
+    50% { opacity: 1; }
+    70%, 100% { left: 200%; opacity: 0; }
+}
+
+/* Nháy sáng trung tâm */
+.infinity-stone::after {
+    content: ""; position: absolute; top: 50%; left: 50%; width: 30px; height: 30px;
+    background: rgba(255,255,255,1); border-radius: 50%;
+    filter: blur(5px) drop-shadow(0 0 10px rgba(255,255,255,0.8));
+    transform: translate3d(-50%, -50%, 0) scale(0.5); 
+    z-index: 4; pointer-events: none;
+    animation: coreBlink 0.6s alternate infinite ease-in-out;
+    will-change: transform, opacity, filter;
+}
+
+@keyframes coreBlink {
+    0% { transform: translate3d(-50%, -50%, 0) scale(0.6); opacity: 0.7; }
+    100% { transform: translate3d(-50%, -50%, 0) scale(1.4); opacity: 1; filter: blur(7px) drop-shadow(0 0 25px rgba(255,255,255,1)); }
+}
+
+@keyframes pulseStone {
+    0% { box-shadow: inset 0 0 15px var(--glow-color); }
+    100% { box-shadow: inset 0 0 40px var(--glow-color); }
+}
+
+/* --- MAP VỊ TRÍ ẢNH --- */
+.pos-demo .infinity-stone { 
+    background-position: 0% 0%; 
+    filter: drop-shadow(0 0 15px var(--glow-color)); animation-delay: 4s;
+    box-shadow: inset 0 0 25px var(--glow-color);
+}
+.pos-tv .infinity-stone { 
+    background-position: 50% 0%; 
+    filter: drop-shadow(0 0 15px var(--glow-color)); animation-delay: 2s;
+    box-shadow: inset 0 0 25px var(--glow-color);
+}
+.pos-sport .infinity-stone { 
+    background-position: 50% 100%; /* Đã đổi sang ảnh xanh dương */
+    filter: drop-shadow(0 0 15px var(--glow-color)); animation-delay: 1s;
+    box-shadow: inset 0 0 25px var(--glow-color);
+}
+.pos-study .infinity-stone { 
+    background-position: 0% 100%; 
+    filter: drop-shadow(0 0 15px var(--glow-color)); animation-delay: 5s;
+    box-shadow: inset 0 0 25px var(--glow-color);
+}
+.pos-music .infinity-stone { 
+    background-position: 100% 0%; /* Đã đổi sang ảnh hồng */
+    filter: drop-shadow(0 0 15px var(--glow-color)); animation-delay: 3s;
+    box-shadow: inset 0 0 25px var(--glow-color);
+}
+.pos-movie .infinity-stone { 
+    background-position: 100% 100%; 
+    filter: drop-shadow(0 0 15px var(--glow-color));
+    box-shadow: inset 0 0 25px var(--glow-color);
+}
+
+@keyframes float {
+    0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+    50% { transform: translate3d(0, -10px, 0) rotate(2deg); }
+}
+
+/* --- LABEL --- */
+.label {
+    margin-top: 10px; font-size: 1.2rem; font-weight: bold; color: #fff;
+    transition: all 0.3s ease;
+    text-shadow: 0 0 5px #000, 0 0 15px var(--glow-color); 
+    letter-spacing: 2px; z-index: 5; position: relative;
+    animation: textBlink 1s infinite alternate; 
+    will-change: opacity, filter, text-shadow, transform;
+}
+
+@keyframes textBlink {
+    0% { opacity: 0.5; filter: brightness(0.8); text-shadow: 0 0 2px #000, 0 0 5px var(--glow-color); }
+    100% { opacity: 1; filter: brightness(1.2); text-shadow: 0 0 5px #000, 0 0 20px var(--glow-color), 0 0 35px #fff; }
+}
+
+/* Hiệu ứng Hover */
+.stone-wrapper:hover { transform: translate3d(0, 0, 0) scale(1.15); z-index: 20; }
+.stone-wrapper:hover .infinity-stone { filter: brightness(1.3) drop-shadow(0 0 30px var(--glow-color)); }
+.stone-wrapper:hover .rays { opacity: 0.8; animation: spinRays 5s linear infinite; width: 320px; height: 320px; }
+.stone-wrapper:hover .label { transform: translate3d(0, 3px, 0); animation-play-state: paused; opacity: 1; text-shadow: 0 0 5px #000, 0 0 25px var(--glow-color), 0 0 35px #fff; }
+
+/* Hiệu ứng Jump */
+#warp-overlay {
+    position: fixed; top: 50%; left: 50%; width: 10px; height: 10px;
+    background: #fff; border-radius: 50%; transform: translate3d(-50%, -50%, 0) scale(0);
+    z-index: 100; opacity: 0; pointer-events: none;
+    transition: transform 1.2s cubic-bezier(0.8, 0, 0.2, 1), opacity 1.2s ease;
+    box-shadow: 0 0 100px 50px #fff;
+    will-change: transform, opacity;
+}
+body.jumping #warp-overlay { opacity: 1; transform: translate3d(-50%, -50%, 0) scale(500); }
+body.jumping .universe, body.jumping .header, body.jumping #galaxy-background { opacity: 0; transition: opacity 0.5s ease; }
+
+/* TỐI ƯU SIÊU NHẸ CHO MOBILE */
+@media (max-width: 768px) {
+    .orbit-container { top: 42%; }
+    .infinity-stone { width: 70px; height: 95px; }
+    .label { font-size: 1rem; }
+    .rays { width: 160px; height: 160px; }
+}
+
+/* --- BỘ ĐIỀU KHIỂN ÂM NHẠC --- */
+.music-control {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid #0ff;
+    color: #fff;
+    
+    /* Đã thu nhỏ kích thước */
+    height: 26px; 
+    min-width: 80px; 
+    padding: 0 10px;
+    border-radius: 20px;
+    font-size: 0.7rem; 
+    box-sizing: border-box;
+    
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+    transition: all 0.3s ease;
+    user-select: none;
+    backdrop-filter: blur(5px);
+}
+
+.music-control:hover {
+    background: rgba(0, 255, 255, 0.2);
+    box-shadow: 0 0 15px #0ff, 0 0 30px #0ff;
+    transform: translateY(-2px);
+}
+
+.music-control.music-playing {
+    border-color: #ff69b4;
+    box-shadow: 0 0 10px rgba(255, 105, 180, 0.5);
+}
+
+.music-control.music-playing:hover {
+    box-shadow: 0 0 15px #ff69b4, 0 0 30px #ff69b4;
+}
+
+/* --- TRẠNG THÁI WEBSITE ONLINE --- */
+.website-online-badge {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    
+    /* Đổi viền sang màu cyan để đồng bộ với nút Music */
+    border: 1px solid #0ff; 
+    
+    /* Đã thu nhỏ và đồng bộ kích thước chuẩn với nút Music */
+    height: 26px;
+    min-width: 80px;
+    padding: 0 10px;
+    border-radius: 20px;
+    box-sizing: border-box;
+    
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    
+    color: #fff;
+    font-size: 0.7rem;
+    
+    /* Đổi màu bóng mờ sang cyan */
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+    transition: all 0.3s ease;
+    user-select: none;
+    pointer-events: none;
+}
+
+/* Chấm màu báo trạng thái online (Đã chuyển sang cyan và thu nhỏ) */
+.website-online-badge .dot {
+    width: 6px;
+    height: 6px;
+    background-color: #0ff;
+    border-radius: 50%;
+    position: relative;
+    box-shadow: 0 0 8px #0ff;
+    flex-shrink: 0;
+}
+
+/* Hiệu ứng sóng lan tỏa (Đã chuyển sang cyan) */
+.website-online-badge .dot::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 255, 255, 0.5);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    animation: pulse-ring 2s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
+}
+
+@keyframes pulse-ring {
+    0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.8; }
+    80%, 100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
+}
+
+/* TỐI ƯU KÍCH THƯỚC TRÊN MOBILE CHO CẢ 2 NÚT */
+@media (max-width: 768px) {
+    .music-control,
+    .website-online-badge {
+        bottom: 15px;
+        height: 22px !important;
+        min-width: 65px;
+        padding: 0 8px !important;
+        font-size: 0.6rem !important;
+    }
+    
+    .music-control { left: 15px; }
+    .website-online-badge { right: 15px; }
+}

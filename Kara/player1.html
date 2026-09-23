@@ -1,0 +1,536 @@
+<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+    <base target="_top">
+    <title>Karaoke Player</title>
+      <link rel="manifest" href="./manifest_tv.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+
+    <script async="" src="https://www.googletagmanager.com/gtag/js?id=G-JCB7VEJF1Y"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-JCB7VEJF1Y');
+</script>
+    <style>
+      /* --- STYLE TỪ PLAYER1.HTML --- */
+      #currentTitle {
+        position: relative;
+        width: 200px;
+        height: 24px;
+        overflow: hidden;
+        white-space: nowrap;
+      }
+
+      #scrollingTitle {
+        position: absolute;
+        white-space: nowrap;
+        display: inline-block;
+        animation: scroll-left 12s linear infinite;
+        color: #00ffcc;
+        font-weight: bold;
+      }
+
+      @keyframes scroll-left {
+        0% { left: 100%; }
+        100% { left: -100%; }
+      }
+
+      body {
+        background-color: #000;
+        color: white;
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+
+      #player {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 0; /* Đổi thành 0 để UI nằm trên */
+      }
+
+      #uiContainer {
+        position: absolute;
+        top: 20px;
+        right: 10px;
+        background: rgba(0, 0, 0, 0.2); /* Tăng độ đậm nền cho dễ nhìn */
+        padding: 12px;
+        border-radius: 12px;
+        max-width: 270px;
+        z-index: 2;
+      }
+
+      #uiContainer2 {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background: rgba(0, 0, 0, 0.5); /* Tăng độ đậm nền cho dễ nhìn */
+        padding: 12px;
+        border-radius: 12px;
+        max-width: 220px;
+        z-index: 2;
+      }
+
+      #controls {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+
+      #currentTitle {
+        max-width: 180px;
+        overflow: hidden;
+        white-space: nowrap;
+      }
+
+      #playlistDisplay {
+        margin: 0;
+        padding-left: 14px;
+        font-size: 14px; 
+        font-weight: normal; 
+        color: rgba(255, 255, 255, 0.95);
+        margin-bottom: 8px;
+        list-style: disc; /* Thêm kiểu list */
+      }
+      
+      /* Bổ sung CSS cho 1 dòng và cắt bằng ... (từ yêu cầu trước) */
+      #playlistDisplay li {
+        white-space: nowrap; 
+        overflow: hidden;    
+        text-overflow: ellipsis; 
+      }
+      
+      #nextSongs h4 {
+        font-size: 14px;
+        color: #00ffff;
+        font-weight: bold; /* Đậm hơn cho tiêu đề */
+        margin-bottom: 6px;
+        margin-top: 0;
+      }
+
+      #playPauseBtn {
+        background-color: #00cc99;
+        color: white;
+      }
+      #playPauseBtn:hover {
+        background-color: #00aa88;
+      }
+
+      button {
+        font-size: 16px;
+        padding: 6px 10px;
+        border: none;
+        border-radius: 6px;
+        background-color: #333;
+        color: white;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background-color: #555;
+      }
+
+      #toast {
+        position: fixed;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #333;
+        color: white;
+        padding: 20px 24px;
+        border-radius: 8px;
+        font-size: 30px;
+        opacity: 0;
+        transition: opacity 0.5s ease;
+        z-index: 9999;
+        visibility: hidden; /* Dùng visibility để ẩn hẳn khi opacity = 0 */
+      }
+
+      #toast.show {
+        visibility: visible;
+        opacity: 1;
+      }
+      
+      /* Cập nhật style cho Mã kết nối */
+      #roomCodeDisplay {
+          font-size:18px;
+          color:yellow;
+          padding-left:1px;
+          margin-bottom: 10px;
+      }
+      #roomCodeDisplay #code {
+          font-weight: bold;
+          font-size: 24px;
+          color: #f1c40f;
+      }
+/* --- CSS mới cho QR code và chữ --- */
+ .qr-cafe {
+  position: fixed;
+  top: 15px;
+  left: 15px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column; /* Sắp xếp chữ và ảnh theo chiều dọc */
+  align-items: left;    /* Căn giữa nội dung ngang */
+  text-align: left;     /* Căn giữa chữ */
+}
+
+.qr-info {
+  display: flex;
+  flex-direction: column;
+  align-items: left; /* Căn giữa cụm chữ */
+  margin: 0;           /* Bỏ margin bên trái/phải */
+  padding-left: 1px;
+}
+
+    .qr-cafe-text-main {
+      color: #ffdd00; /* Màu chữ vàng tươi */
+      font-size: 1rem;
+      font-weight: bold;
+      text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
+      animation: bounce 1.5s infinite; /* Hiệu ứng động */
+      opacity: 95.2;
+      margin-bottom: 5px; /* Khoảng cách giữa 2 dòng chữ */
+    }
+
+    .qr-cafe-text-sub {
+      color: #add8e6; /* Màu xanh nhạt cho dòng tải về */
+      font-size: 0.75rem;
+      text-decoration: underline;
+      cursor: pointer;
+      opacity: 95.2;
+      transition: opacity 0.3s;
+    }
+    
+    .qr-cafe-text-sub:hover {
+        opacity: 1;
+    }
+    
+    .qr-cafe-image-container {
+        margin-top: 5px; /* Khoảng cách giữa chữ và QR code */
+    }
+
+    .qr-cafe img {
+      width: 80px;
+      height: 80px;
+      opacity: 80.2; /* Mờ 80% */
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+      transition: opacity 0.3s, transform 0.3s;
+      display: block;
+    }
+
+    .qr-cafe:hover img {
+      opacity: 1; /* Rõ 100% khi di chuột */
+      transform: scale(1.1); /* Phóng to nhẹ khi di chuột */
+    }
+
+    /* Hiệu ứng động vui vẻ cho chữ chính */
+    @keyframes bounce {
+      0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
+      40% {transform: translateY(-5px) rotate(1deg);}
+      60% {transform: translateY(-2px) rotate(-1deg);}
+    }
+    /* --- END CSS mới cho QR code và chữ --- */
+
+      
+    </style>
+  </head>
+  <body>
+    <div id="player"></div>
+
+<div class="qr-cafe" title="Quét mã để mời tôi ly cafe (Chuyển khoản)">
+    <div class="qr-info">
+      <span class="qr-cafe-text-main"> Chào Mừng Bạn Đến Karaoke Hana ☕️😊</span>
+      <a href="images/remote.png" download="QR_chuyen_khoan_cafe.png" class="qr-cafe-text-sub">
+        
+      </a>
+    </div>
+    
+    <div class="qr-cafe-image-container">
+        <a href="images/image_19ec01.png" download="QR_chuyen_khoan_cafe.png">
+            <img src="images/remote.png" alt="QR Code Mời Cafe (Chuyển khoản)">
+        </a>
+    </div>
+  </div>
+  <div class="overlay"></div>
+
+    <div id="uiContainer">
+       <div id="roomCodeDisplay">
+          Mã kết nối: <span id="code">...</span>
+          <button onclick="resetRoomCode()" style="margin-left: 10px;">🔄Đổi mã</button>
+       </div>
+      <div id="controls">
+        <button id="playPauseBtn" onclick="togglePlayPause()">⏯</button>
+        <button onclick="removeCurrentSong()">⏭</button>
+        <div id="currentTitle"><div id="scrollingTitle">Đang tải...</div></div>
+      </div>
+
+      <div id="nextSongs">
+        <h4>🎶 Tiếp theo:</h4>
+        <ul id="playlistDisplay"></ul>
+      </div>
+    </div>
+    <div id="toast"></div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://www.youtube.com/iframe_api"></script>
+
+    <script>
+      // --- CẤU HÌNH FIREBASE ---
+      const firebaseConfig = {
+        apiKey: "AIzaSyAIwBqg8EYLU7TQXfOO697C4D5p5_GeghQ",
+        authDomain: "karaoke-home.firebaseapp.com",
+        databaseURL: "https://karaoke-home-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "karaoke-home",
+        storageBucket: "karaoke-home.firebasestorage.app",
+        messagingSenderId: "285959719922",
+        appId: "1:285959719922:web:6cb594ebb3ef854124796b",
+        measurementId: "G-EH8DQLGWSY"
+      };
+
+      if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+      const db = firebase.database();
+
+      let player;
+      let currentVideoId = null;
+      let playlist = [];
+      let isPlayerReady = false;
+      let isPlaying = false; // Theo dõi trạng thái của trình phát
+      let roomCode = localStorage.getItem('roomCode');
+      const codeDisplayEl = document.getElementById('code');
+
+      if (!roomCode) {
+        roomCode = Math.floor(10000 + Math.random() * 90000).toString();
+        localStorage.setItem('roomCode', roomCode);
+      }
+      codeDisplayEl.innerText = roomCode;
+
+      // --- FIX QUAN TRỌNG: KIỂM TRA MÔI TRƯỜNG ---
+      if (window.location.protocol === 'file:') {
+          console.error("LỖI: Bạn đang mở file trực tiếp (file://). YouTube API sẽ không hoạt động.");
+      }
+
+      function onYouTubeIframeAPIReady() {
+        const WAITING_VIDEO_ID = "6BlfNIfGFfM"; 
+
+        player = new YT.Player('player', {
+          height: '100%', 
+          width: '100%',
+          videoId: WAITING_VIDEO_ID, 
+          host: 'https://www.youtube.com',
+          playerVars: { 
+            'autoplay': 1, 
+            'controls': 1, /* Đổi thành 1 để cho phép điều khiển */
+            'modestbranding': 1,
+            'rel': 0,                 
+            'enablejsapi': 1,         
+            'origin': window.location.origin 
+          },
+          events: {
+            'onStateChange': onPlayerStateChange,
+            'onReady': (event) => {
+                 console.log("Player Ready");
+                 isPlayerReady = true;
+                 event.target.playVideo(); 
+                 isPlaying = true;
+                 listenToData(); 
+            },
+            'onError': onPlayerError 
+          }
+        });
+      }
+
+function listenToData() {
+    // 1. Lắng nghe danh sách bài hát
+    db.ref(`rooms/${roomCode}/playlist`).orderByChild('timestamp').on('value', snapshot => {
+      playlist = [];
+      snapshot.forEach(child => {
+        playlist.push({ key: child.key, ...child.val() });
+      });
+      updateUI();
+      
+      // Chỉ tự động phát nếu Player đang trống hoàn toàn (ví dụ mới mở web)
+      if (currentVideoId === null && playlist.length > 0) {
+        checkAndPlay();
+      }
+    });
+
+    // 2. Lắng nghe lệnh điều khiển
+    db.ref(`rooms/${roomCode}/command`).on('value', snapshot => {
+      const cmdData = snapshot.val();
+      if (cmdData) {
+        executeCommand(cmdData);
+        db.ref(`rooms/${roomCode}/command`).remove();
+      }
+    });
+  }
+      function updateUI() {
+        const listEl = document.getElementById('playlistDisplay');
+        const titleEl = document.getElementById('scrollingTitle');
+        listEl.innerHTML = "";
+        
+        if (playlist.length === 0) {
+            titleEl.textContent = "🕒 Chờ bài hát...";
+            return;
+        }
+        
+        // Cập nhật tên bài đang phát
+        titleEl.textContent = "🎵 " + playlist[0].title;
+        
+        // Cập nhật danh sách tiếp theo (Bỏ qua bài đầu tiên)
+        for (let i = 1; i < Math.min(playlist.length, 11); i++) {
+          const li = document.createElement('li');
+          // THÊM SỐ THỨ TỰ TẠI ĐÂY
+          li.innerText = `${i}. ${playlist[i].title}`;
+          listEl.appendChild(li);
+        }
+      }
+
+function checkAndPlay() {
+    if (!isPlayerReady || playlist.length === 0) return;
+    const topSong = playlist[0];
+    currentVideoId = topSong.videoId;
+    player.loadVideoById(currentVideoId);
+  }
+
+
+        function onPlayerStateChange(event) {
+        if (event.data === YT.PlayerState.ENDED) {
+            currentVideoId = null;
+            if (playlist.length > 0) {
+                removeCurrentSong();
+            } else {
+                player.playVideo(); // Loop bài chờ nếu không có nhạc
+            }
+        } else if (event.data === YT.PlayerState.PLAYING) {
+            isPlaying = true;
+        } else if (event.data === YT.PlayerState.PAUSED) {
+            isPlaying = false;
+        }
+      }
+
+      function onPlayerError(event) {
+        console.error("YouTube Error Code:", event.data);
+        // Tự động qua bài sau 2 giây nếu lỗi
+        setTimeout(() => {
+            if(playlist.length > 0) removeCurrentSong();
+        }, 2000);
+      }
+
+function removeCurrentSong() {
+    if (playlist.length === 0) return;
+
+    // Bước 1: Xác định bài sắp được phát (bài thứ 2 trong danh sách, index 1)
+    // Vì ta chuẩn bị xóa bài đầu tiên (index 0)
+    let nextSongToPlay = null;
+    if (playlist.length > 1) {
+      nextSongToPlay = playlist[1]; // Đây chính là bài "waiting" đầu tiên
+    }
+
+    // Bước 2: Xóa bài đang phát hiện tại trên Firebase (index 0)
+    const currentKey = playlist[0].key;
+    db.ref(`rooms/${roomCode}/playlist/${currentKey}`).remove().then(() => {
+      
+      // Bước 3: ÉP PLAYER PHÁT NGAY BÀI KẾ TIẾP
+      if (nextSongToPlay) {
+        console.log("Next: Đang ép Play Now bài:", nextSongToPlay.title);
+        currentVideoId = nextSongToPlay.videoId; // Cập nhật ID hiện tại
+        player.loadVideoById(currentVideoId);    // Lệnh Play Now thực thụ
+        showToast("⏭ Đang phát: " + nextSongToPlay.title);
+      } else {
+        // Nếu không còn bài nào nữa
+        currentVideoId = null;
+        player.stopVideo();
+        showToast("📭 Hết bài chờ");
+      }
+    });
+  }
+
+      function togglePlayPause() {
+        if (!player || !isPlayerReady) return;
+        const state = player.getPlayerState();
+        if (state === YT.PlayerState.PLAYING) {
+          player.pauseVideo();
+          isPlaying = false;
+        } else {
+          player.playVideo();
+          isPlaying = true;
+        }
+      }
+      
+      function resetRoomCode() {
+        localStorage.removeItem('roomCode');
+        location.reload();
+      }
+
+      function executeCommand(cmdData) {
+  if (!player || !isPlayerReady) return;
+  
+  // Xác định kiểu lệnh (Hỗ trợ cả object {type: '...'} và chuỗi đơn thuần '...')
+  const type = (typeof cmdData === 'object') ? cmdData.type : cmdData;
+
+  try {
+    switch (type) {
+      case 'PLAY_NOW': 
+        currentVideoId = cmdData.videoId; 
+        player.loadVideoById(cmdData.videoId);
+        showToast("⚡ Phát ngay lập tức!");
+        break;
+        
+      case 'PLAY': 
+        player.playVideo(); 
+        showToast("▶️ Tiếp tục");
+        break;
+        
+      case 'PAUSE': 
+        player.pauseVideo(); 
+        showToast("⏸ Tạm dừng");
+        break;
+        
+        case 'NEXT': 
+        showToast("⏭ Đang chuyển bài...");
+        removeCurrentSong(); 
+        break;
+        
+      case 'VOL_UP': 
+        player.setVolume(Math.min(player.getVolume() + 10, 100)); 
+        showToast("🔊 Tăng âm lượng");
+        break;
+        
+      case 'VOL_DOWN': 
+        player.setVolume(Math.max(player.getVolume() - 10, 0)); 
+        showToast("🔉 Giảm âm lượng");
+        break;
+      // Thêm vào trong switch(type) của hàm executeCommand trong player1c.html
+case 'SET_HD':
+  if (player && player.setPlaybackQuality) {
+    player.setPlaybackQuality('medium'); // Yêu cầu 720p
+    showToast("📺 Đã yêu cầu chất lượng 720p");
+  }
+  break;
+    }
+  } catch (e) { 
+    console.error("Lỗi thực thi lệnh:", e); 
+  }
+}
+
+      function showToast(message) {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.className = 'show';
+        setTimeout(() => toast.className = '', 2000);
+      }
+    </script>
+  
+</body></html>
