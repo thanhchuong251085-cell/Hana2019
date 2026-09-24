@@ -1,387 +1,365 @@
-<!DOCTYPE html><html lang="vi"><head>
+<!DOCTYPE html>
+<html lang="vi">
+<head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KARAOKE HOME</title>
-  <link rel="manifest" href="./manifest.json">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="theme-color" content="#cc0000">
-  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600&amp;display=swap" rel="stylesheet">
+  <title>Winamp Player</title>
   <style>
-    body {
-      margin: 0;
-      font-family: 'Baloo 2', cursive;
-      background: linear-gradient(to right, #1e3c72, #2a5298);
-      color: white;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      background-image: url('https://images.unsplash.com/photo-1534682309381-436a7edcd9c4?auto=format&fit=crop&w=1470&q=80');
-      background-size: cover;
-      background-position: center;
-      position: relative;
-      overflow: hidden;
+    :root {
+      --bg-color: #121214;
+      --panel-bg: #222328;
+      --panel-border: #44454d;
+      --display-bg: #0f170f;
+      --text-green: #00ff66;
+      --text-orange: #ff9900;
+      --accent: #00cc55;
     }
 
-    .overlay {
-      background-color: rgba(0, 0, 0, 0.6);
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      z-index: 0;
-    }
-
-    .container {
-      position: relative;
-      z-index: 1;
-      text-align: center;
-      padding: 2rem;
-      max-width: 100%;
+    * {
       box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Courier New', Courier, monospace;
     }
 
-    h1 {
-      font-size: 2.5rem;
-      margin-bottom: 1rem;
+    body {
+      background-color: var(--bg-color);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
       color: #fff;
-      text-shadow: 2px 2px 5px #000;
-      animation: shake 2s infinite alternate;
-      overflow-wrap: break-word;
-      word-wrap: break-word;
-      max-width: 90vw;
-      text-align: center;
+      padding: 20px;
     }
 
-    @keyframes shake {
-      0% { transform: translateX(0); }
-      25% { transform: translateX(2px); }
-      50% { transform: translateX(-2px); }
-      75% { transform: translateX(2px); }
-      100% { transform: translateX(0); }
+    /* Khung máy nghe nhạc Winamp */
+    .winamp-container {
+      width: 360px;
+      background-color: var(--panel-bg);
+      border: 3px solid var(--panel-border);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+      border-radius: 4px;
+      padding: 12px;
     }
 
-    .buttons {
-      display: flex;
-      flex-direction: column;
-      gap: 1.5rem;
-      margin-top: 2rem;
-      align-items: center;
-    }
-
-    .buttons a {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.75rem;
-      background-color: #ff4b2b;
-      color: white;
-      padding: 1rem 2rem;
-      border-radius: 2rem;
-      font-size: 1.2rem;
-      text-decoration: none;
-      transition: background 0.3s ease;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-      width: 100%;
-      max-width: 300px;
-    }
-
-    .buttons a:hover {
-      background-color: #ff3a1a;
-    }
-
-    .buttons a svg {
-      width: 24px;
-      height: 24px;
-    }
-
-    @media (min-width: 768px) {
-      .buttons {
-        flex-direction: row;
-      }
-
-      .buttons a {
-        width: auto;
-      }
-    }
-
-    /* --- CSS mới cho QR code và chữ --- */
- .qr-cafe {
-  position: fixed;
-  top: 15px;
-  left: 15px;
-  z-index: 10;
-  display: flex;
-  flex-direction: column; /* Sắp xếp chữ và ảnh theo chiều dọc */
-  align-items: left;    /* Căn giữa nội dung ngang */
-  text-align: left;     /* Căn giữa chữ */
-}
-
-.qr-info {
-  display: flex;
-  flex-direction: column;
-  align-items: left; /* Căn giữa cụm chữ */
-  margin: 0;           /* Bỏ margin bên trái/phải */
-  padding-left: 1px;
-}
-
-.qr-cafe-text-main {
-  color: #ffdd00; /* Màu chữ vàng tươi */
-  font-size: 1rem;
-  font-weight: bold;
-  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
-  animation: bounce 1.5s infinite; /* Hiệu ứng động */
-  opacity: 0.92;
-  margin-bottom: 5px; /* Khoảng cách giữa 2 dòng chữ */
-}
-
-    .qr-cafe-text-sub {
-      color: #add8e6; /* Màu xanh nhạt cho dòng tải về */
-      font-size: 0.75rem;
-      text-decoration: underline;
-      cursor: pointer;
-      opacity: 0.9;
-      transition: opacity 0.3s;
-    }
-    
-    .qr-cafe-text-sub:hover {
-        opacity: 1;
-    }
-    
-    .qr-cafe-image-container {
-        margin-top: 5px; /* Khoảng cách giữa chữ và QR code */
-    }
-
-    .qr-cafe img {
-      width: 120px;
-      height: 120px;
-      opacity: 99.2; /* Mờ 80% */
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
-      transition: opacity 0.3s, transform 0.3s;
-      display: block;
-    }
-
-    .qr-cafe:hover img {
-      opacity: 1; /* Rõ 100% khi di chuột */
-      transform: scale(1.1); /* Phóng to nhẹ khi di chuột */
-    }
-
-    /* Hiệu ứng động vui vẻ cho chữ chính */
-    @keyframes bounce {
-      0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
-      40% {transform: translateY(-5px) rotate(1deg);}
-      60% {transform: translateY(-2px) rotate(-1deg);}
-    }
-    /* CSS mới cho Popup ảnh phóng to */
-    #qr-modal-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.9); /* Nền đen đậm mờ */
-      display: none; /* Ẩn mặc định */
-      justify-content: center;
-      align-items: center;
-      z-index: 9999; /* Luôn nằm trên cùng */
-      cursor: pointer; /* Cho biết có thể đóng */
-    }
-
-    #qr-modal-overlay img {
-      max-width: 90%;
-      max-height: 90%;
-      border-radius: 8px;
-      box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
-    }
-    /* --- Hết CSS cho Popup --- */
-    
-    /* Căn chỉnh lại để QR code không còn là liên kết download */
-    .qr-cafe-image-container a {
-      cursor: zoom-in; /* Con trỏ phóng to khi chạm/nhấn */
-    }
-
-    
-    /* --- END CSS mới cho QR code và chữ --- */
-
-    /* --- CSS mới cho Phần Tải App (Góc trên bên phải) --- */
-    .app-download-links {
-      position: fixed;
-      top: 15px;
-      right: 15px; /* Căn lề phải */
-      z-index: 10;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end; /* Căn lề phải cho cụm chữ */
-      text-align: right;
-    }
-
-    .app-download-links a {
-      color: #38bdf8; /* Màu xanh da trời sáng */
-      font-size: 0.95rem;
+    .winamp-header {
+      background: linear-gradient(90deg, #101530, #3a4570);
+      padding: 4px 8px;
       font-weight: bold;
-      text-decoration: none; /* Bỏ gạch chân mặc định */
-      margin-bottom: 5px;
+      font-size: 12px;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+      border: 1px solid #556699;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* Màn hình hiển thị LED */
+    .display-screen {
+      background-color: var(--display-bg);
+      border: 2px inset #333;
+      padding: 10px;
+      margin-bottom: 12px;
+      border-radius: 2px;
+    }
+
+    .track-title {
+      color: var(--text-green);
+      font-size: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 6px;
+      text-shadow: 0 0 5px rgba(0, 255, 102, 0.5);
+    }
+
+    .time-info {
+      color: var(--text-orange);
+      font-size: 18px;
+      font-weight: bold;
+      text-shadow: 0 0 5px rgba(255, 153, 0, 0.5);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* Thanh tiến trình (Progress bar) */
+    .progress-container {
+      width: 100%;
+      background: #333;
+      height: 8px;
+      margin-top: 8px;
+      cursor: pointer;
+      border: 1px solid #555;
+    }
+
+    .progress-bar {
+      width: 0%;
+      height: 100%;
+      background: var(--text-green);
+    }
+
+    /* Bảng điều khiển nút bấm */
+    .controls {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .btn {
+      background: linear-gradient(180deg, #444, #222);
+      color: #fff;
+      border: 1px solid #666;
+      padding: 6px 12px;
+      font-size: 11px;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 2px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+
+    .btn:active {
+      background: #111;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);
+    }
+
+    /* Thanh âm lượng */
+    .volume-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: #aaa;
+      margin-bottom: 12px;
+    }
+
+    .volume-slider {
+      flex-grow: 1;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    /* Danh sách phát nhạc (Playlist) */
+    .playlist-title {
+      font-size: 11px;
+      color: #888;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+    }
+
+    .playlist {
+      background-color: #000;
+      border: 1px solid #444;
+      height: 180px;
+      overflow-y: auto;
+      list-style: none;
+    }
+
+    .playlist li {
       padding: 5px 8px;
-      border-radius: 5px;
-      text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
-      background: rgba(0, 0, 0, 0.2); /* Nền mờ nhẹ cho dễ đọc */
-      transition: background 0.3s, color 0.3s, transform 0.2s;
-      
-      /* Hiệu ứng vui vẻ: Hơi rung nhẹ/lắc lư khi đứng yên */
-      animation: gentle-wobble 4s ease-in-out infinite; 
+      font-size: 11px;
+      color: var(--text-green);
+      cursor: pointer;
+      border-bottom: 1px solid #111;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
-    .app-download-links a:hover {
-      background: rgba(0, 0, 0, 0.5); /* Nền đậm hơn khi di chuột */
-      color: #ffffff; /* Chữ trắng sáng khi di chuột */
-      transform: scale(1.05); /* Phóng to nhẹ khi di chuột */
+    .playlist li:hover {
+      background-color: #112211;
     }
 
-    /* Hiệu ứng động lắc lư nhẹ */
-    @keyframes gentle-wobble {
-      0%, 100% { transform: rotate(0deg); }
-      25% { transform: rotate(0.5deg); }
-      75% { transform: rotate(-0.5deg); }
+    .playlist li.active {
+      background-color: #004411;
+      color: #fff;
+      font-weight: bold;
     }
-    /* --- END CSS mới cho Phần Tải App --- */
 
-    
-
+    /* Tùy chỉnh thanh cuộn playlist */
+    .playlist::-webkit-scrollbar {
+      width: 6px;
+    }
+    .playlist::-webkit-scrollbar-thumb {
+      background: #444;
+    }
   </style>
-
-  <!-- Google tag (gtag.js) -->
-<script async="" src="https://www.googletagmanager.com/gtag/js?id=G-JCB7VEJF1Y"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-JCB7VEJF1Y');
-</script>
 </head>
 <body>
-<div id="qr-modal-overlay" onclick="closeQRModal()">
-    <img src="images/image_19ec01.png" alt="QR Code Phóng To">
-  </div>
-  <div class="qr-cafe" title="Chạm để phóng to mã QR">
-    <div class="qr-info">
-      <span class="qr-cafe-text-main">Cà phê cho coder nhé ☕️😊</span>
-      <a href="images/image_19ec01.png" download="QR_chuyen_khoan_cafe.png" class="qr-cafe-text-sub">
-        Tải QR chuyển khoản
-      </a>
+
+  <div class="winamp-container">
+    <div class="winamp-header">
+      <span>WINAMP</span>
+      <span>v1.0</span>
     </div>
 
-    <div class="qr-cafe-image-container">
-      <a href="#" onclick="openQRModal(event)">
-        <img src="images/image_19ec01.png" alt="QR Code Mời Cafe (Chuyển khoản)">
-      </a>
+    <!-- Màn hình LED -->
+    <div class="display-screen">
+      <div class="track-title" id="trackTitle">Chưa chọn bài hát</div>
+      <div class="time-info">
+        <span id="currentTime">00:00</span>
+        <span id="duration">00:00</span>
+      </div>
+      <div class="progress-container" id="progressContainer">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
     </div>
+
+    <!-- Nút điều khiển -->
+    <div class="controls">
+      <button class="btn" onclick="prevTrack()">|&#9664;</button>
+      <button class="btn" onclick="playTrack()">&#9654;</button>
+      <button class="btn" onclick="pauseTrack()">&#10074;&#10074;</button>
+      <button class="btn" onclick="stopTrack()">&#9632;</button>
+      <button class="btn" onclick="nextTrack()">&#9654;|</button>
+    </div>
+
+    <!-- Âm lượng -->
+    <div class="volume-container">
+      <span>VOL</span>
+      <input type="range" class="volume-slider" id="volumeSlider" min="0" max="1" step="0.01" value="0.8" oninput="changeVolume(this.value)">
+    </div>
+
+    <!-- Danh sách 30 bài hát -->
+    <div class="playlist-title">Danh sách bài hát</div>
+    <ul class="playlist" id="playlist"></ul>
   </div>
 
-  <!-- PHẦN TẢI APP MỚI (Góc trên bên phải) -->
-  <div class="app-download-links">
-    <!-- Link 1: Tải app cho TV -->
-    <a href="TV_Karaoke.apk" target="_blank" title="Ứng dụng Karaoke cho Android TV">
-      Tải app cho Android TV 📺
-    </a>
-    <!-- Link 2: Tải app Remote -->
-    <a href="Karaoke_v.apk" target="_blank" title="Ứng dụng điều khiển từ xa bằng điện thoại">
-      Tải app Remote bằng ĐT 📱
-    </a>
-    <!--   <a href="https://music4fun.vercel.app/Kara.apk" target="_blank" title="Ứng dụng điều khiển từ xa bằng điện thoại">
-      Tải app V2 cho Android TV 📺
-    </a> -->
-            <a href="https://drive.google.com/file/d/11VeH2fk1JbyJw6wzBs-iyt902-i4kkDP/view?usp=sharing" target="_blank" title="Cài Cốc cốc Browser TV">
-      Cài Cốc cốc Browser TV 📺
-    </a>
-    <a href="karaokeHomev2.apk" target="_blank" title="Ứng dụng điều khiển từ xa bằng điện thoại">
-      Tải app V2 Remote bằng ĐT 📱
-    </a>
-  </div>
-  <!-- KẾT THÚC PHẦN TẢI APP MỚI -->
-  
-  <div class="overlay"></div>
-  <div class="container">
-    <h1>🎵 Music for Fun 🎤</h1>
-    <div class="buttons">
-      <a href="remote1.html" target="_blank">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-6h13v6M9 5v6h13V5M3 17h.01M3 5h.01"></path>
-        </svg>
-        Điều khiển bài hát
-      </a>
-      <a href="player1.html" target="_blank">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-6.518-3.757A1 1 0 007 8.157v7.686a1 1 0 001.234.97l6.518-1.757a1 1 0 00.518-.97v-2.918a1 1 0 00-.518-.97z"></path>
-        </svg>
-        Xem và phát karaoke
-      </a>
-    </div>
-  </div>
+  <!-- Thẻ audio ẩn xử lý phát nhạc -->
+  <audio id="audioPlayer"></audio>
+
   <script>
-    // ... Phần JavaScript cũ của bạn ...
+    // 1. Khai báo danh sách 30 bài hát (thay tên file thực tế vào đây)
+    const playlistData = [
+      { title: "01. Bài hát số 1", src: "mp3/song1.mp3" },
+      { title: "02. Bài hát số 2", src: "mp3/song2.mp3" },
+      { title: "03. Bài hát số 3", src: "mp3/song3.mp3" },
+      { title: "04. Bài hát số 4", src: "mp3/song4.mp3" },
+      { title: "05. Bài hát số 5", src: "mp3/song5.mp3" },
+      { title: "06. Bài hát số 6", src: "mp3/song6.mp3" },
+      { title: "07. Bài hát số 7", src: "mp3/song7.mp3" },
+      { title: "08. Bài hát số 8", src: "mp3/song8.mp3" },
+      { title: "09. Bài hát số 9", src: "mp3/song9.mp3" },
+      { title: "10. Bài hát số 10", src: "mp3/song10.mp3" },
+      { title: "11. Bài hát số 11", src: "mp3/song11.mp3" },
+      { title: "12. Bài hát số 12", src: "mp3/song12.mp3" },
+      { title: "13. Bài hát số 13", src: "mp3/song13.mp3" },
+      { title: "14. Bài hát số 14", src: "mp3/song14.mp3" },
+      { title: "15. Bài hát số 15", src: "mp3/song15.mp3" },
+      { title: "16. Bài hát số 16", src: "mp3/song16.mp3" },
+      { title: "17. Bài hát số 17", src: "mp3/song17.mp3" },
+      { title: "18. Bài hát số 18", src: "mp3/song18.mp3" },
+      { title: "19. Bài hát số 19", src: "mp3/song19.mp3" },
+      { title: "20. Bài hát số 20", src: "mp3/song20.mp3" },
+      { title: "21. Bài hát số 21", src: "mp3/song21.mp3" },
+      { title: "22. Bài hát số 22", src: "mp3/song22.mp3" },
+      { title: "23. Bài hát số 23", src: "mp3/song23.mp3" },
+      { title: "24. Bài hát số 24", src: "mp3/song24.mp3" },
+      { title: "25. Bài hát số 25", src: "mp3/song25.mp3" },
+      { title: "26. Bài hát số 26", src: "mp3/song26.mp3" },
+      { title: "27. Bài hát số 27", src: "mp3/song27.mp3" },
+      { title: "28. Bài hát số 28", src: "mp3/song28.mp3" },
+      { title: "29. Bài hát số 29", src: "mp3/song29.mp3" },
+      { title: "30. Bài hát số 30", src: "mp3/song30.mp3" }
+    ];
 
-    // --- Chức năng Popup/Modal cho QR code ---
-function openQRModal(event) {
-    // Ngăn chặn hành vi mặc định của thẻ <a> (lên đầu trang)
-    event.preventDefault(); 
-    
-    const modal = document.getElementById('qr-modal-overlay');
-    modal.style.display = 'flex';
-}
+    let currentTrackIndex = 0;
+    const audio = document.getElementById('audioPlayer');
+    const playlistElement = document.getElementById('playlist');
+    const trackTitle = document.getElementById('trackTitle');
+    const currentTimeElement = document.getElementById('currentTime');
+    const durationElement = document.getElementById('duration');
+    const progressBar = document.getElementById('progressBar');
+    const progressContainer = document.getElementById('progressContainer');
 
-function closeQRModal() {
-    const modal = document.getElementById('qr-modal-overlay');
-    // Đóng Modal khi người dùng nhấn vào bất cứ đâu trên lớp phủ
-    modal.style.display = 'none';
-}
+    // 2. Khởi tạo danh sách phát
+    function initPlaylist() {
+      playlistData.forEach((track, index) => {
+        const li = document.createElement('li');
+        li.textContent = track.title;
+        li.onclick = () => selectTrack(index);
+        playlistElement.appendChild(li);
+      });
+      loadTrack(currentTrackIndex);
+    }
 
-// Ngăn chặn việc nhấn vào ảnh trong modal mà không đóng modal (chỉ đóng khi nhấn vào nền)
-document.getElementById('qr-modal-overlay').querySelector('img').onclick = function(e) {
-    e.stopPropagation();
-};
-// --- Hết chức năng Popup/Modal ---
-
-    // --- ĐĂNG KÝ SERVICE WORKER (CHO PWA) ---
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-          .then(registration => {
-            console.log('SW registered: ', registration);
-          })
-          .catch(registrationError => {
-            console.log('SW registration failed: ', registrationError);
-          });
+    // 3. Tải bài hát
+    function loadTrack(index) {
+      currentTrackIndex = index;
+      audio.src = playlistData[index].src;
+      trackTitle.textContent = playlistData[index].title;
+      
+      // Cập nhật trạng thái active trong danh sách
+      const items = playlistElement.querySelectorAll('li');
+      items.forEach((item, i) => {
+        item.classList.toggle('active', i === index);
       });
     }
-    // --- END ĐĂNG KÝ SERVICE WORKER ---
+
+    function playTrack() {
+      audio.play();
+    }
+
+    function pauseTrack() {
+      audio.pause();
+    }
+
+    function stopTrack() {
+      audio.pause();
+      audio.currentTime = 0;
+    }
+
+    function prevTrack() {
+      currentTrackIndex = (currentTrackIndex - 1 + playlistData.length) % playlistData.length;
+      loadTrack(currentTrackIndex);
+      playTrack();
+    }
+
+    function nextTrack() {
+      currentTrackIndex = (currentTrackIndex + 1) % playlistData.length;
+      loadTrack(currentTrackIndex);
+      playTrack();
+    }
+
+    function selectTrack(index) {
+      loadTrack(index);
+      playTrack();
+    }
+
+    function changeVolume(val) {
+      audio.volume = val;
+    }
+
+    // Format thời gian (giây -> phút:giây)
+    function formatTime(seconds) {
+      if (isNaN(seconds)) return "00:00";
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}`;
+    }
+
+    // Cập nhật thời gian phát
+    audio.addEventListener('timeupdate', () => {
+      currentTimeElement.textContent = formatTime(audio.currentTime);
+      durationElement.textContent = formatTime(audio.duration);
+      const progressPercent = (audio.currentTime / audio.duration) * 100;
+      progressBar.style.width = `${progressPercent}%`;
+    });
+
+    // Tua nhạc khi click vào thanh tiến trình
+    progressContainer.addEventListener('click', (e) => {
+      const width = progressContainer.clientWidth;
+      const clickX = e.offsetX;
+      const duration = audio.duration;
+      if (duration) {
+        audio.currentTime = (clickX / width) * duration;
+      }
+    });
+
+    // Tự động chuyển bài khi hết nhạc
+    audio.addEventListener('ended', nextTrack);
+
+    // Chạy khi trang tải xong
+    window.onload = initPlaylist;
   </script>
-<!-- Added by website-downloader.com to the free version of this archive. -->
-<div style="position:fixed;left:12px;bottom:12px;z-index:2147483647;font:13px/1.4 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#ffffff;color:#0f172a;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 2px 8px rgba(15,23,42,.12);padding:8px 12px;max-width:280px">
-  <a href="https://website-downloader.com" style="color:#2563eb;text-decoration:underline;font-weight:600" target="_blank" rel="noopener">website-downloader.com</a>
-  <span style="color:#475569"> — saved offline for free</span>
-</div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-</body></html>
+</body>
+</html>
