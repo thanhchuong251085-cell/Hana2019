@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lotus Player - Truyền Hình Trực Tuyến</title>
+    <!-- Thư viện Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Thư viện HLS.js giúp Firefox/Chrome xem được file .m3u8 trực tiếp -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+        .channel-btn.active {
+            background-color: #2563eb;
+            color: #ffffff;
+            font-weight: bold;
+            border-left: 4px solid #ef4444;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex flex-col font-sans">
+
+    <!-- Thanh tiêu đề (Header) -->
+    <header class="bg-gray-800 px-4 py-3 border-b border-gray-700 flex justify-between items-center shadow-lg">
+        <h1 class="text-xl font-bold text-red-500 flex items-center gap-2">
+            📺 LOTUS PLAYER
+        </h1>
+        <span id="current-title" class="text-sm bg-gray-700 px-3 py-1 rounded-full text-gray-200">
+            Đang phát: THVL 1 HD
+        </span>
+    </header>
+
+    <!-- Khung nội dung chính -->
+    <div class="flex-1 flex flex-col md:flex-row">
+        
+        <!-- Khung xem Video (Player tích hợp kép cả Video lẫn Iframe) -->
+        <div class="flex-1 bg-black relative min-h-[300px] md:min-h-[500px] flex items-center justify-center">
+            <!-- Trình phát Video M3U8 cho Firefox/Chrome/Safari -->
+            <video id="html5-video" controls autoplay class="w-full h-full absolute inset-0 object-contain hidden"></video>
+
+            <!-- Trình phát Iframe cho các trang Web Embed -->
+            <iframe 
+                id="iframe-player" 
+                src="https://www.thvli.vn/live/thvl1-hd" 
+                class="w-full h-full absolute inset-0 border-0"
+                allow="autoplay; encrypted-media; fullscreen" 
+                allowfullscreen>
+            </iframe>
+        </div>
+
+        <!-- Danh sách kênh phân loại theo nhóm -->
+        <div class="w-full md:w-80 bg-gray-800 p-4 border-t md:border-t-0 md:border-l border-gray-700 flex flex-col">
+            <h2 class="text-base font-semibold mb-3 text-gray-300 border-b border-gray-700 pb-2 flex justify-between items-center">
+                <span>DANH SÁCH KÊNH</span>
+                <span class="text-xs bg-red-600 px-2 py-0.5 rounded text-white">LIVE</span>
+            </h2>
+            
+            <div id="channel-list" class="flex flex-col gap-2 overflow-y-auto max-h-[450px] md:max-h-full pr-1">
+                <!-- Danh sách kênh sinh tự động -->
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Chân trang -->
+    <footer class="bg-gray-800 py-2 text-center text-xs text-gray-400 border-t border-gray-700">
+        Lotus Player © 2026 - Tự động phát trực tuyến đa nền tảng
+    </footer>
+
+    <!-- Script xử lý danh sách kênh & Trình phát đa năng -->
+    <script>
+        const channels = [
+            // --- NHÓM TRUYỀN HÌNH VĨNH LONG (THVL) ---
+            { group: "TRUYỀN HÌNH VĨNH LONG (THVL)", name: "THVL 1 HD", url: "https://www.thvli.vn/live/thvl1-hd" },
+            { group: "TRUYỀN HÌNH VĨNH LONG (THVL)", name: "THVL 2 HD", url: "https://www.thvli.vn/live/thvl2-hd" },
+            { group: "TRUYỀN HÌNH VĨNH LONG (THVL)", name: "THVL 3 HD", url: "https://www.thvli.vn/live/thvl3-hd" },
+            { group: "TRUYỀN HÌNH VĨNH LONG (THVL)", name: "THVL 4 HD", url: "https://www.thvli.vn/live/thvl4-hd" },
+
+            // --- NHÓM KÊNH VTV (ĐÀI TRUYỀN HÌNH VIỆT NAM) ---
+            { group: "ĐÀI TRUYỀN HÌNH VIỆT NAM (VTV)", name: "VTV Home", url: "https://vtvgo.vn/xem-truc-tuyen/vtv1-1.html" },
+            { group: "ĐÀI TRUYỀN HÌNH VIỆT NAM (VTV)", name: "VTV1 HD", url: "https://live.fptplay53.net/live/media/vtv1/live247-hls-avc/vtv1-avc1_5600000=10000-mp4a_131600=20000.m3u8" },
+            { group: "ĐÀI TRUYỀN HÌNH VIỆT NAM (VTV)", name: "VTV2 HD", url: "https://vips-livecdn.fptplay.net/live/media/vtv2/live247-hls-avc/vtv2-avc1_5600000=10000-mp4a_131600=20000.m3u8" },
+            { group: "ĐÀI TRUYỀN HÌNH VIỆT NAM (VTV)", name: "VTV3 HD", url: "https://vips-livecdn.fptplay.net/live/media/vtv3/live247-hls-avc/vtv3-avc1_5600000=10000-mp4a_140800_vie=20000.m3u8" },
+            { group: "ĐÀI TRUYỀN HÌNH VIỆT NAM (VTV)", name: "VTV4 HD", url: "https://live.fptplay53.net/live/media/vtv4/live247-hls-avc/vtv4-avc1_5600000=10000-mp4a_131600=20000.m3u8" },
+            { group: "ĐÀI TRUYỀN HÌNH VIỆT NAM (VTV)", name: "VTV5 Quốc Gia", url: "https://live.fptplay53.net/live/media/vtv5/live247-hls-avc/vtv5-avc1_5600000=10000-mp4a_131600=20000.m3u8" },
+            { group: "ĐÀI TRUYỀN HÌNH VIỆT NAM (VTV)", name: "VTV5 Tây Nguyên", url: "https://live.fptplay53.net/live/media/vtv5tn/live-hls-avc/vtv5tn-avc1_4000000=10000-mp4a_131600=20000.m3u8" },
+            { group: "ĐÀI TRUYỀN HÌNH VIỆT NAM (VTV)", name: "VTV5 Tây Nam Bộ", url: "https://live.fptplay53.net/live/media/vtv5tnb/live-hls-avc/vtv5tnb-avc1_4000000=10000-mp4a_131600=20000.m3u8" },
+            { group: "ĐÀI TRUYỀN HÌNH VIỆT NAM (VTV)", name: "VTV6 HD", url: "https://vips-livecdn.fptplay.net/live/media/vtv6/live247-hls-avc/vtv6-avc1_5600000=10000-mp4a_140800_vie=20000.m3u8" },
+            { group: "ĐÀI TRUYỀN HÌNH VIỆT NAM (VTV)", name: "VTV7 HD", url: "https://vips-livecdn.fptplay.net/live/media/vtv7/live247-hls-avc/vtv7-avc1_5600000=10000-mp4a_140800_vie=20000.m3u8" },
+            { group: "ĐÀI TRUYỀN HÌNH VIỆT NAM (VTV)", name: "VTV8 HD", url: "https://vips-livecdn.fptplay.net/live/media/vtv8/live-hls-avc/vtv8-avc1_4000000=10000-mp4a_131600=20000.m3u8" },
+            { group: "ĐÀI TRUYỀN HÌNH VIỆT NAM (VTV)", name: "VTV9 HD", url: "https://vips-livecdn.fptplay.net/live/media/vtv9/live247-hls-avc/vtv9-avc1_5600000=10000-mp4a_140800_vie=20000.m3u8" },
+            { group: "ĐÀI TRUYỀN HÌNH VIỆT NAM (VTV)", name: "VTV10 HD", url: "https://vips-livecdn.fptplay.net/live/media/vtv10/live247-hls-avc/vtv10-avc1_5600000=10000-mp4a_131600=20000.m3u8" },
+            { group: "ĐÀI TRUYỀN HÌNH VIỆT NAM (VTV)", name: "VTV vietnamtoday", url: "https://live.fptplay53.net/fnxhd1/vntoday_vhls.smil/chunklist_b5000000.m3u8" },
+
+            // --- NHÓM KÊNH HTV & HTVC (TP. HỒ CHÍ MINH) ---
+            { group: "TRUYỀN HÌNH TP.HCM (HTV & HTVC)", name: "HTV1 (Thông tin public)", url: "https://hanoitv.vn/htv1-truc-tuyen.html" },
+            { group: "TRUYỀN HÌNH TP.HCM (HTV & HTVC)", name: "HTV2 (Vie Channel)", url: "https://hanoitv.vn/htv2-truc-tuyen.html" },
+            { group: "TRUYỀN HÌNH TP.HCM (HTV & HTVC)", name: "HTV3 (Thanh thiếu nhi)", url: "https://hanoitv.vn/htv3-truc-tuyen.html" },
+            { group: "TRUYỀN HÌNH TP.HCM (HTV & HTVC)", name: "HTV7 HD", url: "https://hanoitv.vn/htv7-truc-tuyen.html" },
+            { group: "TRUYỀN HÌNH TP.HCM (HTV & HTVC)", name: "HTV9 HD", url: "https://hanoitv.vn/htv9-truc-tuyen.html" },
+            { group: "TRUYỀN HÌNH TP.HCM (HTV & HTVC)", name: "HTV Thể Thao", url: "https://hanoitv.vn/htv-the-thao-truc-tuyen.html" },
+            { group: "TRUYỀN HÌNH TP.HCM (HTV & HTVC)", name: "HTVC Thuần Việt", url: "https://hanoitv.vn/htvc-thuan-viet-truc-tuyen.html" },
+            { group: "TRUYỀN HÌNH TP.HCM (HTV & HTVC)", name: "HTVC Gia Đình", url: "https://hanoitv.vn/htvc-gia-dinh-truc-tuyen.html" },
+            { group: "TRUYỀN HÌNH TP.HCM (HTV & HTVC)", name: "HTVC Phim", url: "https://hanoitv.vn/htvc-phim-truc-tuyen.html" },
+            { group: "TRUYỀN HÌNH TP.HCM (HTV & HTVC)", name: "HTVC Ca Nhạc", url: "https://hanoitv.vn/htvc-ca-nhac-truc-tuyen.html" },
+            { group: "TRUYỀN HÌNH TP.HCM (HTV & HTVC)", name: "HTVC Phụ Nữ", url: "https://hanoitv.vn/htvc-phu-nu-truc-tuyen.html" },
+            { group: "TRUYỀN HÌNH TP.HCM (HTV & HTVC)", name: "HTVC Du Lịch & Cuộc Sống", url: "https://hanoitv.vn/htvc-du-lich-truc-tuyen.html" },
+
+            // --- NHÓM KÊNH ĐỊA PHƯƠNG CÁC TỈNH THÀNH ---
+            { group: "KÊNH ĐỊA PHƯƠNG TỔNG HỢP", name: "Hà Nội 1 (HN1)", url: "https://hanoitv.vn/tv-truc-tuyen.html" },
+            { group: "KÊNH ĐỊA PHƯƠNG TỔNG HỢP", name: "Hà Nội 2 (HN2)", url: "https://hanoitv.vn/tv-truc-tuyen-2.html" },
+            { group: "KÊNH ĐỊA PHƯƠNG TỔNG HỢP", name: "Đồng Nai 1 (DN1)", url: "https://dnrtv.org.vn/tv-online/dn1.html" },
+            { group: "KÊNH ĐỊA PHƯƠNG TỔNG HỢP", name: "Đồng Nai 2 (DN2)", url: "https://dnrtv.org.vn/tv-online/dn2.html" },
+            { group: "KÊNH ĐỊA PHƯƠNG TỔNG HỢP", name: "Bình Dương (BTV1)", url: "https://btv.org.vn/truc-tuyen/btv1" },
+            { group: "KÊNH ĐỊA PHƯƠNG TỔNG HỢP", name: "Bình Dương (BTV2)", url: "https://btv.org.vn/truc-tuyen/btv2" },
+            { group: "KÊNH ĐỊA PHƯƠNG TỔNG HỢP", name: "Bà Rịa - Vũng Tàu (BRT)", url: "https://brt.vn/truc-tuyen" },
+            { group: "KÊNH ĐỊA PHƯƠNG TỔNG HỢP", name: "Long An (LA34)", url: "https://la34.com.vn/truc-tuyen" },
+            { group: "KÊNH ĐỊA PHƯƠNG TỔNG HỢP", name: "An Giang (ATV)", url: "https://atv.org.vn/truc-tuyen" },
+            { group: "KÊNH ĐỊA PHƯƠNG TỔNG HỢP", name: "Đà Nẵng (DaNangTV1)", url: "https://drt.danang.vn/truc-tuyen/danangtv1" }
+        ];
+
+        const videoPlayer = document.getElementById('html5-video');
+        const iframePlayer = document.getElementById('iframe-player');
+        const channelListContainer = document.getElementById('channel-list');
+        const currentTitle = document.getElementById('current-title');
+        let hlsInstance = null;
+
+        function renderChannels() {
+            channelListContainer.innerHTML = '';
+            let currentGroup = '';
+
+            channels.forEach((ch, index) => {
+                if (ch.group !== currentGroup) {
+                    currentGroup = ch.group;
+                    const groupTitle = document.createElement('div');
+                    groupTitle.className = 'text-xs font-bold text-yellow-400 mt-3 mb-1 uppercase tracking-wider border-b border-gray-700 pb-1';
+                    groupTitle.textContent = currentGroup;
+                    channelListContainer.appendChild(groupTitle);
+                }
+
+                const btn = document.createElement('button');
+                btn.className = `channel-btn w-full text-left p-2.5 rounded-lg bg-gray-700 hover:bg-gray-600 transition flex items-center justify-between ${index === 0 ? 'active' : ''}`;
+                btn.innerHTML = `
+                    <span class="text-sm">📺 ${ch.name}</span>
+                    <span class="text-[10px] bg-red-600 text-white px-1.5 py-0.5 rounded">LIVE</span>
+                `;
+                
+                btn.onclick = () => playChannel(ch, btn);
+                channelListContainer.appendChild(btn);
+            });
+        }
+
+        function playChannel(channel, selectedBtn) {
+            currentTitle.textContent = `Đang phát: ${channel.name}`;
+            
+            // Cập nhật trạng thái nút bấm
+            document.querySelectorAll('.channel-btn').forEach(b => b.classList.remove('active'));
+            selectedBtn.classList.add('active');
+
+            // Kiểm tra xem link chọn là đuôi .m3u8 hay link trang web
+            if (channel.url.includes('.m3u8')) {
+                // Tắt iframe, mở player video HTML5
+                iframePlayer.classList.add('hidden');
+                iframePlayer.src = 'about:blank';
+                videoPlayer.classList.remove('hidden');
+
+                // Dọn dẹp luồng phát cũ
+                if (hlsInstance) {
+                    hlsInstance.destroy();
+                }
+
+                // Phát luồng .m3u8 bằng Hls.js cho Firefox / Chrome
+                if (Hls.isSupported()) {
+                    hlsInstance = new Hls({
+                        enableWorker: true,
+                        lowLatencyMode: true
+                    });
+                    hlsInstance.loadSource(channel.url);
+                    hlsInstance.attachMedia(videoPlayer);
+                    hlsInstance.on(Hls.Events.MANIFEST_PARSED, function() {
+                        videoPlayer.play().catch(() => {});
+                    });
+                } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
+                    // Hỗ trợ native cho Safari trên iOS / macOS
+                    videoPlayer.src = channel.url;
+                    videoPlayer.play().catch(() => {});
+                }
+            } else {
+                // Tắt player video HTML5, mở iframe cho các link web embed
+                if (hlsInstance) {
+                    hlsInstance.destroy();
+                }
+                videoPlayer.pause();
+                videoPlayer.classList.add('hidden');
+                
+                iframePlayer.classList.remove('hidden');
+                iframePlayer.src = channel.url;
+            }
+        }
+
+        renderChannels();
+    </script>
+</body>
+</html>
