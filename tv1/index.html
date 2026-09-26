@@ -7,8 +7,15 @@
   <link rel="stylesheet" href="style.css">
   <!-- Font Awesome cho icon -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Thư viện hỗ trợ phát luồng m3u8 -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 </head>
 <body>
+
+  <!-- Khung phát Video -->
+  <div class="player-container">
+    <video id="video-player" controls autoplay></video>
+  </div>
 
   <!-- Header / Thanh công cụ -->
   <header class="app-header">
@@ -19,54 +26,99 @@
     
     <div class="search-bar">
       <i class="fa-solid fa-magnifying-glass search-icon"></i>
-      <input type="text" placeholder="Tìm kiếm..">
+      <input type="text" id="search-input" placeholder="Tìm kiếm..">
       <i class="fa-solid fa-microphone mic-icon"></i>
     </div>
 
     <div class="header-actions">
-      <button class="icon-btn"><i class="fa-solid fa-server"></i></button>
-      <button class="icon-btn"><i class="fa-solid fa-rotate-right"></i></button>
+      <button class="icon-btn" onclick="loadIPTV()"><i class="fa-solid fa-rotate-right"></i></button>
     </div>
   </header>
 
-  <!-- Thanh danh mục (Category Nav) -->
+  <!-- Thanh danh mục -->
   <nav class="category-bar">
     <button class="cat-item active">Tất cả</button>
-    <button class="cat-item">VTV</button>
-    <button class="cat-item">HTV</button>
-    <button class="cat-item">Sự Kiện TV360</button>
-    <button class="cat-item">Rạp Phim</button>
   </nav>
 
-  <!-- Danh sách kênh (Channel List) -->
-  <main class="channel-list">
-    
-    <div class="channel-item">
-      <img src="https://via.placeholder.com/60x40/e60012/ffffff?text=VTV1" alt="VTV1" class="channel-logo">
-      <span class="channel-title">VTV1 HD</span>
-    </div>
-
-    <div class="channel-item">
-      <img src="https://via.placeholder.com/60x40/e60012/ffffff?text=VTV2" alt="VTV2" class="channel-logo">
-      <span class="channel-title">VTV2 HD</span>
-    </div>
-
-    <div class="channel-item">
-      <img src="https://via.placeholder.com/60x40/e60012/ffffff?text=VTV3" alt="VTV3" class="channel-logo">
-      <span class="channel-title">VTV3 HD</span>
-    </div>
-
-    <div class="channel-item">
-      <img src="https://via.placeholder.com/60x40/e60012/ffffff?text=VTV4" alt="VTV4" class="channel-logo">
-      <span class="channel-title">VTV4 HD</span>
-    </div>
-
-    <div class="channel-item">
-      <img src="https://via.placeholder.com/60x40/e60012/ffffff?text=VTV5" alt="VTV5" class="channel-logo">
-      <span class="channel-title">VTV5 HD</span>
-    </div>
-
+  <!-- Danh sách kênh sẽ tự động đổ vào đây -->
+  <main class="channel-list" id="channel-list">
+    <p style="text-align: center; color: #888;">Đang tải danh sách kênh...</p>
   </main>
 
+  <script>
+    // 1. ĐIỀN LINK IPTV (.m3u HOẶC .m3u8) CỦA BẠN VÀO ĐÂY:
+    const iptvUrl = "https://raw.githubusercontent.com/thanhchuong251085-cell/Hana2019/main/tviptv.m3u"; 
+
+    const video = document.getElementById('video-player');
+    const channelListContainer = document.getElementById('channel-list');
+
+    // Hàm phát kênh khi bấm vào
+    function playStream(url) {
+      if (Hls.isSupported()) {
+        const hls = new Hls();
+        hls.loadSource(url);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, function() {
+          video.play();
+        });
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = url;
+        video.play();
+      }
+    }
+
+    // Hàm tải và giải mã file M3U IPTV
+    async function loadIPTV() {
+      try {
+        const response = await fetch(iptvUrl);
+        const data = await response.text();
+        parseM3U(data);
+      } catch (error) {
+        channelListContainer.innerHTML = `<p style="color:red; text-align:center;">Lỗi tải IPTV! Hãy kiểm tra link hoặc CORS.</p>`;
+      }
+    }
+
+    // Hàm đọc dữ liệu file M3U
+    function parseM3U(m3uText) {
+      const lines = m3uText.split('\n');
+      let channels = [];
+      let currentChannel = {};
+
+      lines.forEach(line => {
+        line = line.trim();
+        if (line.startsWith('#EXTINF:')) {
+          const nameMatch = line.split(',');
+          const logoMatch = line.match(/tvg-logo="(.*?)"/);
+          
+          currentChannel.name = nameMatch[nameMatch.length - 1] || 'Kênh không tên';
+          currentChannel.logo = logoMatch ? logoMatch[1] : 'https://via.placeholder.com/60x40/333/fff?text=TV';
+        } else if (line.length > 0 && !line.startsWith('#')) {
+          currentChannel.url = line;
+          channels.push(currentChannel);
+          currentChannel = {};
+        }
+      });
+
+      renderChannels(channels);
+    }
+
+    // Hàm hiển thị danh sách kênh ra giao diện
+    function renderChannels(channels) {
+      channelListContainer.innerHTML = '';
+      channels.forEach(channel => {
+        const item = document.createElement('div');
+        item.className = 'channel-item';
+        item.onclick = () => playStream(channel.url);
+        item.innerHTML = `
+          <img src="${channel.logo}" alt="${channel.name}" class="channel-logo" onerror="this.src='https://via.placeholder.com/60x40/333/fff?text=TV'">
+          <span class="channel-title">${channel.name}</span>
+        `;
+        channelListContainer.appendChild(item);
+      });
+    }
+
+    // Tự động tải danh sách khi mở trang
+    loadIPTV();
+  </script>
 </body>
 </html>
