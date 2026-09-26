@@ -5,30 +5,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; connect-src *; media-src * blob: data:; img-src * data:;">
-    <title>Lotus Player - Stream Engine</title>
-    <link rel="icon" href="favicon.png" type="image/png">
+    <title>Lotus Player - Dynamic Engine</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.7.11/shaka-player.compiled.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
-        :root {
-            --accent: #6366f1;
-            --accent-glow: rgba(99, 102, 241, 0.4);
-            --bg-deep: #050505;
-            --panel-bg: rgba(255, 255, 255, 0.03);
-            --glass-border: rgba(255, 255, 255, 0.08);
-            --text-main: #ededed;
-            --text-muted: #888888;
-        }
-
         body {
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            background-color: var(--bg-deep);
-            color: var(--text-main);
+            background-color: #08080c;
+            color: #ededed;
             height: 100vh;
             width: 100vw;
             overflow: hidden;
@@ -40,35 +28,20 @@
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 10px; }
 
         .glass-panel {
-            background: var(--panel-bg);
+            background: rgba(255, 255, 255, 0.03);
             backdrop-filter: blur(24px);
-            border: 1px solid var(--glass-border);
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
 
-        .channel-item {
-            transition: all 0.2s ease;
-            border: 1px solid transparent;
-        }
-
-        .channel-item:hover {
-            background: rgba(255, 255, 255, 0.05);
-            border-color: rgba(99, 102, 241, 0.2);
-        }
-
-        .channel-item.active {
-            background: rgba(99, 102, 241, 0.15) !important;
-            border-color: var(--accent) !important;
-        }
-
-        .category-tab.active {
-            background: var(--accent);
-            color: white;
-        }
+        .channel-item { transition: all 0.2s ease; border: 1px solid transparent; }
+        .channel-item:hover { background: rgba(255, 255, 255, 0.05); border-color: rgba(99, 102, 241, 0.2); }
+        .channel-item.active { background: rgba(99, 102, 241, 0.15) !important; border-color: #6366f1 !important; }
+        .category-tab.active { background: #6366f1; color: white; }
 
         #toast-container { position: fixed; top: 20px; right: 20px; z-index: 1000; }
         .toast {
             background: rgba(20, 20, 20, 0.95);
-            border: 1px solid var(--glass-border);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 10px;
             padding: 10px 14px;
             margin-bottom: 8px;
@@ -102,7 +75,7 @@
                 </div>
 
                 <div class="relative">
-                    <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted"></i>
+                    <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400"></i>
                     <input type="text" id="search-input" placeholder="Tìm kênh VTV, HTV, THVL..." class="w-full pl-9 pr-3 py-1.5 bg-black/40 border border-white/5 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500/40" oninput="filterChannels()">
                 </div>
             </div>
@@ -112,14 +85,14 @@
                 <ul id="channel-list" class="h-full overflow-y-auto p-2 space-y-1 custom-scrollbar">
                     <div id="empty-state" class="h-full flex flex-col items-center justify-center text-center p-6 opacity-40">
                         <i data-lucide="layout-list" class="w-10 h-10 mb-3"></i>
-                        <p class="text-xs">Chưa có danh sách kênh</p>
+                        <p class="text-xs">Bấm dấu (+) để tải danh sách kênh</p>
                     </div>
                 </ul>
             </div>
 
             <div class="p-3 bg-black/40 border-t border-white/5 flex items-center justify-between shrink-0">
-                <span id="channel-count" class="text-[10px] text-muted font-bold uppercase">0 Kênh</span>
-                <button onclick="clearList()" class="text-[10px] text-muted hover:text-red-400 font-bold uppercase">Xóa danh sách</button>
+                <span id="channel-count" class="text-[10px] text-gray-400 font-bold uppercase">0 Kênh</span>
+                <button onclick="clearList()" class="text-[10px] text-gray-400 hover:text-red-400 font-bold uppercase">Xóa danh sách</button>
             </div>
         </aside>
 
@@ -128,7 +101,7 @@
             <main class="w-full aspect-video landscape:aspect-auto landscape:flex-1 glass-panel rounded-2xl overflow-hidden relative bg-black">
                 <video id="video-player" class="w-full h-full object-contain" playsinline controls></video>
 
-                <!-- Status & CORS Resolver Overlay -->
+                <!-- Status Overlay -->
                 <div id="loading-overlay" class="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-md z-20 hidden text-white">
                     <div class="w-8 h-8 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin mb-3"></div>
                     <p id="loading-text" class="text-xs text-indigo-300 font-medium">Đang kết nối luồng phát...</p>
@@ -147,18 +120,18 @@
         <div class="bg-[#121212] border border-white/10 rounded-2xl p-5 w-full max-w-sm flex flex-col gap-4">
             <div class="flex items-center justify-between border-b border-white/5 pb-2">
                 <h2 class="text-white font-semibold text-xs flex items-center gap-2"><i data-lucide="list-plus" class="w-4 h-4 text-indigo-400"></i> Nguồn phát IPTV</h2>
-                <button onclick="closeAddDialog()" class="text-muted hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
+                <button onclick="closeAddDialog()" class="text-gray-400 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
             </div>
 
             <div class="grid grid-cols-1 gap-2">
                 <button onclick="loadPredefinedUrl('https://raw.githubusercontent.com/thanhchuong251085-cell/Hana2019/main/tviptv.m3u')" class="px-3 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 rounded-xl text-left transition-all">
-                    <div class="text-xs font-bold text-indigo-300">Playlist Tổng Hợp (VTV, HTV, THVL, Bóng Đá)</div>
-                    <div class="text-[10px] text-muted">Cập nhật link stream mượt mà</div>
+                    <div class="text-xs font-bold text-indigo-300">Playlist Tổng Hợp VTV, HTV, THVL, Địa Phương</div>
+                    <div class="text-[10px] text-gray-400">Nguồn luồng bypass mạng trực tiếp</div>
                 </button>
             </div>
 
             <div class="flex flex-col gap-1.5">
-                <span class="text-[10px] text-muted font-semibold">HOẶC DÁN LINK M3U THỦ CÔNG</span>
+                <span class="text-[10px] text-gray-400 font-semibold">HOẶC DÁN LINK M3U THỦ CÔNG</span>
                 <div class="flex gap-2">
                     <input type="text" id="url-input" placeholder="https://domain.com/playlist.m3u" class="flex-1 px-3 py-2 bg-black/50 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500">
                     <button onclick="loadFromUrl(); closeAddDialog();" class="bg-indigo-500 text-white px-3 py-2 rounded-xl text-xs font-bold">TẢI</button>
@@ -170,10 +143,10 @@
     <script>
         lucide.createIcons();
 
-        // CORS Proxies dùng để vượt rào cản chặn Web của nhà đài
-        const CORS_PROXIES = [
-            "", // Thử trực tiếp trước
-            "https://corsproxy.io/?" ,
+        // Danh sách Proxy ổn định và tối ưu nhất cho mạng Việt Nam
+        const PROXIES = [
+            "",
+            "https://corsproxy.io/?",
             "https://api.allorigins.win/raw?url="
         ];
 
@@ -200,7 +173,7 @@
             toast.innerHTML = `<i data-lucide="info" class="w-4 h-4 text-indigo-400"></i><span>${msg}</span>`;
             container.appendChild(toast);
             lucide.createIcons({ root: toast });
-            setTimeout(() => { if (container.contains(toast)) container.removeChild(toast); }, 3000);
+            setTimeout(() => { if (container.contains(toast)) container.removeChild(toast); }, 3500);
         }
 
         function parseM3U(text) {
@@ -247,9 +220,9 @@
                     </div>
                     <div class="flex-1 min-w-0">
                         <h3 class="text-xs font-semibold truncate ${isPlaying ? 'text-indigo-400' : 'text-white/90'}">${channel.name}</h3>
-                        <p class="text-[9px] text-muted uppercase">${channel.group}</p>
+                        <p class="text-[9px] text-gray-400 uppercase">${channel.group}</p>
                     </div>`;
-                li.onclick = () => playChannelWithProxy(channel);
+                li.onclick = () => playChannelSmart(channel);
                 channelListEl.appendChild(li);
             });
             lucide.createIcons({ root: channelListEl });
@@ -262,7 +235,7 @@
 
             groups.forEach(group => {
                 const btn = document.createElement('button');
-                btn.className = `category-tab px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase shrink-0 border border-white/5 ${currentCategory === group ? 'active' : 'bg-white/5 text-muted'}`;
+                btn.className = `category-tab px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase shrink-0 border border-white/5 ${currentCategory === group ? 'active' : 'bg-white/5 text-gray-400'}`;
                 btn.innerText = group;
                 btn.onclick = () => { currentCategory = group; renderCategoryTabs(); filterChannels(); };
                 tabsContainer.appendChild(btn);
@@ -298,63 +271,100 @@
             } catch { showToast('Lỗi khi tải file playlist.'); }
         }
 
-        // Kỹ thuật xoay vòng Proxy phát VTV/HTV/THVL dứt điểm CORS
-        async function playChannelWithProxy(channel) {
+        // Tự động vượt rào và chống treo xoay vòng
+        async function playChannelSmart(channel) {
             currentPlayingUrl = channel.url;
             filterChannels();
             loadingOverlay.classList.remove('hidden');
 
             if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
 
-            let streamSuccess = false;
+            let success = false;
 
-            for (let i = 0; i < CORS_PROXIES.length; i++) {
-                const proxy = CORS_PROXIES[i];
-                const targetUrl = proxy ? `${proxy}${encodeURIComponent(channel.url)}` : channel.url;
+            for (let i = 0; i < PROXIES.length; i++) {
+                const proxy = PROXIES[i];
+                const streamUrl = proxy ? `${proxy}${encodeURIComponent(channel.url)}` : channel.url;
                 
-                loadingText.innerText = i === 0 ? `Đang kết nối luồng trực tiếp...` : `Đang vượt rào cản CORS (Thử nghiệm ${i})...`;
+                loadingText.innerText = i === 0 ? `Đang kết nối luồng đài trực tiếp...` : `Đang vượt rào cản CDN (Cách ${i})...`;
 
-                const success = await attemptHLSPlay(targetUrl);
-                if (success) {
-                    streamSuccess = true;
-                    break;
-                }
+                success = await initHlsWithTimeout(streamUrl, 5000); // Giới hạn 5 giây cho mỗi phương án
+                if (success) break;
             }
 
             loadingOverlay.classList.add('hidden');
-            if (!streamSuccess) {
-                showToast(`Kênh ${channel.name} hiện tại bị chặn hoặc hỏng luồng phát.`);
+            if (!success) {
+                showToast(`Kênh ${channel.name} hiện tại đổi Token bảo mật hoặc ngắt luồng.`);
             }
         }
 
-        function attemptHLSPlay(url) {
+        // Khởi tạo HLS kết hợp bộ đếm Timeout ngắt treo
+        function initHlsWithTimeout(url, timeoutMs) {
             return new Promise((resolve) => {
+                let isResolved = false;
+                
+                const timer = setTimeout(() => {
+                    if (!isResolved) {
+                        isResolved = true;
+                        if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+                        resolve(false); // Báo thất bại khi xoay quá 5s
+                    }
+                }, timeoutMs);
+
                 if (Hls.isSupported()) {
                     const hls = new Hls({
                         enableWorker: true,
-                        manifestLoadingTimeOut: 8000,
-                        fragLoadingTimeOut: 10000
+                        lowLatencyMode: true,
+                        manifestLoadingTimeOut: 4000,
+                        manifestLoadingMaxRetry: 1,
+                        fragLoadingTimeOut: 4000,
+                        fragLoadingMaxRetry: 1,
+                        xhrSetup: function (xhr) {
+                            xhr.withCredentials = false;
+                        }
                     });
 
+                    hlsInstance = hls;
                     hls.loadSource(url);
                     hls.attachMedia(videoPlayer);
 
                     hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                        hlsInstance = hls;
-                        videoPlayer.play().catch(() => {});
-                        resolve(true);
+                        if (!isResolved) {
+                            videoPlayer.play().then(() => {
+                                isResolved = true;
+                                clearTimeout(timer);
+                                resolve(true);
+                            }).catch(() => {
+                                isResolved = true;
+                                clearTimeout(timer);
+                                resolve(false);
+                            });
+                        }
                     });
 
                     hls.on(Hls.Events.ERROR, (evt, data) => {
-                        if (data.fatal) {
+                        if (data.fatal && !isResolved) {
+                            isResolved = true;
+                            clearTimeout(timer);
                             hls.destroy();
+                            hlsInstance = null;
                             resolve(false);
                         }
                     });
                 } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
                     videoPlayer.src = url;
-                    videoPlayer.play().then(() => resolve(true)).catch(() => resolve(false));
+                    videoPlayer.play().then(() => {
+                        isResolved = true;
+                        clearTimeout(timer);
+                        resolve(true);
+                    }).catch(() => {
+                        if (!isResolved) {
+                            isResolved = true;
+                            clearTimeout(timer);
+                            resolve(false);
+                        }
+                    });
                 } else {
+                    clearTimeout(timer);
                     resolve(false);
                 }
             });
