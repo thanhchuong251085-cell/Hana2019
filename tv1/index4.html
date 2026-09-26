@@ -1,1 +1,290 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lotus Player - Truyền Hình Trực Tuyến</title>
+    <!-- Thư viện Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .channel-btn.active {
+            background-color: #2563eb;
+            color: #ffffff;
+            font-weight: bold;
+            border-left: 4px solid #ef4444;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex flex-col font-sans">
 
+    <!-- Thanh tiêu đề (Header) -->
+    <header class="bg-gray-800 px-4 py-3 border-b border-gray-700 flex justify-between items-center shadow-lg">
+        <h1 class="text-xl font-bold text-red-500 flex items-center gap-2">
+            📺 LOTUS PLAYER
+        </h1>
+        <span id="current-title" class="text-sm bg-gray-700 px-3 py-1 rounded-full text-gray-200">
+            Đang phát: THVL 1 HD
+        </span>
+    </header>
+
+    <!-- Khung nội dung chính -->
+    <div class="flex-1 flex flex-col md:flex-row">
+        
+        <!-- Khung xem Video (Player) -->
+        <div class="flex-1 bg-black relative min-h-[300px] md:min-h-[500px]">
+            <iframe 
+                id="tv-player" 
+                src="https://www.thvli.vn/live/thvl1-hd" 
+                class="w-full h-full absolute inset-0 border-0"
+                allow="autoplay; encrypted-media; fullscreen" 
+                allowfullscreen>
+            </iframe>
+        </div>
+
+        <!-- Danh sách kênh -->
+        <div class="w-full md:w-80 bg-gray-800 p-4 border-t md:border-t-0 md:border-l border-gray-700 flex flex-col">
+            <h2 class="text-base font-semibold mb-3 text-gray-300 border-b border-gray-700 pb-2 flex justify-between items-center">
+                <span>DANH SÁCH KÊNH</span>
+                <div class="flex items-center gap-2">
+                    <!-- Nút Bật/Tắt Danh sách kênh -->
+                    <button onclick="toggleChannelMenu()" class="text-xs bg-red-600 hover:bg-red-700 px-2.5 py-1 rounded text-white font-bold cursor-pointer transition active:scale-95 shadow">
+                        LIVE
+                    </button>
+                    <!-- Nút Thêm Nguồn Phát (+), Mở Cửa sổ Modal -->
+                    <button onclick="openModal()" class="text-xs bg-blue-600 hover:bg-blue-700 px-2.5 py-1 rounded text-white font-bold cursor-pointer transition active:scale-95 shadow flex items-center justify-center">
+                        +
+                    </button>
+                </div>
+            </h2>
+            
+            <div id="channel-list" class="flex flex-col gap-2 overflow-y-auto max-h-[450px] md:max-h-full pr-1">
+                <!-- Danh sách kênh sinh tự động -->
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Chân trang -->
+    <footer class="bg-gray-800 py-2 text-center text-xs text-gray-400 border-t border-gray-700">
+        Lotus Player © 2026 - Tự động phát trực tuyến ổn định
+    </footer>
+
+    <!-- CỬA SỔ POPUP (MODAL): THÊM NGUỒN PHÁT -->
+    <div id="source-modal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-gray-800 w-full max-w-md rounded-2xl border border-gray-700 p-5 shadow-2xl relative text-gray-200">
+            
+            <!-- Tiêu đề Cửa sổ & Nút Đóng -->
+            <div class="flex justify-between items-center pb-3 border-b border-gray-700 mb-4">
+                <h3 class="text-lg font-bold flex items-center gap-2 text-white">
+                    <span class="text-blue-500">≡+</span> Thêm Nguồn Phát
+                </h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-white text-xl font-bold p-1">✕</button>
+            </div>
+
+            <!-- Mục: Nguồn phát nhanh -->
+            <div class="mb-5">
+                <div class="text-xs font-semibold text-gray-400 mb-2 flex items-center gap-1">
+                    ⚡ Nguồn phát nhanh
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="loadDefaultTV()" class="bg-gray-700/60 hover:bg-blue-600/30 hover:border-blue-500 border border-transparent py-2.5 rounded-xl font-medium text-sm transition">
+                        TV
+                    </button>
+                    <button onclick="loadFromUrl('http://tv.vietanhtv.top/sex')" class="bg-gray-700/60 hover:bg-blue-600/30 hover:border-blue-500 border border-transparent py-2.5 rounded-xl font-medium text-sm transition">
+                        Hội Quán
+                    </button>
+                    <button onclick="loadFromUrl('https://raw.githubusercontent.com/thanhchuong251085-cell/Hana2019/main/tviptv.m3u')" class="col-span-2 bg-gray-700/60 hover:bg-blue-600/30 hover:border-blue-500 border border-transparent py-2.5 rounded-xl font-medium text-sm transition">
+                        Bóng Đá
+                    </button>
+                </div>
+            </div>
+
+            <div class="text-center text-xs text-gray-500 tracking-wider mb-4">TÙY CHỈNH</div>
+
+            <!-- Mục: Nhập liên kết URL thủ công -->
+            <div class="mb-5">
+                <label class="block text-xs font-semibold text-gray-400 mb-1.5">Nhập Liên kết URL thủ công</label>
+                <div class="flex items-center gap-2 bg-gray-900 border border-gray-700 rounded-xl p-1.5 focus-within:border-blue-500">
+                    <span class="pl-2 text-gray-400">🔗</span>
+                    <input id="custom-url-input" type="text" placeholder="https://..." class="bg-transparent border-none outline-none text-xs text-white w-full px-1">
+                    <button onclick="loadCustomUrl()" class="bg-cyan-500 hover:bg-cyan-600 text-gray-900 font-bold text-xs px-3 py-1.5 rounded-lg transition">
+                        TẢI
+                    </button>
+                </div>
+            </div>
+
+            <div class="text-center text-xs text-gray-500 tracking-wider mb-4">HOẶC</div>
+
+            <!-- Mục: Mở file từ máy -->
+            <div>
+                <label class="block text-xs font-semibold text-gray-400 mb-1.5">Mở File từ máy tính cục bộ</label>
+                <label class="flex items-center justify-center gap-2 w-full bg-gray-700/50 hover:bg-gray-700 border border-gray-600 rounded-xl py-2.5 cursor-pointer transition text-xs font-medium">
+                    📁 Tải tệp từ máy (.m3u)
+                    <input type="file" id="local-file-input" accept=".m3u,.m3u8" onchange="handleFileUpload(event)" class="hidden">
+                </label>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Script xử lý -->
+    <script>
+        // Danh sách kênh mặc định ban đầu của Lotus Player
+        const defaultChannels = [
+            // --- NHÓM TRUYỀN HÌNH VĨNH LONG (THVL) ---
+            { group: "TRUYỀN HÌNH VĨNH LONG (THVL)", name: "THVL 1 HD", url: "https://www.thvli.vn/live/thvl1-hd" },
+            { group: "TRUYỀN HÌNH VĨNH LONG (THVL)", name: "THVL 2 HD", url: "https://www.thvli.vn/live/thvl2-hd" },
+            { group: "TRUYỀN HÌNH VĨNH LONG (THVL)", name: "THVL 3 HD", url: "https://www.thvli.vn/live/thvl3-hd" },
+            { group: "TRUYỀN HÌNH VĨNH LONG (THVL)", name: "THVL 4 HD", url: "https://www.thvli.vn/live/thvl4-hd" },
+
+            // --- NHÓM KÊNH VTV ---
+            { group: "ĐÀI TRUYỀN HÌNH VIỆT NAM (VTV)", name: "VTV Home", url: "https://vtvgo.vn/xem-truc-tuyen/vtv1-1.html" },
+            { group: "ĐÀI TRUYỀN HÌNH VIỆT NAM (VTV)", name: "VTV1 HD", url: "https://live.fptplay53.net/live/media/vtv1/live247-hls-avc/vtv1-avc1_5600000=10000-mp4a_131600=20000.m3u8" },
+            { group: "ĐÀI TRUYỀN HÌNH VIỆT NAM (VTV)", name: "VTV2 HD", url: "https://vips-livecdn.fptplay.net/live/media/vtv2/live247-hls-avc/vtv2-avc1_5600000=10000-mp4a_131600=20000.m3u8" },
+            { group: "ĐÀI TRUYỀN HÌNH VIỆT NAM (VTV)", name: "VTV3 HD", url: "https://vips-livecdn.fptplay.net/live/media/vtv3/live247-hls-avc/vtv3-avc1_5600000=10000-mp4a_140800_vie=20000.m3u8" },
+
+            // --- NHÓM KÊNH HTV & HTVC ---
+            { group: "TRUYỀN HÌNH TP.HCM (HTV & HTVC)", name: "HTV7 HD", url: "https://live.fptplay53.net/epzhd1/htv7hd_vhls.smil/chunklist_b5000000.m3u8" },
+            { group: "TRUYỀN HÌNH TP.HCM (HTV & HTVC)", name: "HTV9 HD", url: "https://live.fptplay53.net/epzhd1/htv9hd_vhls.smil/chunklist_b5000000.m3u8" },
+
+            // --- NHÓM KÊNH ĐỊA PHƯƠNG ---
+            { group: "KÊNH ĐỊA PHƯƠNG TỔNG HỢP", name: "Hà Nội 1 (HN1)", url: "https://hanoitv.vn/tv-truc-tuyen.html" },
+            { group: "KÊNH ĐỊA PHƯƠNG TỔNG HỢP", name: "Đồng Nai 1 (DN1)", url: "https://dnrtv.org.vn/tv-online/dn1.html" }
+        ];
+
+        let currentChannels = [...defaultChannels];
+
+        const player = document.getElementById('tv-player');
+        const channelListContainer = document.getElementById('channel-list');
+        const currentTitle = document.getElementById('current-title');
+
+        // Đóng/Mở danh sách kênh khi nhấp LIVE
+        function toggleChannelMenu() {
+            channelListContainer.classList.toggle('hidden');
+        }
+
+        // Đóng/Mở Modal cửa sổ "Thêm Nguồn Phát"
+        function openModal() {
+            document.getElementById('source-modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('source-modal').classList.add('hidden');
+        }
+
+        // Tải danh sách mặc định khi bấm nút TV
+        function loadDefaultTV() {
+            currentChannels = [...defaultChannels];
+            renderChannels();
+            if (currentChannels.length > 0) playChannel(currentChannels[0], channelListContainer.querySelector('.channel-btn'));
+            closeModal();
+        }
+
+        // Tải danh sách M3U từ URL (Hội Quán, Bóng Đá hoặc Ô nhập liệu)
+        async function loadFromUrl(url) {
+            if (!url) return;
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error("Không thể tải nguồn IPTV");
+                const text = await response.text();
+                parseAndSetM3u(text);
+                closeModal();
+            } catch (err) {
+                alert("Lỗi khi tải nguồn phát: " + err.message);
+            }
+        }
+
+        function loadCustomUrl() {
+            const url = document.getElementById('custom-url-input').value.trim();
+            if (url) loadFromUrl(url);
+        }
+
+        // Xử lý đọc file từ máy tính
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                parseAndSetM3u(e.target.result);
+                closeModal();
+            };
+            reader.readAsText(file);
+        }
+
+        // Trình phân tích cú pháp file IPTV M3U
+        function parseAndSetM3u(m3uContent) {
+            const lines = m3uContent.split('\n');
+            const newChannels = [];
+            let currentName = '';
+            let currentGroup = 'KÊNH NHẬP VÀO';
+
+            lines.forEach(line => {
+                line = line.trim();
+                if (line.startsWith('#EXTINF:')) {
+                    const groupMatch = line.match(/group-title="([^"]+)"/i);
+                    if (groupMatch) currentGroup = groupMatch[1];
+
+                    const commaIndex = line.lastIndexOf(',');
+                    if (commaIndex !== -1) {
+                        currentName = line.substring(commaIndex + 1).trim();
+                    }
+                } else if (line && !line.startsWith('#')) {
+                    if (currentName) {
+                        newChannels.push({
+                            group: currentGroup,
+                            name: currentName,
+                            url: line
+                        });
+                        currentName = '';
+                    }
+                }
+            });
+
+            if (newChannels.length > 0) {
+                currentChannels = newChannels;
+                renderChannels();
+                const firstBtn = channelListContainer.querySelector('.channel-btn');
+                if (firstBtn) playChannel(currentChannels[0], firstBtn);
+            } else {
+                alert("Không tìm thấy danh sách kênh hợp lệ trong tệp/nguồn đã chọn.");
+            }
+        }
+
+        function renderChannels() {
+            channelListContainer.innerHTML = '';
+            let currentGroup = '';
+
+            currentChannels.forEach((ch, index) => {
+                if (ch.group !== currentGroup) {
+                    currentGroup = ch.group;
+                    const groupTitle = document.createElement('div');
+                    groupTitle.className = 'text-xs font-bold text-yellow-400 mt-3 mb-1 uppercase tracking-wider border-b border-gray-700 pb-1';
+                    groupTitle.textContent = currentGroup;
+                    channelListContainer.appendChild(groupTitle);
+                }
+
+                const btn = document.createElement('button');
+                btn.className = `channel-btn w-full text-left p-2.5 rounded-lg bg-gray-700 hover:bg-gray-600 transition flex items-center justify-between ${index === 0 ? 'active' : ''}`;
+                btn.innerHTML = `
+                    <span class="text-sm">📺 ${ch.name}</span>
+                    <span class="text-[10px] bg-red-600 text-white px-1.5 py-0.5 rounded">LIVE</span>
+                `;
+                
+                btn.onclick = () => playChannel(ch, btn);
+                channelListContainer.appendChild(btn);
+            });
+        }
+
+        function playChannel(channel, selectedBtn) {
+            player.src = channel.url;
+            currentTitle.textContent = `Đang phát: ${channel.name}`;
+
+            document.querySelectorAll('.channel-btn').forEach(b => b.classList.remove('active'));
+            if (selectedBtn) selectedBtn.classList.add('active');
+        }
+
+        renderChannels();
+    </script>
+</body>
+</html>
