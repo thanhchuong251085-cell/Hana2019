@@ -4,61 +4,112 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lotus Player - Truyền Hình Trực Tuyến</title>
+    <!-- Thư viện giao diện Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .channel-btn.active {
+            background-color: #2563eb;
+            color: #ffffff;
+            font-weight: bold;
+            border-left: 4px solid #ef4444;
+        }
+    </style>
 </head>
-<body class="bg-gray-900 text-white min-h-screen flex flex-col">
+<body class="bg-gray-900 text-white min-h-screen flex flex-col font-sans">
 
-    <!-- Header -->
-    <header class="bg-gray-800 p-4 border-b border-gray-700 flex justify-between items-center">
-        <h1 class="text-xl font-bold text-red-500">📺 LOTUS PLAYER</h1>
-        <span id="channel-name" class="text-sm bg-gray-700 px-3 py-1 rounded-full">Kênh: VTV1 HD</span>
+    <!-- Thanh tiêu đề (Header) -->
+    <header class="bg-gray-800 px-4 py-3 border-b border-gray-700 flex justify-between items-center shadow-lg">
+        <h1 class="text-xl font-bold text-red-500 flex items-center gap-2">
+            📺 LOTUS PLAYER
+        </h1>
+        <span id="current-title" class="text-sm bg-gray-700 px-3 py-1 rounded-full text-gray-200">
+            Đang phát: THVL 1 HD
+        </span>
     </header>
 
-    <!-- Khung xem Video -->
+    <!-- Khung nội dung chính -->
     <div class="flex-1 flex flex-col md:flex-row">
-        <div class="flex-1 bg-black relative min-h-[350px] md:min-h-[500px]">
+        
+        <!-- Khung xem Video (Player) -->
+        <div class="flex-1 bg-black relative min-h-[300px] md:min-h-[500px]">
             <iframe 
-                id="main-player" 
-                src="https://vtvcab.vn/embed/vtv1" 
+                id="tv-player" 
+                src="https://www.thvli.vn/live/thvl1-hd" 
                 class="w-full h-full absolute inset-0 border-0"
                 allow="autoplay; encrypted-media; fullscreen" 
                 allowfullscreen>
             </iframe>
         </div>
 
-        <!-- Danh sách kênh -->
-        <div class="w-full md:w-72 bg-gray-800 p-4 border-t md:border-t-0 md:border-l border-gray-700">
-            <h2 class="text-lg font-semibold mb-3 border-b border-gray-700 pb-2">Danh Sách Kênh</h2>
-            <div id="channel-list" class="flex flex-col gap-2">
-                <!-- Nút chuyển kênh -->
+        <!-- Danh sách kênh bên phải / bên dưới -->
+        <div class="w-full md:w-80 bg-gray-800 p-4 border-t md:border-t-0 md:border-l border-gray-700 flex flex-col">
+            <h2 class="text-base font-semibold mb-3 text-gray-300 border-b border-gray-700 pb-2 flex justify-between items-center">
+                <span>DANH SÁCH KÊNH</span>
+                <span class="text-xs bg-blue-600 px-2 py-0.5 rounded text-white">LIVE</span>
+            </h2>
+            
+            <div id="channel-list" class="flex flex-col gap-2 overflow-y-auto max-h-[400px] md:max-h-full pr-1">
+                <!-- Danh sách nút bấm kênh tự động sinh bằng Javascript -->
             </div>
         </div>
+
     </div>
 
+    <!-- Chân trang (Footer) -->
+    <footer class="bg-gray-800 py-2 text-center text-xs text-gray-400 border-t border-gray-700">
+        Lotus Player © 2026 - Tự động phát trực tuyến ổn định
+    </footer>
+
+    <!-- Script xử lý chuyển kênh -->
     <script>
-        // Nguồn Player cho phép iframe công khai
+        // Danh sách trọn bộ kênh THVL và các Kênh Địa Phương
         const channels = [
-            { name: "VTV1 HD", url: "https://vtvgo.vn/embed/vtv1" },
-            { name: "VTV2 HD", url: "https://vtvgo.vn/embed/vtv2" },
-            { name: "VTV3 HD", url: "https://vtvgo.vn/embed/vtv3" },
-            { name: "VTV5 HD", url: "https://vtvgo.vn/embed/vtv5" },
-            { name: "VTV9 HD", url: "https://vtvgo.vn/embed/vtv9" }
+            // Nhóm THVL
+            { id: 'thvl1', name: 'THVL 1 HD', url: 'https://www.thvli.vn/live/thvl1-hd' },
+            { id: 'thvl2', name: 'THVL 2 HD', url: 'https://www.thvli.vn/live/thvl2-hd' },
+            { id: 'thvl3', name: 'THVL 3 HD', url: 'https://www.thvli.vn/live/thvl3-hd' },
+            { id: 'thvl4', name: 'THVL 4 HD', url: 'https://www.thvli.vn/live/thvl4-hd' },
+
+            // Nhóm Kênh TP.HCM & Địa Phương
+            { id: 'htv7', name: 'HTV7 HD', url: 'https://hanoitv.vn/htv7-truc-tuyen.html' },
+            { id: 'htv9', name: 'HTV9 HD', url: 'https://hanoitv.vn/htv9-truc-tuyen.html' },
+            { id: 'hn1', name: 'Hà Nội 1 (HN1)', url: 'https://hanoitv.vn/tv-truc-tuyen.html' },
+            { id: 'dn1', name: 'Đồng Nai 1 (DN1)', url: 'https://dnrtv.org.vn/tv-online/dn1.html' },
+            { id: 'btv1', name: 'Bình Dương (BTV1)', url: 'https://btv.org.vn/truc-tuyen/btv1' }
         ];
 
-        const player = document.getElementById('main-player');
-        const channelList = document.getElementById('channel-list');
-        const channelName = document.getElementById('channel-name');
+        const player = document.getElementById('tv-player');
+        const channelListContainer = document.getElementById('channel-list');
+        const currentTitle = document.getElementById('current-title');
 
-        channels.forEach((ch, idx) => {
-            const btn = document.createElement('button');
-            btn.className = 'w-full text-left p-3 rounded bg-gray-700 hover:bg-blue-600 transition flex justify-between items-center';
-            btn.innerHTML = `<span>📺 ${ch.name}</span><span class="text-xs bg-red-600 px-2 py-0.5 rounded">LIVE</span>`;
-            btn.onclick = () => {
-                player.src = ch.url;
-                channelName.textContent = `Kênh: ${ch.name}`;
-            };
-            channelList.appendChild(btn);
-        });
+        // Hàm tạo danh sách nút bấm
+        function renderChannels() {
+            channelListContainer.innerHTML = '';
+            channels.forEach((ch, index) => {
+                const btn = document.createElement('button');
+                btn.className = `channel-btn w-full text-left p-3 rounded-lg bg-gray-700 hover:bg-gray-600 transition flex items-center justify-between ${index === 0 ? 'active' : ''}`;
+                btn.innerHTML = `
+                    <span class="text-sm">📺 ${ch.name}</span>
+                    <span class="text-[10px] bg-red-600 text-white px-1.5 py-0.5 rounded">ONLINE</span>
+                `;
+                
+                btn.onclick = () => playChannel(ch, btn);
+                channelListContainer.appendChild(btn);
+            });
+        }
+
+        // Hàm chuyển luồng khi chọn kênh
+        function playChannel(channel, selectedBtn) {
+            player.src = channel.url;
+            currentTitle.textContent = `Đang phát: ${channel.name}`;
+
+            // Cập nhật trạng thái active cho nút được chọn
+            document.querySelectorAll('.channel-btn').forEach(b => b.classList.remove('active'));
+            selectedBtn.classList.add('active');
+        }
+
+        // Khởi chạy khi tải xong trang
+        renderChannels();
     </script>
 </body>
 </html>
