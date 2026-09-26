@@ -1,440 +1,112 @@
-ii<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; connect-src *; media-src * blob: data:; img-src * data:;">
-    <title>Lotus Player - IPTV Dynamic Loader</title>
+    <title>Lotus Player - Xem Truyền Hình Trực Tuyến</title>
+    <!-- Nhúng Tailwind CSS để làm giao diện -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
-        body {
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            background-color: #08080c;
-            color: #ededed;
-            height: 100vh;
-            width: 100vw;
-            overflow: hidden;
-            margin: 0;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.02); }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 10px; }
-
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(24px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        .channel-item { transition: all 0.2s ease; border: 1px solid transparent; }
-        .channel-item:hover { background: rgba(255, 255, 255, 0.05); border-color: rgba(99, 102, 241, 0.2); }
-        .channel-item.active { background: rgba(99, 102, 241, 0.15) !important; border-color: #6366f1 !important; }
-        .category-tab.active { background: #6366f1; color: white; }
-
-        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 1000; }
-        .toast {
-            background: rgba(20, 20, 20, 0.95);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            padding: 10px 14px;
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 12px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+        .channel-btn.active {
+            background-color: #2563eb;
+            color: white;
+            font-weight: bold;
         }
     </style>
 </head>
+<body class="bg-gray-900 text-white min-h-screen flex flex-col">
 
-<body class="selection:bg-indigo-500/30">
-    <div id="toast-container"></div>
+    <!-- Header -->
+    <header class="bg-gray-800 p-4 border-b border-gray-700 flex justify-between items-center shadow-lg">
+        <h1 class="text-xl font-bold text-red-500 flex items-center gap-2">
+            📺 LOTUS PLAYER
+        </h1>
+        <span id="current-channel-title" class="text-sm bg-gray-700 px-3 py-1 rounded-full text-gray-300">
+            Đang phát: VTV1 HD
+        </span>
+    </header>
 
-    <div class="flex flex-col landscape:flex-row h-screen w-screen p-3 gap-3 overflow-hidden box-border">
+    <!-- Nội dung chính: Trình phát & Danh sách kênh -->
+    <div class="flex-1 flex flex-col md:flex-row">
+        
+        <!-- Khung xem Video (Trình phát) -->
+        <div class="flex-1 bg-black flex items-center justify-center relative min-h-[300px] md:min-h-[500px]">
+            <iframe 
+                id="tv-player" 
+                src="https://vtvgo.vn/xem-truc-tuyen/vtv1-1.html" 
+                class="w-full h-full absolute inset-0 border-0"
+                allow="autoplay; encrypted-media; fullscreen" 
+                allowfullscreen>
+            </iframe>
+        </div>
 
-        <!-- SIDEBAR -->
-        <aside class="order-2 landscape:order-1 flex-1 landscape:flex-none w-full landscape:w-[280px] lg:w-[320px] glass-panel rounded-2xl flex flex-col overflow-hidden">
-            <div class="p-4 border-b border-white/5 shrink-0">
-                <div class="flex items-center justify-between mb-3">
-                    <div class="flex items-center gap-2">
-                        <div class="w-7 h-7 rounded-lg bg-indigo-500 flex items-center justify-center">
-                            <i data-lucide="tv" class="w-4 h-4 text-white"></i>
-                        </div>
-                        <h1 class="font-bold text-sm tracking-tight text-white">Lotus<span class="text-indigo-400">Player</span></h1>
-                    </div>
-                    <button onclick="openAddDialog()" class="w-7 h-7 flex items-center justify-center rounded-lg bg-white/5 hover:bg-indigo-500 text-indigo-400 hover:text-white transition-all">
-                        <i data-lucide="plus" class="w-4 h-4"></i>
-                    </button>
-                </div>
-
-                <div class="relative">
-                    <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400"></i>
-                    <input type="text" id="search-input" placeholder="Tìm kênh VTV, HTV, THVL..." class="w-full pl-9 pr-3 py-1.5 bg-black/40 border border-white/5 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500/40" oninput="filterChannels()">
-                </div>
-            </div>
-
-            <!-- List Space -->
-            <div class="flex-1 overflow-hidden relative">
-                <ul id="channel-list" class="h-full overflow-y-auto p-2 space-y-1 custom-scrollbar">
-                    <div id="empty-state" class="h-full flex flex-col items-center justify-center text-center p-6 opacity-40">
-                        <i data-lucide="layout-list" class="w-10 h-10 mb-3"></i>
-                        <p class="text-xs">Bấm dấu (+) để thêm nguồn danh sách kênh</p>
-                    </div>
-                </ul>
-            </div>
-
-            <div class="p-3 bg-black/40 border-t border-white/5 flex items-center justify-between shrink-0">
-                <span id="channel-count" class="text-[10px] text-gray-400 font-bold uppercase">0 Kênh</span>
-                <button onclick="clearList()" class="text-[10px] text-gray-400 hover:text-red-400 font-bold uppercase">Xóa danh sách</button>
-            </div>
-        </aside>
-
-        <!-- MAIN PLAYER AREA -->
-        <div class="order-1 landscape:order-2 flex-1 flex flex-col gap-3 h-auto landscape:h-full overflow-hidden">
-            <main class="w-full aspect-video landscape:aspect-auto landscape:flex-1 glass-panel rounded-2xl overflow-hidden relative bg-black">
-                <video id="video-player" class="w-full h-full object-contain" playsinline controls></video>
-
-                <!-- Status Overlay -->
-                <div id="loading-overlay" class="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-md z-20 hidden text-white">
-                    <div class="w-8 h-8 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin mb-3"></div>
-                    <p id="loading-text" class="text-xs text-indigo-300 font-medium">Đang kết nối luồng phát...</p>
-                </div>
-            </main>
-
-            <!-- Category Tabs -->
-            <div class="glass-panel p-2.5 rounded-xl shrink-0">
-                <div id="category-tabs" class="flex gap-2 overflow-x-auto custom-scrollbar"></div>
+        <!-- Danh sách kênh truyền hình -->
+        <div class="w-full md:w-80 bg-gray-800 p-4 border-t md:border-t-0 md:border-l border-gray-700 flex flex-col">
+            <h2 class="text-lg font-semibold mb-3 text-gray-200 border-b border-gray-700 pb-2">
+                Danh Sách Kênh
+            </h2>
+            
+            <div id="channel-list" class="flex flex-col gap-2 overflow-y-auto max-h-[400px] md:max-h-full pr-1">
+                <!-- Các nút bấm kênh sẽ được sinh tự động bằng JS -->
             </div>
         </div>
+
     </div>
 
-    <!-- Modal Thêm Kênh -->
-    <div id="add-dialog" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-200">
-        <div class="bg-[#121212] border border-white/10 rounded-2xl p-5 w-full max-w-md flex flex-col gap-4">
-            <div class="flex items-center justify-between border-b border-white/5 pb-2">
-                <h2 class="text-white font-semibold text-xs flex items-center gap-2"><i data-lucide="list-plus" class="w-4 h-4 text-indigo-400"></i> Thêm Nguồn Phát IPTV</h2>
-                <button onclick="closeAddDialog()" class="text-gray-400 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
-            </div>
+    <!-- Footer -->
+    <footer class="bg-gray-800 p-3 text-center text-xs text-gray-400 border-t border-gray-700">
+        Lotus Player © 2026 - Phát trực tuyến ổn định trên mọi thiết bị
+    </footer>
 
-            <!-- Nguồn Mặc Định -->
-            <div class="grid grid-cols-1 gap-2">
-                <button onclick="fetchPlaylist('https://raw.githubusercontent.com/thanhchuong251085-cell/Hana2019/main/tviptv.m3u')" class="px-3 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 rounded-xl text-left transition-all">
-                    <div class="text-xs font-bold text-indigo-300">Playlist VTV, HTV, THVL, Địa Phương (Mặc định)</div>
-                    <div class="text-[10px] text-gray-400">Nguồn cập nhật trực tiếp qua GitHub</div>
-                </button>
-            </div>
-
-            <!-- Dán Link M3U Thủ Công -->
-            <div class="flex flex-col gap-1.5">
-                <span class="text-[10px] text-gray-400 font-semibold uppercase">Dán Link M3U Online</span>
-                <div class="flex gap-2">
-                    <input type="text" id="url-input" placeholder="https://domain.com/playlist.m3u" class="flex-1 px-3 py-2 bg-black/50 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500">
-                    <button onclick="fetchPlaylist(document.getElementById('url-input').value.trim())" class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all">TẢI LINK</button>
-                </div>
-            </div>
-
-            <!-- Upload File M3U Cục Bộ -->
-            <div class="flex flex-col gap-1.5 border-t border-white/5 pt-3">
-                <span class="text-[10px] text-gray-400 font-semibold uppercase">Hoặc Tải File M3U Từ Thiết Bị</span>
-                <label class="flex items-center justify-center gap-2 px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl cursor-pointer text-xs font-medium text-gray-300 transition-all">
-                    <i data-lucide="file-up" class="w-4 h-4 text-indigo-400"></i>
-                    <span>Chọn File .m3u / .m3u8</span>
-                    <input type="file" id="file-input" accept=".m3u,.m3u8,.txt" class="hidden" onchange="handleFileUpload(event)">
-                </label>
-            </div>
-        </div>
-    </div>
-
+    <!-- Script xử lý chuyển kênh -->
     <script>
-        lucide.createIcons();
-
-        const PROXIES = [
-            "",
-            "https://corsproxy.io/?url=",
-            "https://api.allorigins.win/raw?url="
+        // Danh sách các kênh VTV, HTV, THVL dùng nguồn nhúng chuẩn
+        const channels = [
+            { id: 'vtv1', name: 'VTV1 HD', url: 'https://vtvgo.vn/xem-truc-tuyen/vtv1-1.html' },
+            { id: 'vtv2', name: 'VTV2 HD', url: 'https://vtvgo.vn/xem-truc-tuyen/vtv2-2.html' },
+            { id: 'vtv3', name: 'VTV3 HD', url: 'https://vtvgo.vn/xem-truc-tuyen/vtv3-3.html' },
+            { id: 'vtv4', name: 'VTV4 HD', url: 'https://vtvgo.vn/xem-truc-tuyen/vtv4-4.html' },
+            { id: 'vtv5', name: 'VTV5 HD', url: 'https://vtvgo.vn/xem-truc-tuyen/vtv5-5.html' },
+            { id: 'vtv9', name: 'VTV9 HD', url: 'https://vtvgo.vn/xem-truc-tuyen/vtv9-9.html' },
+            { id: 'thvl1', name: 'THVL1 HD', url: 'https://www.thvli.vn/live/thvl1-hd' },
+            { id: 'thvl2', name: 'THVL2 HD', url: 'https://www.thvli.vn/live/thvl2-hd' }
         ];
 
-        let allChannels = [];
-        let hlsInstance = null;
-        let currentPlayingUrl = null;
-        let currentCategory = 'Tất cả';
+        const player = document.getElementById('tv-player');
+        const channelListContainer = document.getElementById('channel-list');
+        const currentTitle = document.getElementById('current-channel-title');
 
-        const videoPlayer = document.getElementById('video-player');
-        const channelListEl = document.getElementById('channel-list');
-        const emptyStateEl = document.getElementById('empty-state');
-        const channelCountEl = document.getElementById('channel-count');
-        const searchInput = document.getElementById('search-input');
-        const loadingOverlay = document.getElementById('loading-overlay');
-        const loadingText = document.getElementById('loading-text');
-
-        function openAddDialog() { document.getElementById('add-dialog').classList.remove('opacity-0', 'pointer-events-none'); }
-        function closeAddDialog() { document.getElementById('add-dialog').classList.add('opacity-0', 'pointer-events-none'); }
-
-        function showToast(msg) {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            toast.className = 'toast';
-            toast.innerHTML = `<i data-lucide="info" class="w-4 h-4 text-indigo-400"></i><span>${msg}</span>`;
-            container.appendChild(toast);
-            lucide.createIcons({ root: toast });
-            setTimeout(() => { if (container.contains(toast)) container.removeChild(toast); }, 3500);
-        }
-
-        // Trích xuất nâng cấp file M3U/M3U8
-        function parseM3U(text) {
-            const lines = text.split(/\r?\n/);
-            const channels = [];
-            let currentChannel = null;
-
-            for (let line of lines) {
-                line = line.trim();
-                if (line.toUpperCase().startsWith('#EXTINF:')) {
-                    currentChannel = { name: 'Kênh không tên', logo: '', group: 'Khác', url: '' };
-                    
-                    const commaIdx = line.lastIndexOf(',');
-                    if (commaIdx !== -1) currentChannel.name = line.substring(commaIdx + 1).trim();
-
-                    const logoMatch = line.match(/tvg-logo="([^"]+)"/i);
-                    if (logoMatch) currentChannel.logo = logoMatch[1];
-
-                    const groupMatch = line.match(/group-title="([^"]+)"/i);
-                    if (groupMatch) currentChannel.group = groupMatch[1];
-                } else if (line && !line.startsWith('#')) {
-                    if (currentChannel) {
-                        currentChannel.url = line;
-                        channels.push(currentChannel);
-                        currentChannel = null;
-                    } else if (line.startsWith('http://') || line.startsWith('https://')) {
-                        // Trường hợp file chứa link thuần không có #EXTINF
-                        channels.push({ name: `Luồng phát ${channels.length + 1}`, logo: '', group: 'Khác', url: line });
-                    }
-                }
-            }
-            return channels;
-        }
-
-        // Tải M3U thông minh (Tự chuyển sang CORS Proxy nếu fetch thường bị chặn)
-        async function fetchPlaylist(targetUrl) {
-            if (!targetUrl) { showToast('Vui lòng dán liên kết M3U hợp lệ.'); return; }
-            
-            showToast('Đang tải danh sách kênh...');
-            closeAddDialog();
-
-            let fetchedText = null;
-
-            for (let proxy of PROXIES) {
-                try {
-                    const finalUrl = proxy ? `${proxy}${encodeURIComponent(targetUrl)}` : targetUrl;
-                    const res = await fetch(finalUrl, { cache: "no-cache" });
-                    if (res.ok) {
-                        fetchedText = await res.text();
-                        if (fetchedText && (fetchedText.includes('#EXTM3U') || fetchedText.includes('http'))) {
-                            break;
-                        }
-                    }
-                } catch (e) {
-                    console.warn(`Lỗi fetch với proxy ${proxy}:`, e);
-                }
-            }
-
-            if (fetchedText) {
-                allChannels = parseM3U(fetchedText);
-                if (allChannels.length > 0) {
-                    currentCategory = 'Tất cả';
-                    renderCategoryTabs();
-                    filterChannels();
-                    showToast(`Đã nạp ${allChannels.length} kênh thành công!`);
-                } else {
-                    showToast('Cấu trúc file M3U không đúng định dạng.');
-                }
-            } else {
-                showToast('Không thể tải file M3U. Hãy thử tải bằng File từ thiết bị.');
-            }
-        }
-
-        // Đọc File M3U trực tiếp từ ổ cứng/bộ nhớ TV
-        function handleFileUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                const text = e.target.result;
-                allChannels = parseM3U(text);
-                if (allChannels.length > 0) {
-                    currentCategory = 'Tất cả';
-                    renderCategoryTabs();
-                    filterChannels();
-                    closeAddDialog();
-                    showToast(`Đã nạp ${allChannels.length} kênh từ file thành công!`);
-                } else {
-                    showToast('File chọn không chứa dữ liệu kênh M3U.');
-                }
-            };
-            reader.readAsText(file);
-        }
-
-        function renderChannels(channels) {
-            channelListEl.innerHTML = '';
-            if (!channels.length) { emptyStateEl.style.display = 'flex'; return; }
-            emptyStateEl.style.display = 'none';
-
-            channels.forEach(channel => {
-                const li = document.createElement('li');
-                const isPlaying = currentPlayingUrl === channel.url;
-                li.className = `channel-item flex items-center gap-3 p-2 rounded-xl cursor-pointer ${isPlaying ? 'active' : ''}`;
-                li.innerHTML = `
-                    <div class="w-12 h-8 shrink-0 bg-white/5 rounded-lg border border-white/5 flex items-center justify-center overflow-hidden">
-                        ${channel.logo ? `<img src="${channel.logo}" class="w-full h-full object-contain" onerror="this.remove()">` : ''}
-                        <i data-lucide="tv" class="w-4 h-4 text-white/20"></i>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <h3 class="text-xs font-semibold truncate ${isPlaying ? 'text-indigo-400' : 'text-white/90'}">${channel.name}</h3>
-                        <p class="text-[9px] text-gray-400 uppercase">${channel.group}</p>
-                    </div>`;
-                li.onclick = () => playChannelSmart(channel);
-                channelListEl.appendChild(li);
-            });
-            lucide.createIcons({ root: channelListEl });
-        }
-
-        function renderCategoryTabs() {
-            const tabsContainer = document.getElementById('category-tabs');
-            tabsContainer.innerHTML = '';
-            const groups = ['Tất cả', ...new Set(allChannels.map(c => c.group || 'Khác'))];
-
-            groups.forEach(group => {
+        // Hàm khởi tạo danh sách nút kênh
+        function renderChannels() {
+            channelListContainer.innerHTML = '';
+            channels.forEach((ch, index) => {
                 const btn = document.createElement('button');
-                btn.className = `category-tab px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase shrink-0 border border-white/5 ${currentCategory === group ? 'active' : 'bg-white/5 text-gray-400'}`;
-                btn.innerText = group;
-                btn.onclick = () => { currentCategory = group; renderCategoryTabs(); filterChannels(); };
-                tabsContainer.appendChild(btn);
+                btn.className = `channel-btn w-full text-left p-3 rounded-lg bg-gray-700 hover:bg-gray-600 transition flex items-center justify-between ${index === 0 ? 'active' : ''}`;
+                btn.innerHTML = `
+                    <span>📺 ${ch.name}</span>
+                    <span class="text-xs bg-red-600 text-white px-2 py-0.5 rounded">LIVE</span>
+                `;
+                
+                btn.onclick = () => playChannel(ch, btn);
+                channelListContainer.appendChild(btn);
             });
         }
 
-        function filterChannels() {
-            const query = searchInput.value.toLowerCase().trim();
-            let filtered = allChannels;
-            if (currentCategory !== 'Tất cả') filtered = filtered.filter(c => (c.group || 'Khác') === currentCategory);
-            if (query) filtered = filtered.filter(c => c.name.toLowerCase().includes(query));
-            renderChannels(filtered);
-            channelCountEl.textContent = `${filtered.length} Kênh`;
+        // Hàm chuyển kênh
+        function playChannel(channel, selectedBtn) {
+            // Đổi nguồn luồng phát
+            player.src = channel.url;
+            
+            // Cập nhật tiêu đề kênh đang xem
+            currentTitle.textContent = `Đang phát: ${channel.name}`;
+
+            // Đổi màu trạng thái nút bấm
+            document.querySelectorAll('.channel-btn').forEach(b => b.classList.remove('active'));
+            selectedBtn.classList.add('active');
         }
 
-        async function playChannelSmart(channel) {
-            currentPlayingUrl = channel.url;
-            filterChannels();
-            loadingOverlay.classList.remove('hidden');
-
-            if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
-
-            let success = false;
-
-            for (let i = 0; i < PROXIES.length; i++) {
-                const proxy = PROXIES[i];
-                const streamUrl = proxy ? `${proxy}${encodeURIComponent(channel.url)}` : channel.url;
-                
-                loadingText.innerText = i === 0 ? `Đang kết nối luồng đài...` : `Đang vượt rào cản CDN (${i})...`;
-
-                success = await initHlsWithTimeout(streamUrl, 5000);
-                if (success) break;
-            }
-
-            loadingOverlay.classList.add('hidden');
-            if (!success) {
-                showToast(`Kênh ${channel.name} hiện tại ngắt luồng hoặc yêu cầu token mới.`);
-            }
-        }
-
-        function initHlsWithTimeout(url, timeoutMs) {
-            return new Promise((resolve) => {
-                let isResolved = false;
-                
-                const timer = setTimeout(() => {
-                    if (!isResolved) {
-                        isResolved = true;
-                        if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
-                        resolve(false);
-                    }
-                }, timeoutMs);
-
-                if (Hls.isSupported()) {
-                    const hls = new Hls({
-                        enableWorker: true,
-                        lowLatencyMode: true,
-                        manifestLoadingTimeOut: 4000,
-                        manifestLoadingMaxRetry: 1,
-                        fragLoadingTimeOut: 4000,
-                        fragLoadingMaxRetry: 1,
-                        xhrSetup: function (xhr) {
-                            xhr.withCredentials = false;
-                        }
-                    });
-
-                    hlsInstance = hls;
-                    hls.loadSource(url);
-                    hls.attachMedia(videoPlayer);
-
-                    hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                        if (!isResolved) {
-                            videoPlayer.play().then(() => {
-                                isResolved = true;
-                                clearTimeout(timer);
-                                resolve(true);
-                            }).catch(() => {
-                                isResolved = true;
-                                clearTimeout(timer);
-                                resolve(false);
-                            });
-                        }
-                    });
-
-                    hls.on(Hls.Events.ERROR, (evt, data) => {
-                        if (data.fatal && !isResolved) {
-                            isResolved = true;
-                            clearTimeout(timer);
-                            hls.destroy();
-                            hlsInstance = null;
-                            resolve(false);
-                        }
-                    });
-                } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
-                    videoPlayer.src = url;
-                    videoPlayer.play().then(() => {
-                        isResolved = true;
-                        clearTimeout(timer);
-                        resolve(true);
-                    }).catch(() => {
-                        if (!isResolved) {
-                            isResolved = true;
-                            clearTimeout(timer);
-                            resolve(false);
-                        }
-                    });
-                } else {
-                    clearTimeout(timer);
-                    resolve(false);
-                }
-            });
-        }
-
-        function clearList() {
-            allChannels = [];
-            currentCategory = 'Tất cả';
-            renderCategoryTabs();
-            filterChannels();
-            if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
-            videoPlayer.pause();
-            videoPlayer.removeAttribute('src');
-        }
+        // Chạy hàm tạo kênh khi tải trang
+        renderChannels();
     </script>
 </body>
-
 </html>
