@@ -6,11 +6,29 @@
 }
 
 body {
-  background-color: #1a1a1a; /* Nền tối */
+  background-color: #1a1a1a;
   color: #ffffff;
 }
 
-/* Header */
+/* KHUNG PHÁT VIDEO */
+.player-container {
+  width: 100%;
+  background-color: #000;
+  display: flex;
+  justify-content: center;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+#video-player {
+  width: 100%;
+  max-width: 800px;
+  max-height: 250px;
+  background: #000;
+}
+
+/* HEADER / THANH CÔNG CỤ */
 .app-header {
   display: flex;
   align-items: center;
@@ -33,7 +51,7 @@ body {
   font-size: 20px;
 }
 
-/* Thanh tìm kiếm oval */
+/* THANH TÌM KIẾM */
 .search-bar {
   display: flex;
   align-items: center;
@@ -60,7 +78,6 @@ body {
   font-size: 13px;
 }
 
-/* Nút hành động phải */
 .header-actions {
   display: flex;
   gap: 10px;
@@ -74,7 +91,7 @@ body {
   cursor: pointer;
 }
 
-/* Danh mục (Scroller ngang) */
+/* DANH MỤC */
 .category-bar {
   display: flex;
   gap: 15px;
@@ -82,10 +99,6 @@ body {
   overflow-x: auto;
   white-space: nowrap;
   border-bottom: 1px solid #2a2a2a;
-}
-
-.category-bar::-webkit-scrollbar {
-  display: none; /* Ẩn thanh cuộn */
 }
 
 .cat-item {
@@ -103,7 +116,7 @@ body {
   border-bottom: 2px solid #ff6600;
 }
 
-/* Danh sách kênh (Layout dạng danh sách đứng) */
+/* DANH SÁCH KÊNH */
 .channel-list {
   padding: 10px 15px;
   display: flex;
