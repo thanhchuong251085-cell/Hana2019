@@ -1,0 +1,2177 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; connect-src *; media-src * blob: data:; img-src * data:;">
+    <title>IPTV Player Modern</title>
+    <link rel="icon" href="TV.png" type="image/png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.7.11/shaka-player.compiled.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mpegts.js@1.7.3/dist/mpegts.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="icon" type="image/png" href="favicon.png">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            --accent: #3b82f6;
+            --bg-deep: #0f172a;
+            --panel-bg: rgba(15, 23, 42, 0.75);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: #0b0f19;
+            color: var(--text-main);
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            margin: 0;
+        }
+
+        /* Modern Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+        }
+
+        .custom-scrollbar:hover::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Layout & Aesthetics */
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+        }
+
+        .channel-item {
+            position: relative;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+        }
+
+        .channel-item:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .channel-item.active {
+            background: rgba(59, 130, 246, 0.15) !important;
+            border-color: rgba(59, 130, 246, 0.4) !important;
+        }
+
+        .playing-indicator {
+            display: flex;
+            align-items: flex-end;
+            gap: 2px;
+            height: 12px;
+        }
+
+        .indicator-bar {
+            width: 2px;
+            background: var(--accent);
+            border-radius: 1px;
+            animation: bounce 0.8s ease-in-out infinite alternate;
+        }
+
+        @keyframes bounce {
+            from { height: 4px; }
+            to { height: 12px; }
+        }
+
+        .audio-bar {
+            width: 6px;
+            background: var(--accent);
+            border-radius: 3px 3px 0 0;
+            transform-origin: bottom;
+            animation: audio-bar 0.8s ease-in-out infinite alternate;
+        }
+
+        @keyframes audio-bar {
+            0% { transform: scaleY(0.3); }
+            100% { transform: scaleY(1); }
+        }
+
+        /* Player Controls Overlays */
+        #custom-controls {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
+        }
+
+        .video-container.controls-active #custom-controls {
+            opacity: 1;
+        }
+
+        /* Tooltip */
+        .tooltip {
+            position: relative;
+        }
+
+        .tooltip:before {
+            content: attr(data-tip);
+            position: absolute;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 4px 8px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            font-size: 10px;
+            border-radius: 4px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        .tooltip:hover:before {
+            opacity: 1;
+        }
+
+        .video-container:fullscreen {
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+        }
+
+        .video-container:fullscreen #video-player {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .category-tab {
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .category-tab.active {
+            background: #2563eb;
+            color: white;
+        }
+
+        /* Floating Player Controls */
+        .player-float-controls {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            z-index: 30;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            opacity: 0;
+            transform: translateY(6px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            pointer-events: none;
+        }
+
+        .video-container.controls-active:not(.hide-cursor) .player-float-controls {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+        #epg-toggle-btn {
+            opacity: 0;
+            transform: translateY(6px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            pointer-events: none;
+        }
+
+        .video-container.controls-active:not(.hide-cursor) #epg-toggle-btn:not(.hidden) {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+        .video-container.hide-cursor {
+            cursor: none !important;
+        }
+
+        .video-container.hide-cursor * {
+            cursor: none !important;
+        }
+
+        .player-float-controls .ctrl-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            color: rgba(255, 255, 255, 0.85);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            outline: none;
+        }
+
+        .player-float-controls .ctrl-btn:hover {
+            background: #ef4444;
+            border-color: #ef4444;
+            color: #fff;
+        }
+
+        .player-float-controls .quality-select {
+            appearance: none;
+            padding: 6px 28px 6px 10px;
+            height: 32px;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.6) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23aaa' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 8px center;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            outline: none;
+        }
+
+        /* Toasts */
+        #toast-container {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            z-index: 1000;
+        }
+
+        .toast {
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            animation: slideIn 0.3s ease-out forwards;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Hide timeline & time display for live streams */
+        video.is-live::-webkit-media-controls-timeline,
+        video.is-live::-webkit-media-controls-current-time-display,
+        video.is-live::-webkit-media-controls-time-remaining-display {
+            display: none !important;
+        }
+
+        video::-webkit-media-controls-fullscreen-button {
+            display: none !important;
+        }
+
+        /* EPG Panel Styles */
+        #epg-panel {
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            z-index: 40;
+        }
+
+        #epg-panel.open {
+            transform: translateX(0);
+        }
+
+        .epg-item {
+            border-left: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .epg-item.current {
+            background: rgba(59, 130, 246, 0.15);
+            border-left-color: var(--accent);
+        }
+
+        .epg-progress {
+            height: 2px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 1px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+
+        .epg-progress-bar {
+            height: 100%;
+            background: var(--accent);
+            width: 0%;
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+
+<body class="selection:bg-blue-500/30">
+    <div id="toast-container"></div>
+
+    <div class="flex flex-col lg:flex-row h-screen w-screen p-4 gap-4 box-border overflow-hidden">
+
+        <!-- MAIN PLAYER AREA WRAPPER -->
+        <div class="flex-1 flex flex-col gap-4 h-full min-w-0">
+            <!-- Video Container -->
+            <main class="w-full flex-1 glass-panel rounded-2xl overflow-hidden relative shadow-2xl shrink-0">
+                <div class="w-full h-full bg-black relative video-container overflow-hidden flex items-center justify-center">
+                    <video id="video-player" class="w-full h-full object-contain" playsinline controls></video>
+
+                    <!-- Player Overlay (Intro) -->
+                    <div id="player-overlay" class="absolute inset-0 flex flex-col items-center justify-center bg-[#0b0f19] transition-opacity duration-700 pointer-events-none">
+                        <div class="w-20 h-20 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center relative">
+                            <i data-lucide="play" class="w-8 h-8 text-blue-500 fill-blue-500 relative z-10 ml-1"></i>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-4 font-medium">Chọn kênh để bắt đầu xem</p>
+                    </div>
+
+                    <!-- Audio/Radio Visualizer -->
+                    <div id="audio-visualizer" class="absolute inset-0 flex flex-col items-center justify-center bg-[#0b0f19] hidden z-0 pointer-events-none p-6 w-full h-full box-border">
+                        <div class="flex flex-col items-center justify-center transform scale-90 transition-all duration-500">
+                            <div class="relative w-28 h-28 flex items-center justify-center shrink-0 mb-6">
+                                <div class="absolute inset-0 bg-blue-500/20 rounded-full animate-ping" style="animation-duration: 2.5s;"></div>
+                                <div class="relative z-10 bg-slate-900 w-20 h-20 rounded-full border border-blue-500/30 flex items-center justify-center overflow-hidden">
+                                    <i id="audio-visualizer-icon" data-lucide="radio" class="w-8 h-8 text-blue-400"></i>
+                                </div>
+                            </div>
+
+                            <img id="audio-visualizer-logo" src="" class="w-full max-w-[180px] aspect-video object-contain mb-4 hidden drop-shadow-2xl rounded-2xl shrink-0">
+
+                            <h3 id="audio-visualizer-title" class="text-white text-base font-semibold tracking-wide mb-1 text-center w-full truncate px-4">Radio Stream</h3>
+                            <p id="audio-visualizer-desc" class="text-blue-400/80 text-xs uppercase tracking-[0.2em] mb-6 font-medium text-center w-full truncate px-4">Đang phát âm thanh</p>
+                            
+                            <div class="flex gap-1.5 h-8 items-end shrink-0">
+                                <div class="audio-bar" style="height: 40%; animation-delay: 0.1s;"></div>
+                                <div class="audio-bar" style="height: 80%; animation-delay: 0.3s;"></div>
+                                <div class="audio-bar" style="height: 60%; animation-delay: 0.2s;"></div>
+                                <div class="audio-bar" style="height: 100%; animation-delay: 0.5s;"></div>
+                                <div class="audio-bar" style="height: 30%; animation-delay: 0.4s;"></div>
+                                <div class="audio-bar" style="height: 70%; animation-delay: 0.6s;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Floating Controls -->
+                    <div class="player-float-controls" id="float-controls">
+                        <button class="ctrl-btn tooltip" data-tip="Dừng phát" onclick="stopChannel()">
+                            <i data-lucide="square" class="w-3.5 h-3.5 fill-current"></i>
+                        </button>
+                        <select id="quality-selector" class="quality-select hidden" title="Chọn độ phân giải">
+                            <option value="-1">Auto</option>
+                        </select>
+                        <button class="ctrl-btn tooltip" data-tip="Toàn màn hình" onclick="toggleFullscreen()" id="fullscreen-btn">
+                            <i data-lucide="maximize" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+
+                    <!-- Loading Overlay -->
+                    <div id="loading-overlay" class="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-md z-20 hidden text-white">
+                        <div class="w-8 h-8 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"></div>
+                        <p id="resolve-status" class="hidden text-[10px] text-blue-400 mt-3 flex items-center gap-1.5">
+                            <span class="inline-block w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse"></span>
+                            Đang dò link stream...
+                        </p>
+                    </div>
+
+                    <!-- EPG Side Panel -->
+                    <div id="epg-panel" class="absolute top-0 left-0 w-80 h-full bg-slate-900/95 backdrop-blur-xl border-r border-white/10 flex flex-col pointer-events-auto z-40">
+                        <div class="p-4 border-b border-white/10 flex items-center justify-between">
+                            <h2 class="text-sm font-bold text-white flex items-center gap-2">
+                                <i data-lucide="calendar-days" class="w-4 h-4 text-blue-400 shrink-0"></i>
+                                <span id="epg-title" class="truncate max-w-[180px]">Lịch Phát Sóng</span>
+                            </h2>
+                            <div class="flex items-center gap-1">
+                                <button onclick="fetchEPG()" class="p-1.5 hover:bg-white/10 rounded-lg transition-colors tooltip" data-tip="Tải lại lịch">
+                                    <i data-lucide="refresh-cw" class="w-4 h-4 text-slate-400"></i>
+                                </button>
+                                <button onclick="toggleEPG()" class="p-1.5 hover:bg-white/10 rounded-lg transition-colors">
+                                    <i data-lucide="x" class="w-4 h-4 text-slate-400"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="epg-content" class="flex-1 overflow-y-auto p-3 custom-scrollbar">
+                            <div class="h-full flex flex-col items-center justify-center text-center opacity-40 p-6">
+                                <i data-lucide="info" class="w-8 h-8 mb-3"></i>
+                                <p class="text-xs">Chọn kênh để xem lịch</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- EPG Toggle Button -->
+                    <button id="epg-toggle-btn" onclick="toggleEPG()" class="absolute top-4 left-4 z-50 w-10 h-10 rounded-xl bg-slate-900/80 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:border-blue-500/50 shadow-xl hidden">
+                        <i data-lucide="calendar" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </main>
+
+            <!-- Category Tabs -->
+            <div class="glass-panel p-2.5 rounded-2xl shrink-0">
+                <div id="category-tabs" class="flex gap-2 overflow-x-auto custom-scrollbar no-scrollbar">
+                    <!-- Tabs rendered by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- SIDEBAR -->
+        <aside id="sidebar" class="w-full lg:w-[320px] glass-panel rounded-2xl flex flex-col overflow-hidden shrink-0 h-full">
+            <!-- Sidebar Header -->
+            <div class="p-4 border-b border-white/10 shrink-0 flex flex-col gap-3">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                            <i data-lucide="tv" class="w-5 h-5 text-white"></i>
+                        </div>
+                        <div>
+                            <h1 class="font-bold text-base tracking-tight text-white leading-none">
+                                IPTV <span class="text-blue-400">Player</span>
+                            </h1>
+                            <span class="text-[10px] text-slate-400 font-medium uppercase tracking-wider mt-1 block">
+                                Live Engine
+                            </span>
+                        </div>
+                    </div>
+                    <button onclick="openAddDialog()" class="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 hover:bg-blue-600 hover:text-white border border-white/10 text-blue-400 transition-all active:scale-95" title="Thêm nguồn m3u8">
+                        <i data-lucide="plus" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <div class="relative group flex items-center">
+                    <i data-lucide="search" class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-400 transition-colors pointer-events-none z-10"></i>
+                    <input type="text" id="search-input" placeholder="Tìm kiếm kênh..." class="w-full pl-10 pr-9 py-2 bg-slate-950/60 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-blue-500 transition-all placeholder-slate-500" oninput="filterChannels()">
+                    <button id="clear-search-btn" class="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white hidden focus:outline-none transition-colors z-10" onclick="const inp = document.getElementById('search-input'); inp.value=''; inp.focus(); filterChannels();" title="Xóa tìm kiếm">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- List Space -->
+            <div class="flex-1 overflow-hidden relative">
+                <ul id="channel-list" class="h-full overflow-y-auto p-3 space-y-1.5 custom-scrollbar">
+                    <!-- Empty State -->
+                    <div id="empty-state" class="h-full flex flex-col items-center justify-center text-center p-6 opacity-40">
+                        <i data-lucide="layout-list" class="w-12 h-12 mb-4"></i>
+                        <h3 class="font-medium text-sm">Chưa có kênh nào</h3>
+                        <p class="text-[11px] mt-1">Nhấn dấu cộng để thêm playlist của bạn</p>
+                    </div>
+                </ul>
+            </div>
+
+            <!-- Sidebar Footer -->
+            <div class="p-3 bg-slate-950/40 border-t border-white/10 flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full bg-blue-500"></div>
+                    <span id="channel-count" class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">
+                        0 Kênh
+                    </span>
+                </div>
+                <button onclick="clearList()" class="text-[11px] text-slate-400 hover:text-red-400 transition-colors uppercase tracking-wider font-bold">
+                    Dọn dẹp
+                </button>
+            </div>
+        </aside>
+
+    </div>
+
+    <!-- Modal Thêm Kênh / Playlist -->
+    <div id="add-dialog" class="absolute inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="bg-slate-900 border border-white/10 rounded-2xl p-5 w-full max-w-sm flex flex-col gap-4 shadow-2xl transform scale-95 transition-transform duration-300" id="add-dialog-content">
+
+            <div class="flex items-center justify-between border-b border-white/10 pb-3">
+                <h2 class="text-white font-semibold text-sm flex items-center gap-2">
+                    <i data-lucide="list-plus" class="w-4 h-4 text-blue-400"></i>
+                    Thêm Nguồn Phát
+                </h2>
+                <button onclick="closeAddDialog()" class="text-slate-400 hover:text-white transition-colors p-1 rounded-md hover:bg-white/5">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <!-- Quick Picks -->
+            <div class="flex flex-col gap-2 mt-1">
+                <label class="text-slate-400 text-xs font-medium px-1 flex items-center gap-1.5">
+                    <i data-lucide="zap" class="w-3.5 h-3.5 text-yellow-500 fill-yellow-500/20"></i> Nguồn phát nhanh
+                </label>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="loadPredefinedUrl('https://raw.githubusercontent.com/hieu-TQS/error/refs/heads/main/error.m3u')" class="px-3 py-2.5 bg-slate-800/60 hover:bg-blue-600/20 border border-white/5 hover:border-blue-500/40 rounded-xl transition-all group flex items-center justify-center">
+                        <span class="text-xs font-bold text-white group-hover:text-blue-400 transition-colors">TV</span>
+                    </button>
+                    <button onclick="loadPredefinedUrl('https://tinyurl.com/HoiQuanClick/')" class="px-3 py-2.5 bg-slate-800/60 hover:bg-red-600/20 border border-white/5 hover:border-red-500/40 rounded-xl transition-all group flex items-center justify-center">
+                        <span class="text-xs font-bold text-white group-hover:text-red-400 transition-colors">Hội Quán</span>
+                    </button>
+                    <button onclick="loadPredefinedUrl('https://raw.githubusercontent.com/thanhchuong251085-cell/Hana2019/main/tviptv.m3u')" class="px-3 py-2.5 bg-slate-800/60 hover:bg-emerald-600/20 border border-white/5 hover:border-emerald-500/40 rounded-xl transition-all group flex items-center justify-center">
+                        <span class="text-xs font-bold text-white group-hover:text-emerald-400 transition-colors">Bóng Đá</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="relative flex items-center justify-center my-1">
+                <div class="absolute inset-x-0 h-[1px] bg-white/10"></div>
+                <span class="relative bg-slate-900 px-2 text-[10px] text-slate-500 font-medium uppercase">Tùy Chỉnh</span>
+            </div>
+
+            <!-- Input URL -->
+            <div class="flex flex-col gap-1.5">
+                <label class="text-slate-400 text-xs font-medium px-1">Nhập Liên kết URL thủ công</label>
+                <div class="relative flex w-full group">
+                    <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
+                        <i data-lucide="link" class="w-3.5 h-3.5 text-slate-500 group-focus-within:text-blue-400 transition-colors"></i>
+                    </div>
+                    <input type="text" id="url-input" placeholder="https://domain.com/playlist" class="w-full pl-8 pr-16 py-2.5 bg-slate-950/60 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-blue-500 transition-all placeholder-slate-600">
+                    <button onclick="loadFromUrl(); closeAddDialog();" class="absolute right-1 top-1 bottom-1 bg-blue-600 hover:bg-blue-500 text-white px-3.5 rounded-lg text-xs font-medium transition-colors flex items-center shadow-sm">
+                        TẢI
+                    </button>
+                </div>
+            </div>
+
+            <div class="relative flex items-center justify-center my-1">
+                <div class="absolute inset-x-0 h-[1px] bg-white/10"></div>
+                <span class="relative bg-slate-900 px-2 text-[10px] text-slate-500 font-medium uppercase">Hoặc</span>
+            </div>
+
+            <!-- Nút Upload File Local -->
+            <div class="flex flex-col gap-1.5 mb-1">
+                <label class="text-slate-400 text-xs font-medium px-1">Mở File từ máy tính cục bộ</label>
+                <input type="file" id="file-upload" accept=".m3u,.m3u8,.json" class="hidden" onchange="handleFileUpload(event); closeAddDialog();">
+                <label for="file-upload" class="cursor-pointer flex items-center justify-center gap-2 bg-slate-800/80 hover:bg-slate-800 border border-white/10 text-white px-4 py-2.5 text-xs font-medium rounded-xl transition-all w-full group">
+                    <i data-lucide="folder-open" class="w-4 h-4 text-blue-400 group-hover:scale-110 transition-transform"></i>
+                    <span>Tải tệp từ máy (.m3u)</span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Khởi tạo icons
+        lucide.createIcons();
+        if (typeof shaka !== 'undefined') shaka.polyfill.installAll();
+
+        // ============================================================
+        // LINK RESOLVER ENGINE V4 — XHR + BLOB URL
+        // ============================================================
+        async function resolveStreamUrl(url, channelProps = {}) {
+            if (isDirectStreamUrl(url)) return url;
+
+            console.log(`[Resolver] Resolving PHP: ${url.substring(0, 100)}`);
+            const startTime = Date.now();
+
+            try {
+                const result = await xhrFetchText(url);
+                if (result.text && result.text.length > 5) {
+                    const parsed = parseResponseForStream(result.text, result.finalUrl || url, url);
+                    if (parsed) {
+                        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+                        console.log(`[Resolver] ✅ XHR OK (${elapsed}s): ${String(parsed).substring(0, 120)}`);
+                        return parsed;
+                    }
+                    if (result.finalUrl && result.finalUrl !== url && /\.(m3u8|mpd|ts)(\?|#|$)/i.test(result.finalUrl)) {
+                        console.log(`[Resolver] ✅ XHR finalUrl: ${result.finalUrl.substring(0,120)}`);
+                        return result.finalUrl;
+                    }
+                }
+            } catch (e) {
+                console.warn('[Resolver] XHR failed:', e.message);
+            }
+
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                        'Accept': '*/*',
+                        'Referer': 'https://vietanhtv.id.vn/',
+                    },
+                    redirect: 'follow',
+                });
+                if (response.ok) {
+                    const finalUrl = response.url;
+                    const text = await response.text();
+                    const parsed = parseResponseForStream(text, finalUrl, url);
+                    if (parsed) {
+                        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+                        console.log(`[Resolver] ✅ Fetch OK (${elapsed}s): ${String(parsed).substring(0, 120)}`);
+                        return parsed;
+                    }
+                    if (finalUrl !== url && !finalUrl.includes('.php')) return finalUrl;
+                }
+            } catch (e) {
+                console.warn('[Resolver] Fetch failed:', e.message);
+            }
+
+            const CORS_PROXIES = [
+                'https://api.allorigins.win/raw?url=',
+                'https://corsproxy.io/?url=',
+            ];
+            for (const proxy of CORS_PROXIES) {
+                try {
+                    const proxyUrl = proxy + encodeURIComponent(url);
+                    const resp = await fetch(proxyUrl, { redirect: 'follow' });
+                    if (resp.ok) {
+                        const text = await resp.text();
+                        if (text && text.length > 5) {
+                            const parsed = parseResponseForStream(text, url, url);
+                            if (parsed) {
+                                const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+                                console.log(`[Resolver] ✅ Proxy ${proxy} OK (${elapsed}s): ${String(parsed).substring(0, 120)}`);
+                                return parsed;
+                            }
+                            if (text.includes('#EXTM3U') || text.includes('#EXTINF')) {
+                                const blob = new Blob([text], { type: 'application/vnd.apple.mpegurl' });
+                                if (currentBlobUrl) URL.revokeObjectURL(currentBlobUrl);
+                                currentBlobUrl = URL.createObjectURL(blob);
+                                console.log(`[Resolver] ✅ Proxy ${proxy} → Blob URL: ${currentBlobUrl.substring(0,50)}`);
+                                return currentBlobUrl;
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.warn(`[Resolver] Proxy ${proxy} failed:`, e.message);
+                }
+            }
+
+            console.warn(`[Resolver] ❌ Thất bại sau ${((Date.now()-startTime)/1000).toFixed(1)}s`);
+            return url;
+        }
+
+        function xhrFetchText(url) {
+            return new Promise((resolve, reject) => {
+                try {
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('GET', url, true);
+                    xhr.timeout = 20000;
+                    xhr.setRequestHeader('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
+                    xhr.setRequestHeader('Accept', '*/*');
+                    xhr.setRequestHeader('Referer', 'https://vietanhtv.id.vn/');
+                    xhr.responseType = 'text';
+
+                    xhr.onload = function() {
+                        if (xhr.status === 200 || xhr.status === 302 || xhr.status === 301 || xhr.status === 0) {
+                            resolve({
+                                text: xhr.responseText,
+                                finalUrl: xhr.responseURL || url
+                            });
+                        } else {
+                            reject(new Error(`HTTP ${xhr.status}`));
+                        }
+                    };
+                    xhr.onerror = () => reject(new Error('XHR error'));
+                    xhr.ontimeout = () => reject(new Error('XHR timeout'));
+                    xhr.send();
+                } catch (e) {
+                    reject(e);
+                }
+            });
+        }
+
+        function parseResponseForStream(text, finalUrl, originalUrl) {
+            if (!text || text.length < 5) return null;
+            const trimmed = text.trim();
+
+            if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+                try {
+                    const json = JSON.parse(trimmed);
+                    const url = findUrlInJson(json);
+                    if (url) return url;
+                    if (json.keys || json.kid) return trimmed;
+                } catch { }
+            }
+
+            if (text.includes('#EXTM3U') || text.includes('#EXTINF')) {
+                const lines = text.split('\n');
+                for (const line of lines) {
+                    const l = line.trim();
+                    if (l.startsWith('http') && (l.includes('.m3u8') || l.includes('.ts') || l.includes('.mp4'))) {
+                        return l;
+                    }
+                    if (l.endsWith('.m3u8') || l.endsWith('.ts')) {
+                        try { return new URL(l, finalUrl || originalUrl).href; } catch { return l; }
+                    }
+                }
+                if (finalUrl && finalUrl !== originalUrl && !finalUrl.includes('.php')) return finalUrl;
+                return text;
+            }
+
+            if (text.includes('<MPD') || (text.includes('<?xml') && text.includes('mpd:'))) {
+                if (finalUrl && finalUrl !== originalUrl) return finalUrl;
+                return text;
+            }
+
+            const urls = [...trimmed.matchAll(/https?:\/\/[^\s<>"']+/g)].map(m => m[0]);
+            const streamUrls = urls.filter(u => /\.(m3u8|mpd|ts|mp4|flv|aac|mp3|m4a)(\?|#|$)/i.test(u));
+            if (streamUrls.length > 0) return streamUrls[0];
+            if (urls.length === 1) return urls[0];
+
+            if (text.includes('<html') || text.includes('<!DOCTYPE')) {
+                const patterns = [
+                    /<iframe[^>]+src=["'](https?:\/\/[^"']+)["']/i,
+                    /<video[^>]+src=["'](https?:\/\/[^"']+)["']/i,
+                    /<source[^>]+src=["'](https?:\/\/[^"']+)["']/i,
+                    /<a[^>]+href=["'](https?:\/\/[^"']+\.(?:m3u8|mpd|ts)[^"']*)["']/i,
+                    /embed["']?\s*:\s*["'](https?:\/\/[^"']+)["']/i,
+                    /file["']?\s*:\s*["'](https?:\/\/[^"']+)["']/i,
+                ];
+                for (const pattern of patterns) {
+                    const match = text.match(pattern);
+                    if (match) return match[1];
+                }
+                for (const u of urls) {
+                    if (/\.(m3u8|mpd|ts)(\?|#|$)/i.test(u)) return u;
+                }
+            }
+
+            const deepMatch = text.match(/https?:\/\/[^'"\s<>)]+\.(?:m3u8|mpd|ts)[^'"\s<>)]*/i);
+            if (deepMatch) return deepMatch[0];
+
+            return null;
+        }
+
+        function findUrlInJson(json) {
+            if (!json || typeof json !== 'object') return null;
+            const keys = ['url', 'link', 'src', 'source', 'file', 'location', 'redirect',
+                'stream', 'stream_url', 'streamUrl', 'hls', 'dash', 'm3u8', 'mpd'];
+            for (const key of keys) {
+                if (typeof json[key] === 'string' && json[key].startsWith('http')) return json[key];
+            }
+            for (const key of Object.keys(json)) {
+                if (typeof json[key] === 'object') {
+                    const result = findUrlInJson(json[key]);
+                    if (result) return result;
+                }
+            }
+            if (Array.isArray(json)) {
+                for (const item of json) {
+                    const result = findUrlInJson(item);
+                    if (result) return result;
+                }
+            }
+            return null;
+        }
+
+        function isDirectStreamUrl(url) {
+            if (!url) return false;
+            return /\.(m3u8|mpd|ts|mp4|flv|aac|mp3|m4a|ogg|webm)(\?|#|$)/i.test(url) ||
+                   url.includes('Manifest') || url.includes('playlist.m3u') ||
+                   url.includes('/play/') || url.includes(':2086/') || url.includes(':2087/');
+        }
+
+        function detectStreamType(url) {
+            if (!url) return 'unknown';
+            if (url.includes('.mpd') || url.includes('Manifest') || url.includes('mpd:')) return 'dash';
+            if (url.includes('.m3u8') || url.includes('m3u8') || url.includes('playlist.m3u')) return 'hls';
+            if (url.includes('.ts') || url.includes('extension=ts')) return 'mpegts';
+            if (url.includes('.mp3') || url.includes('.aac') || url.includes('.ogg') || url.includes('.flac') || url.includes('.opus')) return 'audio';
+            if (url.includes('.mp4') || url.includes('.flv') || url.includes('.webm')) return 'video';
+            return 'unknown';
+        }
+
+        // State
+        let allChannels = [];
+        let hlsInstance = null;
+        let shakaInstance = null;
+        let mpegtsInstance = null;
+        let currentPlayingUrl = null;
+        let selectedChannelId = null;
+
+        let liveEdgeCheckInterval = null;
+        let bufferCleanupInterval = null;
+
+        const DEFAULT_EPG_URL = 'https://vnepg.site/epg.xml';
+        let epgData = new Map();
+        let epgChannels = new Map();
+        let isEPGPanelOpen = false;
+        let epgFetchStatus = 'idle';
+
+        // DOM Elements
+        const videoPlayer = document.getElementById('video-player');
+        const channelListEl = document.getElementById('channel-list');
+        const emptyStateEl = document.getElementById('empty-state');
+        const channelCountEl = document.getElementById('channel-count');
+        const searchInput = document.getElementById('search-input');
+        const playerOverlay = document.getElementById('player-overlay');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const videoContainer = document.querySelector('.video-container');
+
+        videoPlayer.addEventListener('resize', () => {
+            const audioVis = document.getElementById('audio-visualizer');
+            if (audioVis && videoPlayer.videoHeight > 0) {
+                audioVis.classList.add('hidden');
+            }
+        });
+
+        let inactivityTimeout;
+        const CONTROLS_TIMEOUT = 2500;
+
+        function showControls() {
+            videoContainer.classList.remove('hide-cursor');
+            videoContainer.classList.add('controls-active');
+            clearTimeout(inactivityTimeout);
+            inactivityTimeout = setTimeout(hideControls, CONTROLS_TIMEOUT);
+        }
+
+        function hideControls() {
+            videoContainer.classList.remove('controls-active');
+            if (document.fullscreenElement) {
+                videoContainer.classList.add('hide-cursor');
+            }
+        }
+
+        videoContainer.addEventListener('mousemove', showControls);
+        videoContainer.addEventListener('mousedown', showControls);
+        videoContainer.addEventListener('mouseleave', () => {
+            clearTimeout(inactivityTimeout);
+            hideControls();
+        });
+
+        videoContainer.addEventListener('touchstart', (e) => {
+            const tag = e.target.tagName;
+            if (tag === 'BUTTON' || tag === 'SELECT' || tag === 'OPTION' ||
+                e.target.closest('button') || e.target.closest('select') ||
+                e.target.closest('#epg-panel')) {
+                return;
+            }
+
+            if (videoContainer.classList.contains('controls-active')) {
+                clearTimeout(inactivityTimeout);
+                hideControls();
+            } else {
+                showControls();
+            }
+        }, { passive: true });
+
+        function handleFSChange() {
+            const fsBtn = document.getElementById('fullscreen-btn');
+            const isFS = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+
+            if (isFS) {
+                if (fsBtn) {
+                    fsBtn.setAttribute('data-tip', 'Thoát toàn màn hình');
+                    fsBtn.innerHTML = '<i data-lucide="minimize" class="w-3.5 h-3.5"></i>';
+                }
+            } else {
+                if (fsBtn) {
+                    fsBtn.setAttribute('data-tip', 'Toàn màn hình');
+                    fsBtn.innerHTML = '<i data-lucide="maximize" class="w-3.5 h-3.5"></i>';
+                }
+                videoContainer.classList.remove('hide-cursor');
+            }
+            if (fsBtn) lucide.createIcons({ root: fsBtn });
+        }
+
+        document.addEventListener('fullscreenchange', handleFSChange);
+        document.addEventListener('webkitfullscreenchange', handleFSChange);
+        document.addEventListener('mozfullscreenchange', handleFSChange);
+        document.addEventListener('MSFullscreenChange', handleFSChange);
+
+        const addDialog = document.getElementById('add-dialog');
+        const addDialogContent = document.getElementById('add-dialog-content');
+
+        function openAddDialog() {
+            addDialog.classList.remove('opacity-0', 'pointer-events-none');
+            addDialogContent.classList.replace('scale-95', 'scale-100');
+        }
+
+        function closeAddDialog() {
+            addDialog.classList.add('opacity-0', 'pointer-events-none');
+            addDialogContent.classList.replace('scale-100', 'scale-95');
+        }
+
+        addDialog.addEventListener('click', (e) => {
+            if (e.target === addDialog) {
+                closeAddDialog();
+            }
+        });
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            const iconName = type === 'success' ? 'check' : 'alert-circle';
+
+            toast.innerHTML = `
+                    <div class="toast-icon">
+                        <i data-lucide="${iconName}" class="w-4 h-4"></i>
+                    </div>
+                    <span>${message}</span>
+                `;
+            container.appendChild(toast);
+            lucide.createIcons({ root: toast });
+
+            setTimeout(() => {
+                if (container.contains(toast)) container.removeChild(toast);
+            }, 3300);
+        }
+
+        let globalEPGUrl = '';
+
+        function parseM3U(text) {
+            text = text.replace(/http:\/\/vietanhtv\.id\.vn/g, 'https://vietanhtv.id.vn');
+            text = text.replace(/http:\/\/xem\.hoiquan\.click/g, 'https://tinyurl.com/HoiQuanClick');
+            const lines = text.split('\n');
+            const channels = [];
+            let currentChannel = null;
+
+            const m3uHeader = lines.find(l => l.toUpperCase().startsWith('#EXTM3U'));
+            if (m3uHeader) {
+                const epgMatch = m3uHeader.match(/x-tvg-url="([^"]+)"/i) || m3uHeader.match(/url-tvg="([^"]+)"/i);
+                if (epgMatch && epgMatch[1]) {
+                    globalEPGUrl = epgMatch[1];
+                    console.log("Tìm thấy EPG URL từ playlist:", globalEPGUrl);
+                    fetchEPG(globalEPGUrl);
+                }
+            }
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (line.toUpperCase().includes('EXTINF:')) {
+                    currentChannel = {
+                        name: 'Kênh ẩn danh',
+                        logo: '',
+                        group: 'Khác',
+                        url: '',
+                        id: '',
+                        props: {}
+                    };
+
+                    const commaIndex = line.lastIndexOf(',');
+                    if (commaIndex !== -1) currentChannel.name = line.substring(commaIndex + 1).trim() || 'Kênh ẩn danh';
+
+                    const logoMatch = line.match(/tvg-logo="([^"]+)"/i);
+                    if (logoMatch && logoMatch[1]) currentChannel.logo = logoMatch[1];
+
+                    const groupMatch = line.match(/group-title="([^"]+)"/i);
+                    if (groupMatch && groupMatch[1]) currentChannel.group = groupMatch[1];
+
+                    const idMatch = line.match(/tvg-id="([^"]+)"/i);
+                    if (idMatch && idMatch[1]) currentChannel.id = idMatch[1];
+
+                    const catchupMatch = line.match(/catchup="([^"]+)"/i);
+                    if (catchupMatch) currentChannel.props.catchup = catchupMatch[1];
+
+                    const catchupDaysMatch = line.match(/catchup-days="([^"]+)"/i);
+                    if (catchupDaysMatch) currentChannel.props.catchupDays = catchupDaysMatch[1];
+
+                    const catchupSourceMatch = line.match(/catchup-source="([^"]+)"/i);
+                    if (catchupSourceMatch) currentChannel.props.catchupSource = catchupSourceMatch[1];
+
+                } else if (line.toUpperCase().startsWith('#KODIPROP:')) {
+                    if (currentChannel) {
+                        const propLine = line.substring(10).trim();
+                        const equalIdx = propLine.indexOf('=');
+                        if (equalIdx !== -1) {
+                            const key = propLine.substring(0, equalIdx).trim();
+                            const val = propLine.substring(equalIdx + 1).trim();
+                            currentChannel.props[key] = val;
+                        }
+                    }
+                } else if (line.toUpperCase().startsWith('#EXTVLCOPT:')) {
+                    if (currentChannel) {
+                        const optLine = line.substring(11).trim();
+                        const equalIdx = optLine.indexOf('=');
+                        if (equalIdx !== -1) {
+                            const key = optLine.substring(0, equalIdx).trim();
+                            const val = optLine.substring(equalIdx + 1).trim();
+                            currentChannel.props[key] = val;
+                        }
+                    }
+                } else if (line !== '' && !line.startsWith('#')) {
+                    if (currentChannel) {
+                        currentChannel.url = line;
+                        channels.push(currentChannel);
+                        currentChannel = null;
+                    } else {
+                        channels.push({
+                            name: line.split('/').pop() || 'Luồng trực tiếp',
+                            logo: '',
+                            group: 'Khác',
+                            url: line,
+                            id: '',
+                            props: {}
+                        });
+                    }
+                }
+            }
+            return channels;
+        }
+
+        function parseJSON(data) {
+            let dataStr = JSON.stringify(data);
+            dataStr = dataStr.replace(/http:\/\/vietanhtv\.id\.vn/g, 'https://vietanhtv.id.vn');
+            dataStr = dataStr.replace(/http:\/\/xem\.hoiquan\.click/g, 'https://tinyurl.com/HoiQuanClick');
+            data = JSON.parse(dataStr);
+
+            if (data && data.groups && Array.isArray(data.groups)) {
+                const channels = [];
+                data.groups.forEach(group => {
+                    if (group.channels && Array.isArray(group.channels)) {
+                        group.channels.forEach(channel => {
+                            let streamUrl = '';
+                            if (channel.sources && channel.sources[0] &&
+                                channel.sources[0].contents && channel.sources[0].contents[0] &&
+                                channel.sources[0].contents[0].streams && channel.sources[0].contents[0].streams[0] &&
+                                channel.sources[0].contents[0].streams[0].stream_links &&
+                                channel.sources[0].contents[0].streams[0].stream_links[0]) {
+                                streamUrl = channel.sources[0].contents[0].streams[0].stream_links[0].url;
+                            }
+
+                            if (streamUrl) {
+                                channels.push({
+                                    name: channel.name || 'Kênh Live Sport',
+                                    url: streamUrl,
+                                    logo: (channel.image && channel.image.url) ? channel.image.url : '',
+                                    group: group.name || 'Bóng Đá'
+                                });
+                            }
+                        });
+                    }
+                });
+                return channels;
+            }
+
+            if (!Array.isArray(data)) data = data.channels || [];
+            return data.map(item => ({
+                name: item.name || item.title || item.channel || 'Kênh ẩn danh',
+                url: item.url || item.link || item.stream || '',
+                logo: item.logo || item.icon || item.tvg_logo || '',
+                group: item.group || item.category || 'Khác'
+            })).filter(item => item.url !== '');
+        }
+
+        let currentCategory = 'Tất cả';
+
+        function renderChannels(channelsToRender) {
+            channelListEl.innerHTML = '';
+
+            if (channelsToRender.length === 0) {
+                emptyStateEl.style.display = 'flex';
+                return;
+            }
+            emptyStateEl.style.display = 'none';
+
+            let filtered = channelsToRender;
+            if (currentCategory !== 'Tất cả') {
+                filtered = channelsToRender.filter(c => (c.group || 'Khác') === currentCategory);
+            }
+
+            const fragment = document.createDocumentFragment();
+            filtered.forEach((channel) => {
+                const li = document.createElement('li');
+                const isPlaying = currentPlayingUrl === channel.url;
+
+                li.className = `channel-item relative flex items-center gap-3 p-2 rounded-xl cursor-pointer select-none ${isPlaying ? 'active' : ''}`;
+
+                const logoHtml = channel.logo
+                    ? `<img src="${channel.logo}" alt="" class="w-full h-full object-contain" loading="lazy">`
+                    : `<i data-lucide="tv" class="w-4 h-4 text-slate-500"></i>`;
+
+                li.innerHTML = `
+                        <div class="w-12 aspect-video shrink-0 bg-slate-950/60 rounded-lg border border-white/10 flex items-center justify-center overflow-hidden">
+                            ${logoHtml}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h3 class="text-xs font-semibold leading-tight truncate ${isPlaying ? 'text-blue-400' : 'text-slate-200'}">
+                                ${channel.name}
+                            </h3>
+                            <p class="text-[10px] text-slate-400 mt-0.5 uppercase tracking-wider">${channel.group || 'Khác'}</p>
+                        </div>
+                        ${isPlaying ? `
+                            <div class="playing-indicator mr-1">
+                                <div class="indicator-bar" style="animation-delay: 0s"></div>
+                                <div class="indicator-bar" style="animation-delay: 0.2s"></div>
+                                <div class="indicator-bar" style="animation-delay: 0.4s"></div>
+                            </div>
+                        ` : ''}
+                    `;
+
+                li.onclick = (e) => {
+                    e.stopPropagation();
+                    playChannel(channel);
+                };
+                fragment.appendChild(li);
+            });
+
+            channelListEl.appendChild(fragment);
+            lucide.createIcons({ root: channelListEl });
+        }
+
+        function renderCategoryTabs() {
+            const tabsContainer = document.getElementById('category-tabs');
+            tabsContainer.innerHTML = '';
+
+            const groups = ['Tất cả', ...new Set(allChannels.map(c => c.group || 'Khác'))];
+
+            groups.forEach(group => {
+                const btn = document.createElement('button');
+                btn.className = `category-tab px-3 py-1.5 rounded-lg text-xs font-semibold ${currentCategory === group ? 'active' : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-slate-200'}`;
+                btn.innerText = group;
+                btn.onclick = () => {
+                    currentCategory = group;
+                    renderCategoryTabs();
+                    filterChannels();
+                };
+                tabsContainer.appendChild(btn);
+            });
+        }
+
+        function processData(channels) {
+            if (channels.length === 0) {
+                showToast('Không có dữ liệu hợp lệ trong file/link.', 'error');
+                return;
+            }
+            allChannels = channels;
+            searchInput.value = '';
+            currentCategory = 'Tất cả';
+            renderCategoryTabs();
+            filterChannels();
+            showToast(`Đã tải thành công ${allChannels.length} kênh.`);
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                try {
+                    const content = e.target.result;
+                    if (file.name.toLowerCase().endsWith('.json')) processData(parseJSON(JSON.parse(content)));
+                    else processData(parseM3U(content));
+                } catch (error) { showToast('Lỗi đọc dữ liệu.', 'error'); }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        async function loadPredefinedUrl(url) {
+            document.getElementById('url-input').value = url;
+            closeAddDialog();
+            await loadFromUrl();
+        }
+
+        async function loadFromUrl() {
+            const urlInput = document.getElementById('url-input').value.trim();
+            if (!urlInput) return showToast('Vui lòng dán đường dẫn URL!', 'error');
+
+            const isDirectM3U8 = /\.m3u8(\?|#|$)/i.test(urlInput);
+            const isDirectMPD = /\.mpd(\?|#|$)/i.test(urlInput);
+            const isDirectTS = /\.ts(\?|#|$)/i.test(urlInput) || /extension=ts/i.test(urlInput);
+
+            if (isDirectM3U8 || isDirectMPD || isDirectTS) {
+                closeAddDialog();
+                try {
+                    const pathParts = new URL(urlInput).pathname.split('/');
+                    var streamName = decodeURIComponent(pathParts.filter(p => p).pop() || 'Luồng trực tiếp');
+                    streamName = streamName.replace(/\.(m3u8|mpd|ts)$/i, '');
+                } catch (e) {
+                    var streamName = 'Luồng trực tiếp';
+                }
+                showToast(`Đang phát: ${streamName}`, 'success');
+                playChannel({
+                    name: streamName,
+                    url: urlInput,
+                    logo: '',
+                    group: 'Phát trực tiếp',
+                    props: {}
+                });
+                return;
+            }
+
+            showToast('Đang kết nối URL...', 'success');
+            let text = '';
+
+            const isLocal = !urlInput.startsWith('http');
+            const proxies = isLocal ? [''] : [
+                '',
+                'https://api.allorigins.win/raw?url=',
+                'https://corsproxy.io/?url=',
+                'https://crossorigin.me/',
+            ];
+
+            let success = false;
+            let lastError = null;
+
+            for (const proxy of proxies) {
+                try {
+                    const fetchUrl = proxy ? proxy + encodeURIComponent(urlInput) : urlInput;
+                    const response = await fetch(fetchUrl, {
+                        headers: {
+                            'Accept': 'text/plain, */*'
+                        }
+                    });
+
+                    if (response.ok) {
+                        text = await response.text();
+                        const isM3U = text.includes('#EXTM3U') || text.toUpperCase().includes('EXTINF:');
+                        const isJSON = text.trim().startsWith('{') || text.trim().startsWith('[');
+
+                        if (isM3U || isJSON) {
+                            success = true;
+                            console.log(`Đã tải nguồn phát thành công bằng luồng: ${proxy ? 'Proxy ' + proxy : 'Direct'}`);
+                            break;
+                        } else {
+                            throw new Error('Nội dung trả về không phải định dạng nguồn phát hợp lệ.');
+                        }
+                    } else {
+                        throw new Error(`Mã lỗi HTTP: ${response.status}`);
+                    }
+                } catch (e) {
+                    lastError = e;
+                    console.warn(`Thử fetch thất bại với ${proxy ? 'proxy ' + proxy : 'luồng trực tiếp'}:`, e.message);
+                }
+            }
+
+            if (!success) {
+                console.error("Lỗi get link cuối cùng:", lastError);
+                return showToast('Website gốc đang chặn quyền truy cập (CORS) hoặc bị lỗi kĩ thuật.', 'error');
+            }
+
+            try { processData(parseJSON(JSON.parse(text))); }
+            catch (e) { processData(parseM3U(text)); }
+        }
+
+        function filterChannels() {
+            const query = searchInput.value.toLowerCase().trim();
+            const clearBtn = document.getElementById('clear-search-btn');
+            if (clearBtn) clearBtn.classList.toggle('hidden', query === '');
+            let filtered = allChannels;
+
+            if (currentCategory !== 'Tất cả') {
+                filtered = filtered.filter(c => (c.group || 'Khác') === currentCategory);
+            }
+
+            if (query) {
+                filtered = filtered.filter(c =>
+                    c.name.toLowerCase().includes(query) ||
+                    (c.group || '').toLowerCase().includes(query)
+                );
+            }
+
+            renderChannelsExplicit(filtered);
+            channelCountEl.textContent = `${filtered.length} Kênh`;
+        }
+
+        function renderChannelsExplicit(channels) {
+            channelListEl.innerHTML = '';
+            if (channels.length === 0) {
+                emptyStateEl.style.display = 'flex';
+                return;
+            }
+            emptyStateEl.style.display = 'none';
+
+            const fragment = document.createDocumentFragment();
+            channels.forEach((channel) => {
+                const li = document.createElement('li');
+                const isPlaying = currentPlayingUrl === channel.url;
+                li.className = `channel-item relative flex items-center gap-3 p-2 rounded-xl cursor-pointer select-none ${isPlaying ? 'active' : ''}`;
+
+                let currentProgram = null;
+                const epgId = findEPGId(channel.id || channel.name);
+                if (epgId && epgData.has(epgId)) {
+                    const now = new Date();
+                    currentProgram = epgData.get(epgId).find(p => p.start <= now && p.stop >= now);
+                }
+
+                const logoHtml = channel.logo
+                    ? `<img src="${channel.logo}" alt="" class="w-full h-full object-contain" loading="lazy">`
+                    : `<i data-lucide="tv" class="w-4 h-4 text-slate-500"></i>`;
+
+                li.innerHTML = `
+                        <div class="w-12 aspect-video shrink-0 bg-slate-950/60 rounded-lg border border-white/10 flex items-center justify-center overflow-hidden">
+                            ${logoHtml}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h3 class="text-xs font-semibold leading-tight truncate ${isPlaying ? 'text-blue-400' : 'text-slate-200'}">
+                                ${channel.name}
+                            </h3>
+                            ${currentProgram ? `
+                                <p class="text-[10px] text-blue-300/80 truncate mt-0.5 font-medium">
+                                    <span class="text-white/40 mr-1">•</span>${currentProgram.title}
+                                </p>
+                            ` : `
+                                <p class="text-[10px] text-slate-400 mt-0.5 uppercase tracking-wider">${channel.group || 'Khác'}</p>
+                            `}
+                        </div>
+                        ${isPlaying ? `
+                            <div class="playing-indicator mr-1">
+                                <div class="indicator-bar" style="animation-delay: 0s"></div>
+                                <div class="indicator-bar" style="animation-delay: 0.2s"></div>
+                                <div class="indicator-bar" style="animation-delay: 0.4s"></div>
+                            </div>
+                        ` : ''}
+                    `;
+                li.onclick = () => playChannel(channel);
+                fragment.appendChild(li);
+            });
+            channelListEl.appendChild(fragment);
+            lucide.createIcons({ root: channelListEl });
+        }
+
+        async function clearList() {
+            allChannels = [];
+            currentCategory = 'Tất cả';
+            searchInput.value = '';
+            renderCategoryTabs();
+            filterChannels();
+
+            if (window.stallInterval) { clearInterval(window.stallInterval); window.stallInterval = null; }
+            if (liveEdgeCheckInterval) { clearInterval(liveEdgeCheckInterval); liveEdgeCheckInterval = null; }
+            if (bufferCleanupInterval) { clearInterval(bufferCleanupInterval); bufferCleanupInterval = null; }
+            if (window.audioCheckInterval) { clearInterval(window.audioCheckInterval); window.audioCheckInterval = null; }
+
+            if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+            if (shakaInstance) { await shakaInstance.destroy(); shakaInstance = null; }
+            if (mpegtsInstance) { mpegtsInstance.destroy(); mpegtsInstance = null; }
+            videoPlayer.pause(); videoPlayer.removeAttribute('src'); videoPlayer.load();
+
+            if (currentBlobUrl) {
+                URL.revokeObjectURL(currentBlobUrl);
+                currentBlobUrl = null;
+            }
+
+            playerOverlay.style.opacity = '1';
+            currentPlayingUrl = null;
+        }
+
+        function base64ToHex(base64) {
+            if (!base64) return '';
+            let b64 = base64.replace(/-/g, '+').replace(/_/g, '/');
+            while (b64.length % 4 !== 0) b64 += '=';
+            try {
+                const raw = atob(b64);
+                let result = '';
+                for (let i = 0; i < raw.length; i++) {
+                    const hex = raw.charCodeAt(i).toString(16);
+                    result += (hex.length === 2 ? hex : '0' + hex);
+                }
+                return result.toLowerCase();
+            } catch (e) {
+                console.error("Lỗi giải mã Base64:", e);
+                return '';
+            }
+        }
+
+        let currentBlobUrl = null;
+        let resolveEnabled = localStorage.getItem('resolveEnabled') === 'true';
+
+        function toggleResolve() {
+            resolveEnabled = !resolveEnabled;
+            localStorage.setItem('resolveEnabled', resolveEnabled);
+            const btn = document.getElementById('resolve-toggle-btn');
+            const dot = btn.querySelector('div');
+            if (resolveEnabled) {
+                btn.style.backgroundColor = '#22c55e';
+                dot.style.transform = 'translateX(1.25rem)';
+            } else {
+                btn.style.backgroundColor = '#444';
+                dot.style.transform = 'translateX(0)';
+            }
+            console.log(`[Settings] Resolve PHP: ${resolveEnabled ? 'BẬT' : 'TẮT'}`);
+        }
+
+        async function stopChannel() {
+            if (liveEdgeCheckInterval) { clearInterval(liveEdgeCheckInterval); liveEdgeCheckInterval = null; }
+            if (bufferCleanupInterval) { clearInterval(bufferCleanupInterval); bufferCleanupInterval = null; }
+            if (window.audioCheckInterval) { clearInterval(window.audioCheckInterval); window.audioCheckInterval = null; }
+
+            if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+            if (shakaInstance) { await shakaInstance.destroy(); shakaInstance = null; }
+            if (mpegtsInstance) { mpegtsInstance.destroy(); mpegtsInstance = null; }
+            videoPlayer.pause();
+            videoPlayer.removeAttribute('src');
+            videoPlayer.load();
+
+            if (currentBlobUrl) {
+                URL.revokeObjectURL(currentBlobUrl);
+                currentBlobUrl = null;
+            }
+
+            currentPlayingUrl = null;
+            playerOverlay.style.opacity = '1';
+            loadingOverlay.classList.add('hidden');
+            document.getElementById('quality-selector').classList.add('hidden');
+            const epgBtn = document.getElementById('epg-toggle-btn');
+            if (epgBtn) epgBtn.classList.add('hidden');
+            const audioVis = document.getElementById('audio-visualizer');
+            if (audioVis) audioVis.classList.add('hidden');
+
+            filterChannels();
+            showToast('Đã dừng phát.', 'success');
+        }
+
+        function toggleFullscreen() {
+            const fsElement = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+
+            if (!fsElement) {
+                const reqFS = videoContainer.requestFullscreen || videoContainer.webkitRequestFullscreen || videoContainer.mozRequestFullScreen || videoContainer.msRequestFullscreen;
+                if (reqFS) {
+                    try {
+                        const promise = reqFS.call(videoContainer);
+                        if (promise) {
+                            promise.catch(() => {
+                                const docReqFS = document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen || document.documentElement.mozRequestFullScreen || document.documentElement.msRequestFullscreen;
+                                if (docReqFS) docReqFS.call(document.documentElement);
+                            });
+                        }
+                    } catch (e) {
+                        const docReqFS = document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen || document.documentElement.mozRequestFullScreen || document.documentElement.msRequestFullscreen;
+                        if (docReqFS) docReqFS.call(document.documentElement);
+                    }
+                } else if (videoPlayer.webkitEnterFullscreen) {
+                    videoPlayer.webkitEnterFullscreen();
+                }
+            } else {
+                const exitFS = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
+                if (exitFS) {
+                    exitFS.call(document);
+                }
+            }
+        }
+
+        function toggleEPG() {
+            isEPGPanelOpen = !isEPGPanelOpen;
+            const panel = document.getElementById('epg-panel');
+            const epgBtn = document.getElementById('epg-toggle-btn');
+            if (isEPGPanelOpen) {
+                panel.classList.add('open');
+                if (epgBtn) epgBtn.classList.add('hidden');
+                if (selectedChannelId) renderEPG(selectedChannelId);
+            } else {
+                panel.classList.remove('open');
+                if (epgBtn && selectedChannelId) epgBtn.classList.remove('hidden');
+            }
+        }
+
+        async function fetchEPG(url) {
+            if (epgFetchStatus === 'fetching' && !url) return;
+            epgFetchStatus = 'fetching';
+
+            const localUrl = 'http://data.local/epg.xml';
+            const remoteUrl = url || DEFAULT_EPG_URL;
+
+            let text = '';
+            let success = false;
+
+            try {
+                const localResponse = await fetch(localUrl);
+                if (localResponse.ok) {
+                    text = await localResponse.text();
+                    if (text.length > 1000 && text.includes('<?xml')) {
+                        success = true;
+                        console.log('[EPG] Đọc từ local epg.xml thành công, kích thước:', text.length);
+                    }
+                }
+            } catch (e) {
+                console.log('[EPG] Không có file local, thử tải từ mạng...');
+            }
+
+            if (!success) {
+                console.log('[EPG] Đang tải EPG từ:', remoteUrl);
+                try {
+                    const response = await fetch(remoteUrl);
+                    if (response.ok) {
+                        text = await response.text();
+                        if (text.length > 1000 && text.includes('<?xml')) success = true;
+                    }
+                } catch (e) {
+                    console.warn('[EPG] Fetch trực tiếp thất bại:', e.message);
+                }
+            }
+
+            if (!success) {
+                epgFetchStatus = 'error';
+                showToast('Không thể tải lịch phát sóng. Vui lòng thử lại.', 'error');
+                return;
+            }
+
+            try {
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(text, "text/xml");
+
+                const channels = xmlDoc.getElementsByTagName('channel');
+                for (let ch of channels) {
+                    const id = ch.getAttribute('id');
+                    const name = ch.getElementsByTagName('display-name')[0]?.textContent || id;
+                    epgChannels.set(id, name);
+                }
+
+                const programmes = xmlDoc.getElementsByTagName('programme');
+                const tempEpgData = new Map();
+
+                for (let prog of programmes) {
+                    const channelId = prog.getAttribute('channel');
+                    const startStr = prog.getAttribute('start');
+                    const stopStr = prog.getAttribute('stop');
+                    const title = prog.getElementsByTagName('title')[0]?.textContent || 'Không tên';
+                    const desc = prog.getElementsByTagName('desc')[0]?.textContent || '';
+
+                    if (!tempEpgData.has(channelId)) tempEpgData.set(channelId, []);
+
+                    tempEpgData.get(channelId).push({
+                        start: parseXMLTVDate(startStr),
+                        stop: parseXMLTVDate(stopStr),
+                        title,
+                        desc
+                    });
+                }
+
+                epgData = tempEpgData;
+                epgFetchStatus = 'success';
+                console.log(`Đã tải xong EPG cho ${epgData.size} kênh.`);
+                showToast(`Đã cập nhật lịch phát sóng (${epgData.size} kênh)`);
+
+                filterChannels();
+            } catch (e) {
+                console.error("Lỗi parse XMLTV:", e);
+                epgFetchStatus = 'error';
+                showToast('Lỗi khi tải lịch phát sóng.', 'error');
+            }
+        }
+
+        const CHANNEL_NAME_MAP = {
+            'vtv1': 'vtv1hd', 'vtv2': 'vtv2hd', 'vtv3': 'vtv3hd',
+            'vtv4': 'vtv4hd', 'vtv5': 'vtv5hd', 'vtv6': 'vtv6hd',
+            'vtv7': 'vtv7hd', 'vtv8': 'vtv8hd', 'vtv9': 'vtv9hd',
+            'htv1': 'htv1hd', 'htv2': 'htv2hd', 'htv3': 'htv3hd',
+            'htv4': 'htv4hd', 'htv7': 'htv7hd', 'htv9': 'htv9hd',
+            'htv key': 'htv4hd',
+            'antv': 'antv', 'qpvn': 'qpvnhd', 'anninhTV': 'antv',
+            'vtc1': 'vtc1hd', 'vtc2': 'vtc2hd', 'vtc3': 'vtc3hd',
+            'sctv1': 'sctv1', 'sctv2': 'sctv2', 'sctv3': 'sctv3',
+            'sctv4': 'sctv4', 'sctv5': 'sctv5', 'sctv6': 'sctv6',
+            'sctv9': 'sctv9', 'sctv10': 'sctv10', 'sctv14': 'sctv14',
+            'vietnam today': 'vietnamtoday',
+            'htv thể thao': 'htvthethao', 'htvc du lịch': 'htvcdl',
+            'htvc ca nhạc': 'htvccanhac',
+            'thvl1': 'thvl1', 'thvl2': 'thvl2', 'thvl3': 'thvl3', 'thvl4': 'thvl4',
+            'truyền hình vĩnh long 1': 'thvl1',
+            'htvc tivi tết': 'htvcptt',
+            'youtv': 'youtv', 'youtvvn': 'youtv',
+            'hittv': 'hittv', 'hitv': 'hittv',
+            'fptv': 'fptv', 'htvc phim': 'htvcphim',
+        };
+
+        function findEPGId(id) {
+            if (!id) return null;
+            const cleanId = id.toLowerCase().trim();
+
+            if (epgData.has(id)) return id;
+
+            for (let key of epgData.keys()) {
+                if (key.toLowerCase() === cleanId) return key;
+            }
+
+            const mapped = CHANNEL_NAME_MAP[cleanId];
+            if (mapped && epgData.has(mapped)) return mapped;
+
+            for (let [epgId, epgName] of epgChannels.entries()) {
+                if (epgName && epgName.toLowerCase().trim() === cleanId) return epgId;
+            }
+
+            for (let key of epgData.keys()) {
+                const stripped = key.toLowerCase().replace(/(hd2?|vn|sd)$/, '');
+                if (stripped === cleanId) return key;
+            }
+
+            for (let [epgId, epgName] of epgChannels.entries()) {
+                if (!epgName) continue;
+                const lName = epgName.toLowerCase();
+                if ((lName === cleanId) ||
+                    (lName.startsWith(cleanId) && lName.length - cleanId.length <= 4) ||
+                    (cleanId.startsWith(lName) && cleanId.length - lName.length <= 4)) {
+                    return epgId;
+                }
+            }
+
+            return null;
+        }
+
+        function parseXMLTVDate(str) {
+            if (!str) return new Date();
+            const y = str.substring(0, 4);
+            const m = str.substring(4, 6) - 1;
+            const d = str.substring(6, 8);
+            const h = str.substring(8, 10);
+            const min = str.substring(10, 12);
+            const s = str.substring(12, 14);
+
+            const date = new Date(Date.UTC(y, m, d, h, min, s));
+            const tzMatch = str.match(/([+-])(\d{2})(\d{2})$/);
+            if (tzMatch) {
+                const sign = tzMatch[1] === '+' ? 1 : -1;
+                const hours = parseInt(tzMatch[2]);
+                const minutes = parseInt(tzMatch[3]);
+                const offsetMs = (hours * 60 + minutes) * 60000 * sign;
+                return new Date(date.getTime() - offsetMs);
+            }
+            return date;
+        }
+
+        function renderEPG(channelIdOrName) {
+            const container = document.getElementById('epg-content');
+            container.innerHTML = '';
+
+            const epgId = findEPGId(channelIdOrName);
+
+            const titleEl = document.getElementById('epg-title');
+            if (titleEl) {
+                const channel = allChannels.find(c => (c.id === channelIdOrName || c.name === channelIdOrName));
+                if (channel) {
+                    titleEl.textContent = channel.name;
+                } else if (epgId && epgChannels.has(epgId)) {
+                    titleEl.textContent = epgChannels.get(epgId);
+                } else if (channelIdOrName) {
+                    titleEl.textContent = channelIdOrName;
+                } else {
+                    titleEl.textContent = 'Lịch Phát Sóng';
+                }
+            }
+
+            if (!epgId || !epgData.has(epgId)) {
+                container.innerHTML = `
+                        <div class="h-full flex flex-col items-center justify-center text-center opacity-40 p-6">
+                            <i data-lucide="info" class="w-8 h-8 mb-3"></i>
+                            <p class="text-xs">Không có dữ liệu lịch phát sóng cho: ${channelIdOrName || 'N/A'}</p>
+                            <p class="text-[10px] mt-2">Đang tải EPG từ: ${globalEPGUrl || DEFAULT_EPG_URL}</p>
+                        </div>
+                    `;
+                lucide.createIcons({ root: container });
+                return;
+            }
+
+            const programs = epgData.get(epgId).sort((a, b) => a.start - b.start);
+            const now = new Date();
+
+            const filtered = programs.filter(p => {
+                const end = new Date(p.stop);
+                return end >= now;
+            }).slice(0, 50);
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<p class="text-center text-slate-400 text-xs p-10">Hết lịch phát sóng hôm nay.</p>`;
+                return;
+            }
+
+            const fragment = document.createDocumentFragment();
+            filtered.forEach(p => {
+                const isCurrent = p.start <= now && p.stop >= now;
+                const item = document.createElement('div');
+                item.className = `epg-item p-3 mb-2 rounded-xl bg-white/[0.03] border border-white/5 ${isCurrent ? 'current' : ''}`;
+
+                const startTime = p.start.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+                const endTime = p.stop.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+
+                let progressHtml = '';
+                if (isCurrent) {
+                    const total = p.stop - p.start;
+                    const elapsed = now - p.start;
+                    const percent = Math.min(100, Math.max(0, (elapsed / total) * 100));
+                    progressHtml = `
+                            <div class="epg-progress">
+                                <div class="epg-progress-bar" style="width: ${percent}%"></div>
+                            </div>
+                        `;
+                }
+
+                item.innerHTML = `
+                        <div class="flex justify-between items-start mb-1">
+                            <span class="text-[10px] font-bold text-blue-400">${startTime} - ${endTime}</span>
+                            ${isCurrent ? '<span class="px-1.5 py-0.5 rounded-md bg-blue-600 text-[8px] font-bold text-white animate-pulse">LIVE</span>' : ''}
+                        </div>
+                        <h4 class="text-xs font-semibold text-slate-200 mb-1 leading-snug">${p.title}</h4>
+                        ${p.desc ? `<p class="text-[10px] text-slate-400 line-clamp-2">${p.desc}</p>` : ''}
+                        ${progressHtml}
+                    `;
+                fragment.appendChild(item);
+            });
+
+            container.appendChild(fragment);
+            setTimeout(() => {
+                const current = container.querySelector('.epg-item.current');
+                if (current) current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+        }
+
+        function showAudioVisualizer(channel) {
+            const audioVis = document.getElementById('audio-visualizer');
+            if (!audioVis || !audioVis.classList.contains('hidden')) return;
+
+            const titleEl = document.getElementById('audio-visualizer-title');
+            if (titleEl) titleEl.textContent = channel.name || 'Radio Stream';
+
+            const logoEl = document.getElementById('audio-visualizer-logo');
+            const iconEl = document.getElementById('audio-visualizer-icon');
+            if (channel.logo) {
+                logoEl.src = channel.logo;
+                logoEl.classList.remove('hidden');
+            } else {
+                logoEl.classList.add('hidden');
+                logoEl.src = '';
+            }
+            if (iconEl) iconEl.classList.remove('hidden');
+
+            audioVis.classList.remove('hidden');
+            lucide.createIcons({ root: audioVis });
+
+            const qualitySelector = document.getElementById('quality-selector');
+            if (qualitySelector) {
+                qualitySelector.innerHTML = '<option value="audio">Audio</option>';
+                qualitySelector.classList.remove('hidden');
+            }
+        }
+
+        async function playChannel(channel) {
+            selectedChannelId = channel.id || channel.name;
+            const epgBtn = document.getElementById('epg-toggle-btn');
+            if (!isEPGPanelOpen && epgBtn) {
+                epgBtn.classList.remove('hidden');
+            }
+
+            if (isEPGPanelOpen) renderEPG(selectedChannelId);
+
+            if (window.stallTimeout) clearTimeout(window.stallTimeout);
+            if (window.stallInterval) clearInterval(window.stallInterval);
+            const url = channel.url;
+            currentPlayingUrl = url;
+
+            let lastVideoTime = -1;
+            let stallCount = 0;
+            window.stallInterval = setInterval(() => {
+                if (!videoPlayer.paused && currentPlayingUrl === url) {
+                    if (videoPlayer.currentTime === lastVideoTime) {
+                        stallCount++;
+                        if (stallCount >= 20) {
+                            console.warn("Serious stall detected, forced reload...");
+                            stallCount = 0;
+                            playChannel(channel);
+                        }
+                    } else {
+                        stallCount = 0;
+                    }
+                    lastVideoTime = videoPlayer.currentTime;
+                }
+            }, 500);
+
+            playerOverlay.style.opacity = '0';
+            loadingOverlay.classList.remove('hidden');
+            document.getElementById('quality-selector').classList.add('hidden');
+            videoPlayer.classList.remove('is-live');
+            const audioVis = document.getElementById('audio-visualizer');
+            if (audioVis) audioVis.classList.add('hidden');
+
+            videoPlayer.preservesPitch = true;
+            if ('mozPreservesPitch' in videoPlayer) videoPlayer.mozPreservesPitch = true;
+            if ('webkitPreservesPitch' in videoPlayer) videoPlayer.webkitPreservesPitch = true;
+
+            filterChannels();
+
+            if (liveEdgeCheckInterval) { clearInterval(liveEdgeCheckInterval); liveEdgeCheckInterval = null; }
+            if (bufferCleanupInterval) { clearInterval(bufferCleanupInterval); bufferCleanupInterval = null; }
+            if (window.audioCheckInterval) { clearInterval(window.audioCheckInterval); window.audioCheckInterval = null; }
+            if (window._audioDriftInterval) { clearInterval(window._audioDriftInterval); window._audioDriftInterval = null; }
+            if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+            if (shakaInstance) {
+                await shakaInstance.destroy();
+                shakaInstance = null;
+            }
+            if (mpegtsInstance) { mpegtsInstance.destroy(); mpegtsInstance = null; }
+            videoPlayer.pause();
+            videoPlayer.removeAttribute('src');
+            videoPlayer.load();
+
+            let resolvedUrl = url;
+            const needsResolve = url.includes('.php') || url.includes('vietanhtv') || url.includes('tv360') || url.includes('vieon') || url.includes('hoiquan') || url.includes('/play/') || url.includes('dpdns.org');
+            if (needsResolve) {
+                if (resolveEnabled) {
+                    loadingOverlay.classList.remove('hidden');
+                    const statusEl = document.getElementById('resolve-status');
+                    if (statusEl) statusEl.classList.remove('hidden');
+
+                    let responseText = null;
+                    let finalUrl = null;
+                    try {
+                        const xhrResult = await xhrFetchText(url);
+                        responseText = xhrResult.text;
+                        finalUrl = xhrResult.finalUrl || url;
+                        console.log(`[Resolver] XHR OK, final URL: ${finalUrl.substring(0,100)}`);
+                    } catch (e) {
+                        console.warn('[Resolver] XHR thất bại, thử fetch:', e.message);
+                        try {
+                            const resp = await fetch(url, {
+                                headers: {
+                                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                                    'Accept': '*/*',
+                                    'Referer': 'https://vietanhtv.id.vn/',
+                                },
+                                redirect: 'follow',
+                            });
+                            if (resp.ok) {
+                                responseText = await resp.text();
+                                finalUrl = resp.url;
+                                console.log(`[Resolver] Fetch OK, final URL: ${finalUrl.substring(0,100)}`);
+                            }
+                        } catch (e2) {
+                            console.warn('[Resolver] Fetch cũng thất bại:', e2.message);
+                        }
+                    }
+
+                    if (responseText && responseText.length > 5) {
+                        const parsed = parseResponseForStream(responseText, finalUrl || url, url);
+                        if (parsed) {
+                            if (parsed.startsWith('http')) {
+                                resolvedUrl = parsed;
+                                console.log(`[Resolver] ✅ Tìm thấy stream URL: ${resolvedUrl.substring(0,120)}`);
+                            } else {
+                                try {
+                                    const isM3U = parsed.includes('#EXTM3U') || parsed.includes('#EXTINF');
+                                    const isJSON = parsed.trim().startsWith('{') || parsed.trim().startsWith('[');
+                                    const mimeType = isM3U ? 'application/vnd.apple.mpegurl' :
+                                                    isJSON ? 'application/json' : 'text/plain';
+                                    const blob = new Blob([parsed], { type: mimeType });
+                                    if (currentBlobUrl) URL.revokeObjectURL(currentBlobUrl);
+                                    currentBlobUrl = URL.createObjectURL(blob);
+                                    resolvedUrl = currentBlobUrl;
+                                    console.log(`[Resolver] ✅ Đã tạo Blob URL (${mimeType}): ${resolvedUrl.substring(0,50)}`);
+                                } catch (e) {
+                                    console.warn('[Resolver] Không thể tạo Blob URL:', e.message);
+                                }
+                            }
+                        } else {
+                            if (finalUrl && finalUrl !== url && /\.(m3u8|mpd|ts)(\?|#|$)/i.test(finalUrl)) {
+                                resolvedUrl = finalUrl;
+                                console.log(`[Resolver] ✅ Dùng finalUrl sau redirect: ${resolvedUrl.substring(0,120)}`);
+                            } else if (finalUrl && finalUrl !== url && (finalUrl.includes(':2086/') || finalUrl.includes(':2087/') || finalUrl.includes('/play/'))) {
+                                resolvedUrl = finalUrl;
+                                console.log(`[Resolver] ✅ Dùng finalUrl raw stream: ${resolvedUrl.substring(0,120)}`);
+                            } else if (responseText.includes('#EXTM3U') || responseText.includes('#EXTINF')) {
+                                try {
+                                    const blob = new Blob([responseText], { type: 'application/vnd.apple.mpegurl' });
+                                    if (currentBlobUrl) URL.revokeObjectURL(currentBlobUrl);
+                                    currentBlobUrl = URL.createObjectURL(blob);
+                                    resolvedUrl = currentBlobUrl;
+                                    console.log(`[Resolver] ✅ Dùng responseText làm M3U playlist (Blob URL)`);
+                                } catch (e) {
+                                    console.warn('[Resolver] Không thể tạo Blob URL từ responseText:', e.message);
+                                }
+                            }
+                        }
+                    } else {
+                        console.warn('[Resolver] ❌ XHR/Fetch thất bại, thử CORS proxy...');
+                        const CORS_PROXIES = [
+                            'https://api.allorigins.win/raw?url=',
+                            'https://corsproxy.io/?url=',
+                        ];
+                        for (const proxy of CORS_PROXIES) {
+                            try {
+                                const proxyUrl = proxy + encodeURIComponent(url);
+                                const resp = await fetch(proxyUrl, { redirect: 'follow' });
+                                if (resp.ok) {
+                                    const text = await resp.text();
+                                    if (text && text.length > 5) {
+                                        const parsed = parseResponseForStream(text, url, url);
+                                        if (parsed) {
+                                            if (parsed.startsWith('http')) {
+                                                resolvedUrl = parsed;
+                                                console.log(`[Resolver] ✅ Proxy ${proxy} → stream URL: ${resolvedUrl.substring(0,120)}`);
+                                                break;
+                                            } else {
+                                                const isM3U = parsed.includes('#EXTM3U') || parsed.includes('#EXTINF');
+                                                const mimeType = isM3U ? 'application/vnd.apple.mpegurl' : 'text/plain';
+                                                const blob = new Blob([parsed], { type: mimeType });
+                                                if (currentBlobUrl) URL.revokeObjectURL(currentBlobUrl);
+                                                currentBlobUrl = URL.createObjectURL(blob);
+                                                resolvedUrl = currentBlobUrl;
+                                                console.log(`[Resolver] ✅ Proxy ${proxy} → Blob URL: ${resolvedUrl.substring(0,50)}`);
+                                                break;
+                                            }
+                                        }
+                                        if (text.includes('#EXTM3U') || text.includes('#EXTINF')) {
+                                            const blob = new Blob([text], { type: 'application/vnd.apple.mpegurl' });
+                                            if (currentBlobUrl) URL.revokeObjectURL(currentBlobUrl);
+                                            currentBlobUrl = URL.createObjectURL(blob);
+                                            resolvedUrl = currentBlobUrl;
+                                            console.log(`[Resolver] ✅ Proxy ${proxy} → M3U Blob URL`);
+                                            break;
+                                        }
+                                    }
+                                }
+                            } catch (e) {
+                                console.warn(`[Resolver] Proxy ${proxy} failed:`, e.message);
+                            }
+                        }
+                    }
+
+                    if (statusEl) statusEl.classList.add('hidden');
+                    console.log(`[Resolver] Kết quả cuối: ${url.substring(0,80)} → ${String(resolvedUrl).substring(0,120)}`);
+                } else {
+                    console.log('[Resolver] Resolve TẮT, chỉ follow redirect...');
+                    try {
+                        const xhrResult = await xhrFetchText(url);
+                        const finalUrl = xhrResult.finalUrl || url;
+                        if (finalUrl !== url && /\.(m3u8|mpd|ts)(\?|#|$)/i.test(finalUrl)) {
+                            resolvedUrl = finalUrl;
+                            console.log(`[Resolver] ✅ Redirect đến: ${resolvedUrl.substring(0,120)}`);
+                        } else if (xhrResult.text && xhrResult.text.length > 5) {
+                            const parsed = parseResponseForStream(xhrResult.text, finalUrl, url);
+                            if (parsed && parsed.startsWith('http')) {
+                                resolvedUrl = parsed;
+                                console.log(`[Resolver] ✅ Tìm thấy trong response: ${resolvedUrl.substring(0,120)}`);
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('[Resolver] XHR redirect thất bại, thử fetch:', e.message);
+                        try {
+                            const resp = await fetch(url, {
+                                headers: {
+                                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                                    'Accept': '*/*',
+                                },
+                                redirect: 'follow',
+                            });
+                            if (resp.ok) {
+                                const finalUrl = resp.url;
+                                if (finalUrl !== url) {
+                                    resolvedUrl = finalUrl;
+                                    console.log(`[Resolver] ✅ Fetch redirect đến: ${resolvedUrl.substring(0,120)}`);
+                                }
+                            }
+                        } catch (e2) {
+                            console.warn('[Resolver] Fetch redirect cũng thất bại:', e2.message);
+                        }
+                    }
+                }
+            }
+
+            const isMPD = resolvedUrl.includes('.mpd') || (channel.props && channel.props['inputstream.adaptive.manifest_type'] === 'mpd');
+            const isRawTS = /\.ts(\?|$)/i.test(resolvedUrl) || /extension=ts/i.test(resolvedUrl) ||
+                            resolvedUrl.includes(':2086/') || resolvedUrl.includes(':2087/') ||
+                            resolvedUrl.includes('/play/');
+
+            // Case 1: DASH / MPD
+            if (typeof shaka !== 'undefined' && isMPD && shaka.Player.isBrowserSupported()) {
+                shakaInstance = new shaka.Player(videoPlayer);
+
+                const drmType = channel.props && channel.props['inputstream.adaptive.license_type'];
+                const licenseKey = channel.props && channel.props['inputstream.adaptive.license_key'];
+
+                if (drmType === 'widevine' && licenseKey) {
+                    shakaInstance.configure({
+                        drm: {
+                            servers: {
+                                'com.widevine.alpha': licenseKey
+                            }
+                        }
+                    });
+                    console.log('[DRM] Configured Widevine license server:', licenseKey);
+                } else if (drmType === 'clearkey' && licenseKey) {
+                    let keyString = licenseKey;
+                    const clearKeys = {};
+
+                    if (resolvedUrl && (resolvedUrl.startsWith('{') || resolvedUrl.startsWith('['))) {
+                        try {
+                            const proxyData = JSON.parse(resolvedUrl);
+                            let kid = proxyData.kid || (proxyData.keys && proxyData.keys[0]?.kid);
+                            let key = proxyData.k || (proxyData.keys && proxyData.keys[0]?.k);
+                            const streamUrl = proxyData.url || proxyData.data?.url || proxyData.stream?.url || proxyData.location;
+                            if (streamUrl) resolvedUrl = streamUrl;
+                            if (kid && key) {
+                                clearKeys[base64ToHex(kid)] = base64ToHex(key);
+                                console.log(`[ClearKey] Extracted from proxy JSON: KID=${kid}, KEY=${key}`);
+                            }
+                        } catch(e) { }
+                    }
+
+                    if (Object.keys(clearKeys).length === 0 && keyString && (keyString.startsWith('http://') || keyString.startsWith('https://'))) {
+                        try {
+                            const resp = await fetch(keyString);
+                            if (resp.ok) keyString = await resp.text();
+                        } catch (e) {
+                            console.warn('[DRM] Fetch ClearKey license failed:', e.message);
+                        }
+                    }
+
+                    if (Object.keys(clearKeys).length === 0) {
+                        try {
+                            const parsedObj = typeof keyString === 'string' && (keyString.startsWith('{') || keyString.startsWith('[')) ? JSON.parse(keyString) : null;
+                            if (parsedObj && (parsedObj.keys || parsedObj.kid)) {
+                                if (parsedObj.keys && Array.isArray(parsedObj.keys)) {
+                                    parsedObj.keys.forEach(k => {
+                                        const hexKid = base64ToHex(k.kid);
+                                        const hexK = base64ToHex(k.k);
+                                        if (hexKid && hexK) clearKeys[hexKid] = hexK;
+                                    });
+                                } else if (parsedObj.kid && parsedObj.k) {
+                                    const hexKid = base64ToHex(parsedObj.kid);
+                                    const hexK = base64ToHex(parsedObj.k);
+                                    if (hexKid && hexK) clearKeys[hexKid] = hexK;
+                                }
+                            }
+                        } catch (e) { }
+                    }
+
+                    if (Object.keys(clearKeys).length === 0 && typeof keyString === 'string' && keyString.includes(':')) {
+                        const pairs = keyString.split(',');
+                        pairs.forEach(pair => {
+                            const parts = pair.split(':');
+                            if (parts.length === 2) {
+                                const k1 = parts[0].trim();
+                                const k2 = parts[1].trim();
+                                if (k1.length === 32 && k2.length === 32) clearKeys[k1.toLowerCase()] = k2.toLowerCase();
+                                else {
+                                    const hex1 = base64ToHex(k1);
+                                    const hex2 = base64ToHex(k2);
+                                    if (hex1 && hex2) clearKeys[hex1] = hex2;
+                                }
+                            }
+                        });
+                    }
+
+                    if (Object.keys(clearKeys).length > 0) {
+                        shakaInstance.configure({
+                            drm: { clearKeys: clearKeys }
+                        });
+                        console.log('[DRM] Configured ClearKey:', clearKeys);
+                    }
+                }
+
+                shakaInstance.addEventListener('error', (e) => {
+                    console.error('[Shaka Error]', e);
+                    loadingOverlay.classList.add('hidden');
+                    showToast('Lỗi phát luồng MPD/DASH.', 'error');
+                });
+
+                try {
+                    await shakaInstance.load(resolvedUrl);
+                    loadingOverlay.classList.add('hidden');
+                    videoPlayer.play().catch(() => {});
+                    showToast(`Đang phát: ${channel.name}`);
+                } catch (e) {
+                    console.error('[Shaka Load Error]', e);
+                    loadingOverlay.classList.add('hidden');
+                    showToast('Không thể tải luồng MPD/DASH.', 'error');
+                }
+
+            // Case 2: Raw MPEG-TS Stream
+            } else if (isRawTS && typeof mpegts !== 'undefined' && mpegts.isSupported()) {
+                try {
+                    mpegtsInstance = mpegts.createPlayer({
+                        type: 'mse',
+                        isLive: true,
+                        url: resolvedUrl
+                    }, {
+                        enableStashBuffer: false,
+                        stashInitialSize: 128,
+                        liveBufferLatencyChasing: true
+                    });
+                    mpegtsInstance.attachMediaElement(videoPlayer);
+                    mpegtsInstance.load();
+                    mpegtsInstance.play();
+
+                    loadingOverlay.classList.add('hidden');
+                    videoPlayer.classList.add('is-live');
+                    showToast(`Đang phát: ${channel.name}`);
+                } catch (e) {
+                    console.error('[mpegts Error]', e);
+                    loadingOverlay.classList.add('hidden');
+                    showToast('Lỗi phát luồng MPEG-TS.', 'error');
+                }
+
+            // Case 3: HLS Stream (.m3u8)
+            } else if (Hls.isSupported()) {
+                hlsInstance = new Hls({
+                    enableWorker: true,
+                    lowLatencyMode: true,
+                    backBufferLength: 90
+                });
+
+                hlsInstance.loadSource(resolvedUrl);
+                hlsInstance.attachMedia(videoPlayer);
+
+                hlsInstance.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
+                    loadingOverlay.classList.add('hidden');
+                    videoPlayer.play().catch(() => {});
+                    videoPlayer.classList.add('is-live');
+                    showToast(`Đang phát: ${channel.name}`);
+
+                    const qualitySelector = document.getElementById('quality-selector');
+                    qualitySelector.innerHTML = '<option value="-1">Auto</option>';
+
+                    if (data.levels && data.levels.length > 1) {
+                        data.levels.forEach((level, index) => {
+                            const option = document.createElement('option');
+                            option.value = index;
+                            option.textContent = `${level.height || 'SD'}p (${Math.round(level.bitrate / 1000)}k)`;
+                            qualitySelector.appendChild(option);
+                        });
+                        qualitySelector.classList.remove('hidden');
+
+                        qualitySelector.onchange = (e) => {
+                            hlsInstance.currentLevel = parseInt(e.target.value);
+                        };
+                    } else {
+                        qualitySelector.classList.add('hidden');
+                    }
+                });
+
+                hlsInstance.on(Hls.Events.ERROR, (event, data) => {
+                    if (data.fatal) {
+                        switch (data.type) {
+                            case Hls.ErrorTypes.NETWORK_ERROR:
+                                console.warn('[HLS Network Error] Trying to recover...');
+                                hlsInstance.startLoad();
+                                break;
+                            case Hls.ErrorTypes.MEDIA_ERROR:
+                                console.warn('[HLS Media Error] Trying to recover...');
+                                hlsInstance.recoverMediaError();
+                                break;
+                            default:
+                                console.error('[HLS Fatal Error]', data);
+                                hlsInstance.destroy();
+                                loadingOverlay.classList.add('hidden');
+                                showToast('Lỗi phát luồng HLS.', 'error');
+                                break;
+                        }
+                    }
+                });
+
+            // Case 4: Native Browser Player Fallback (iOS Safari, Direct MP4/AAC/MP3)
+            } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl') || detectStreamType(resolvedUrl) === 'audio' || detectStreamType(resolvedUrl) === 'video') {
+                videoPlayer.src = resolvedUrl;
+                videoPlayer.addEventListener('loadedmetadata', () => {
+                    loadingOverlay.classList.add('hidden');
+                    videoPlayer.play().catch(() => {});
+                    showToast(`Đang phát: ${channel.name}`);
+
+                    if (videoPlayer.videoHeight === 0 && videoPlayer.videoWidth === 0) {
+                        showAudioVisualizer(channel);
+                    }
+                }, { once: true });
+
+                videoPlayer.addEventListener('error', () => {
+                    loadingOverlay.classList.add('hidden');
+                    showToast('Không thể phát tệp phương tiện này.', 'error');
+                }, { once: true });
+            } else {
+                loadingOverlay.classList.add('hidden');
+                showToast('Trình duyệt không hỗ trợ định dạng luồng này.', 'error');
+            }
+        }
+    </script>
+</body>
+
+</html>
