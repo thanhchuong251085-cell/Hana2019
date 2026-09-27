@@ -8,13 +8,13 @@
     <!-- 1. Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- 2. HLS.js (Phát file .m3u8) -->
+    <!-- 2. HLS.js (Phát luồng .m3u8) -->
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
     
-    <!-- 3. Shaka Player (Phát .mpd & HLS cao cấp) -->
+    <!-- 3. Shaka Player (Phát luồng DASH .mpd) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.7.11/shaka-player.compiled.js"></script>
     
-    <!-- 4. MPEG-TS.js (Phát file .ts / HTTP-FLV) -->
+    <!-- 4. MPEG-TS.js (Phát luồng .ts / HTTP-FLV) -->
     <script src="https://cdn.jsdelivr.net/npm/mpegts.js@1.7.3/dist/mpegts.min.js"></script>
     
     <!-- 5. Lucide Icons -->
@@ -37,7 +37,7 @@
             <i data-lucide="tv" class="w-6 h-6"></i> LOTUS PLAYER
         </h1>
         <span id="current-title" class="text-sm bg-gray-700 px-3 py-1 rounded-full text-gray-200 flex items-center gap-2">
-            <i data-lucide="radio" class="w-4 h-4 text-green-400"></i> Đang phát: HBO HD
+            <i data-lucide="radio" class="w-4 h-4 text-green-400"></i> Đang phát: Chọn kênh...
         </span>
     </header>
 
@@ -77,7 +77,7 @@
 
     <!-- Chân trang -->
     <footer class="bg-gray-800 py-2 text-center text-xs text-gray-400 border-t border-gray-700">
-        Lotus Player © 2026 - Hỗ trợ HLS, DASH, MPEG-TS & Web Stream
+        Lotus Player © 2026 - Tự động mở khóa CORS & Hỗ trợ Đa luồng
     </footer>
 
     <!-- POPUP MODAL: THÊM NGUỒN PHÁT -->
@@ -132,19 +132,18 @@
 
     <!-- Script xử lý Player thông minh -->
     <script>
-        // Danh sách kênh mặc định bao gồm các kênh Quốc tế
+        // Danh sách kênh mẫu
         const defaultChannels = [
-            { group: "KÊNH QUỐC TẾ (HBO / PHIM)", name: "HBO HD", url: "https://demo.unified-streaming.com/k8s/live/stable/hls/clear/hbo.m3u8" },
-            { group: "KÊNH QUỐC TẾ (HBO / PHIM)", name: "AXN HD (DASH Demo)", url: "https://storage.googleapis.com/shaka-demo-assets/angel-one/dash.mpd" },
+            { group: "KÊNH QUỐC TẾ (DEMO)", name: "HBO HD (Clear Stream)", url: "https://demo.unified-streaming.com/k8s/live/stable/hls/clear/hbo.m3u8" },
+            { group: "KÊNH QUỐC TẾ (DEMO)", name: "AXN (DASH Stream)", url: "https://storage.googleapis.com/shaka-demo-assets/angel-one/dash.mpd" },
             { group: "TRUYỀN HÌNH VĨNH LONG", name: "THVL 1 HD", url: "https://www.thvli.vn/live/thvl1-hd" },
             { group: "TRUYỀN HÌNH VĨNH LONG", name: "THVL 2 HD", url: "https://www.thvli.vn/live/thvl2-hd" },
-            { group: "ĐÀI TRUYỀN HÌNH VIỆT NAM", name: "VTV1 HD (HLS)", url: "https://live.fptplay53.net/live/media/vtv1/live247-hls-avc/vtv1-avc1_5600000=10000-mp4a_131600=20000.m3u8" },
-            { group: "ĐÀI TRUYỀN HÌNH VIỆT NAM", name: "VTV3 HD (HLS)", url: "https://vips-livecdn.fptplay.net/live/media/vtv3/live247-hls-avc/vtv3-avc1_5600000=10000-mp4a_140800_vie=20000.m3u8" }
+            { group: "ĐÀI TRUYỀN HÌNH VIỆT NAM", name: "VTV1 HD", url: "https://live.fptplay53.net/live/media/vtv1/live247-hls-avc/vtv1-avc1_5600000=10000-mp4a_131600=20000.m3u8" },
+            { group: "ĐÀI TRUYỀN HÌNH VIỆT NAM", name: "VTV3 HD", url: "https://vips-livecdn.fptplay.net/live/media/vtv3/live247-hls-avc/vtv3-avc1_5600000=10000-mp4a_140800_vie=20000.m3u8" }
         ];
 
         let currentChannels = [...defaultChannels];
         
-        // Trình quản lý Engine phát video
         const videoEl = document.getElementById('main-video');
         const iframeEl = document.getElementById('iframe-player');
         const channelListContainer = document.getElementById('channel-list');
@@ -153,6 +152,9 @@
         let hlsEngine = null;
         let mpegtsEngine = null;
         let shakaEngine = null;
+
+        // Cấu hình CORS Proxy trung gian
+        const CORS_PROXY = "https://corsproxy.io/?";
 
         // Khởi tạo Shaka Player
         async function initShaka() {
@@ -163,7 +165,7 @@
         }
         initShaka();
 
-        // Hàm dọn dẹp các luồng phát trước khi chuyển kênh
+        // Giải phóng bộ nhớ khi đổi kênh
         function destroyEngines() {
             if (hlsEngine) { hlsEngine.destroy(); hlsEngine = null; }
             if (mpegtsEngine) { mpegtsEngine.destroy(); mpegtsEngine = null; }
@@ -173,60 +175,65 @@
             videoEl.load();
         }
 
-        // Tự động nhận diện định dạng & phát phương tiện phù hợp
+        // Hàm phát kênh chính
         function playChannel(channel, selectedBtn) {
             destroyEngines();
             currentTitle.innerHTML = `<i data-lucide="radio" class="w-4 h-4 text-green-400"></i> Đang phát: ${channel.name}`;
             lucide.createIcons();
 
-            const url = channel.url.trim();
+            const rawUrl = channel.url.trim();
 
-            // 1. Nếu là đường dẫn Web Nhúng (THVL / VTVGo...) -> Dùng iframe
-            if (url.includes('thvli.vn') || url.includes('vtvgo.vn') || url.includes('hanoitv.vn') || url.includes('.html')) {
+            // 1. Link nhúng trang web (THVL, VTVGo...) -> Dùng iframe
+            if (rawUrl.includes('thvli.vn') || rawUrl.includes('vtvgo.vn') || rawUrl.includes('hanoitv.vn') || rawUrl.includes('.html')) {
                 videoEl.classList.add('hidden');
                 iframeEl.classList.remove('hidden');
-                iframeEl.src = url;
+                iframeEl.src = rawUrl;
                 return;
             }
 
-            // Dùng HTML5 Video Player cho các định dạng luồng
+            // Dùng HTML5 Player cho các luồng trực tiếp
             iframeEl.classList.add('hidden');
             videoEl.classList.remove('hidden');
 
             // 2. Định dạng DASH (.mpd) -> Dùng Shaka Player
-            if (url.includes('.mpd')) {
+            if (rawUrl.includes('.mpd')) {
+                const targetUrl = rawUrl.startsWith('http') ? CORS_PROXY + encodeURIComponent(rawUrl) : rawUrl;
                 shakaEngine.attach(videoEl).then(() => {
-                    return shakaEngine.load(url);
-                }).catch(e => alert("Lỗi khi tải kênh DASH: " + e.message));
+                    return shakaEngine.load(targetUrl);
+                }).catch(e => console.error("Lỗi Shaka:", e));
             } 
             // 3. Định dạng MPEG-TS (.ts) -> Dùng mpegts.js
-            else if (url.includes('.ts') || url.includes('flv')) {
+            else if (rawUrl.includes('.ts') || rawUrl.includes('flv')) {
+                const targetUrl = rawUrl.startsWith('http') ? CORS_PROXY + encodeURIComponent(rawUrl) : rawUrl;
                 if (mpegts.getFeatureList().mseLivePlayback) {
-                    mpegtsEngine = mpegts.createPlayer({ type: 'mse', isLive: true, url: url });
+                    mpegtsEngine = mpegts.createPlayer({ type: 'mse', isLive: true, url: targetUrl });
                     mpegtsEngine.attachMediaElement(videoEl);
                     mpegtsEngine.load();
                     mpegtsEngine.play();
                 }
             } 
-            // 4. Định dạng HLS (.m3u8) -> Dùng Hls.js
-            else if (url.includes('.m3u8') || url.includes('m3u')) {
+            // 4. Định dạng HLS (.m3u8) -> Dùng Hls.js kết hợp CORS Proxy
+            else {
+                // Tự động gắn CORS Proxy nếu là URL đường dẫn mạng
+                const targetUrl = rawUrl.startsWith('http') ? CORS_PROXY + encodeURIComponent(rawUrl) : rawUrl;
+
                 if (Hls.isSupported()) {
-                    hlsEngine = new Hls();
-                    hlsEngine.loadSource(url);
+                    hlsEngine = new Hls({
+                        enableWorker: true,
+                        lowLatencyMode: true
+                    });
+                    hlsEngine.loadSource(targetUrl);
                     hlsEngine.attachMedia(videoEl);
-                    hlsEngine.on(Hls.Events.MANIFEST_PARSED, () => videoEl.play());
+                    hlsEngine.on(Hls.Events.MANIFEST_PARSED, () => {
+                        videoEl.play().catch(e => console.log("Cần tương tác để phát video:", e));
+                    });
                 } else if (videoEl.canPlayType('application/vnd.apple.mpegurl')) {
-                    videoEl.src = url;
+                    videoEl.src = targetUrl;
                     videoEl.play();
                 }
-            } 
-            // 5. Mặc định cho link MP4/AAC trực tiếp
-            else {
-                videoEl.src = url;
-                videoEl.play();
             }
 
-            // Cập nhật trạng thái giao diện Active
+            // Đổi trạng thái giao diện Active
             document.querySelectorAll('.channel-btn').forEach(b => b.classList.remove('active'));
             if (selectedBtn) selectedBtn.classList.add('active');
         }
@@ -259,7 +266,7 @@
             lucide.createIcons();
         }
 
-        // Các hàm xử lý UI & Modal
+        // Xử lý Giao diện
         function toggleChannelMenu() { channelListContainer.classList.toggle('hidden'); }
         function openModal() { document.getElementById('source-modal').classList.remove('hidden'); }
         function closeModal() { document.getElementById('source-modal').classList.add('hidden'); }
@@ -274,12 +281,14 @@
         async function loadFromUrl(url) {
             if (!url) return;
             try {
-                const response = await fetch(url);
-                if (!response.ok) throw new Error("Không thể truy cập tập tin playlist");
+                // Tải M3U qua CORS Proxy để tránh lỗi chặn kết nối
+                const proxyFetchUrl = CORS_PROXY + encodeURIComponent(url);
+                const response = await fetch(proxyFetchUrl);
+                if (!response.ok) throw new Error("Không thể tải nguồn IPTV");
                 const text = await response.text();
                 parseAndSetM3u(text);
                 closeModal();
-            } catch (err) { alert("Lỗi tải danh sách kênh: " + err.message); }
+            } catch (err) { alert("Lỗi khi tải playlist: " + err.message); }
         }
 
         function loadCustomUrl() {
@@ -298,11 +307,12 @@
             reader.readAsText(file);
         }
 
+        // Đọc dữ liệu file M3U
         function parseAndSetM3u(m3uContent) {
             const lines = m3uContent.split('\n');
             const newChannels = [];
             let currentName = '';
-            let currentGroup = 'KÊNH TẢI VÀO';
+            let currentGroup = 'KÊNH NHẬP VÀO';
 
             lines.forEach(line => {
                 line = line.trim();
@@ -325,11 +335,11 @@
                 const firstBtn = channelListContainer.querySelector('.channel-btn');
                 if (firstBtn) playChannel(currentChannels[0], firstBtn);
             } else {
-                alert("Không tìm thấy dữ liệu m3u/m3u8 hợp lệ.");
+                alert("Tệp M3U không chứa danh sách kênh hợp lệ.");
             }
         }
 
-        // Khởi chạy ứng dụng
+        // Chạy lần đầu
         renderChannels();
         lucide.createIcons();
     </script>
