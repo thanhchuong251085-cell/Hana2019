@@ -4,12 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lotus Player - Truyền Hình Trực Tuyến</title>
-    <!-- Thư viện Tailwind CSS -->
+    <!-- Tailwind CSS (Giao diện Code 1) -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Các thư viện giải mã luồng video IPTV -->
+    
+    <!-- Các thư viện giải mã từ Code 2 -->
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.7.11/shaka-player.compiled.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mpegts.js@1.7.3/dist/mpegts.min.js"></script>
+    
     <style>
         .channel-btn.active {
             background-color: #2563eb;
@@ -21,32 +23,32 @@
 </head>
 <body class="bg-gray-900 text-white min-h-screen flex flex-col font-sans">
 
-    <!-- Thanh tiêu đề (Header) -->
+    <!-- Header (Giao diện Lotus Player) -->
     <header class="bg-gray-800 px-4 py-3 border-b border-gray-700 flex justify-between items-center shadow-lg">
         <h1 class="text-xl font-bold text-red-500 flex items-center gap-2">
             📺 LOTUS PLAYER
         </h1>
         <span id="current-title" class="text-sm bg-gray-700 px-3 py-1 rounded-full text-gray-200">
-            Đang phát: THVL 1 HD
+            Chọn kênh để xem
         </span>
     </header>
 
-    <!-- Khung nội dung chính -->
+    <!-- Khung chính -->
     <div class="flex-1 flex flex-col md:flex-row">
         
-        <!-- Khung xem Video (Player) -->
+        <!-- Khung xem Video -->
         <div class="flex-1 bg-black relative min-h-[300px] md:min-h-[500px] flex items-center justify-center">
-            <!-- Thay iframe bằng video tag hỗ trợ Hls/Shaka -->
-            <video id="tv-player" class="w-full h-full absolute inset-0 object-contain" controls autoplay playsinline></video>
-            
-            <!-- Trạng thái đang tải -->
-            <div id="loading-overlay" class="absolute inset-0 bg-black/70 flex flex-col items-center justify-center hidden z-10">
+            <video id="tv-player" class="w-full h-full absolute inset-0 object-contain z-0" controls autoplay playsinline></video>
+            <iframe id="iframe-player" class="w-full h-full absolute inset-0 border-0 z-0 hidden" allowfullscreen allow="autoplay"></iframe>
+
+            <!-- Trạng thái Loading -->
+            <div id="loading-overlay" class="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-10 hidden">
                 <div class="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-2"></div>
-                <span class="text-sm text-gray-300">Đang kết nối luồng phát...</span>
+                <span id="loading-text" class="text-sm text-gray-300">Đang kết nối luồng phát...</span>
             </div>
         </div>
 
-        <!-- Danh sách kênh -->
+        <!-- Danh sách kênh (Sidebar) -->
         <div class="w-full md:w-80 bg-gray-800 p-4 border-t md:border-t-0 md:border-l border-gray-700 flex flex-col">
             <h2 class="text-base font-semibold mb-3 text-gray-300 border-b border-gray-700 pb-2 flex justify-between items-center">
                 <span>DANH SÁCH KÊNH</span>
@@ -54,25 +56,20 @@
                     <button onclick="toggleChannelMenu()" class="text-xs bg-red-600 hover:bg-red-700 px-2.5 py-1 rounded text-white font-bold cursor-pointer transition active:scale-95 shadow">
                         LIVE
                     </button>
-                    <button onclick="openModal()" class="text-xs bg-blue-600 hover:bg-blue-700 px-2.5 py-1 rounded text-white font-bold cursor-pointer transition active:scale-95 shadow flex items-center justify-center">
+                    <button onclick="openModal()" class="text-xs bg-blue-600 hover:bg-blue-700 px-2.5 py-1 rounded text-white font-bold cursor-pointer transition active:scale-95 shadow">
                         +
                     </button>
                 </div>
             </h2>
             
             <div id="channel-list" class="flex flex-col gap-2 overflow-y-auto max-h-[450px] md:max-h-full pr-1">
-                <!-- Danh sách kênh sinh tự động -->
+                <!-- Danh sách kênh tự động chèn vào đây -->
             </div>
         </div>
 
     </div>
 
-    <!-- Chân trang -->
-    <footer class="bg-gray-800 py-2 text-center text-xs text-gray-400 border-t border-gray-700">
-        Lotus Player © 2026 - Tự động phát trực tuyến ổn định
-    </footer>
-
-    <!-- CỬA SỔ POPUP (MODAL): THÊM NGUỒN PHÁT -->
+    <!-- Modal Thêm Nguồn -->
     <div id="source-modal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-gray-800 w-full max-w-md rounded-2xl border border-gray-700 p-5 shadow-2xl relative text-gray-200">
             <div class="flex justify-between items-center pb-3 border-b border-gray-700 mb-4">
@@ -83,68 +80,59 @@
             </div>
 
             <div class="mb-5">
-                <div class="text-xs font-semibold text-gray-400 mb-2 flex items-center gap-1">
-                    ⚡ Nguồn phát nhanh
-                </div>
-                <div class="grid grid-cols-2 gap-2">
+                <div class="text-xs font-semibold text-gray-400 mb-2">⚡ Nguồn phát gợi ý</div>
+                <div class="grid grid-cols-1 gap-2">
                     <button onclick="loadDefaultTV()" class="bg-gray-700/60 hover:bg-blue-600/30 hover:border-blue-500 border border-transparent py-2.5 rounded-xl font-medium text-sm transition">
-                        TV Online
+                        TV Mặc Định (VTV, HTV, THVL)
                     </button>
-                    <button onclick="loadFromUrl('https://tinyurl.com/HoiQuanClick/')" class="bg-gray-700/60 hover:bg-blue-600/30 hover:border-blue-500 border border-transparent py-2.5 rounded-xl font-medium text-sm transition">
-                        Hội Quán
-                    </button>
-                    <button onclick="loadFromUrl('https://raw.githubusercontent.com/thanhchuong251085-cell/Hana2019/main/tviptv.m3u')" class="col-span-2 bg-gray-700/60 hover:bg-blue-600/30 hover:border-blue-500 border border-transparent py-2.5 rounded-xl font-medium text-sm transition">
-                        Bóng Đá & HBO
+                    <button onclick="loadFromUrl('https://raw.githubusercontent.com/thanhchuong251085-cell/Hana2019/main/tviptv.m3u')" class="bg-gray-700/60 hover:bg-blue-600/30 hover:border-blue-500 border border-transparent py-2.5 rounded-xl font-medium text-sm transition">
+                        Bóng Đá, HBO & AXN (Nguồn Hana2019)
                     </button>
                 </div>
             </div>
-
-            <div class="text-center text-xs text-gray-500 tracking-wider mb-4">TÙY CHỈNH</div>
 
             <div class="mb-5">
-                <label class="block text-xs font-semibold text-gray-400 mb-1.5">Nhập Liên kết URL thủ công</label>
-                <div class="flex items-center gap-2 bg-gray-900 border border-gray-700 rounded-xl p-1.5 focus-within:border-blue-500">
-                    <span class="pl-2 text-gray-400">🔗</span>
-                    <input id="custom-url-input" type="text" placeholder="https://..." class="bg-transparent border-none outline-none text-xs text-white w-full px-1">
-                    <button onclick="loadCustomUrl()" class="bg-cyan-500 hover:bg-cyan-600 text-gray-900 font-bold text-xs px-3 py-1.5 rounded-lg transition">
-                        TẢI
-                    </button>
+                <label class="block text-xs font-semibold text-gray-400 mb-1.5">Nhập URL M3U thủ công</label>
+                <div class="flex items-center gap-2 bg-gray-900 border border-gray-700 rounded-xl p-1.5">
+                    <input id="custom-url-input" type="text" placeholder="https://..." class="bg-transparent border-none outline-none text-xs text-white w-full px-2">
+                    <button onclick="loadCustomUrl()" class="bg-cyan-500 hover:bg-cyan-600 text-gray-900 font-bold text-xs px-3 py-1.5 rounded-lg transition">TẢI</button>
                 </div>
             </div>
 
-            <div class="text-center text-xs text-gray-500 tracking-wider mb-4">HOẶC</div>
-
             <div>
-                <label class="block text-xs font-semibold text-gray-400 mb-1.5">Mở File từ máy tính cục bộ</label>
+                <label class="block text-xs font-semibold text-gray-400 mb-1.5">Tải tệp từ máy (.m3u)</label>
                 <label class="flex items-center justify-center gap-2 w-full bg-gray-700/50 hover:bg-gray-700 border border-gray-600 rounded-xl py-2.5 cursor-pointer transition text-xs font-medium">
-                    📁 Tải tệp từ máy (.m3u)
+                    📁 Chọn Tệp
                     <input type="file" id="local-file-input" accept=".m3u,.m3u8" onchange="handleFileUpload(event)" class="hidden">
                 </label>
             </div>
         </div>
     </div>
 
-    <!-- Script xử lý -->
+    <!-- TOÀN BỘ LOGIC XỬ LÝ NGUYÊN BẢN TỪ CODE 2 CỦA BẠN -->
     <script>
         if (typeof shaka !== 'undefined') shaka.polyfill.installAll();
 
         const defaultChannels = [
-            { group: "TRUYỀN HÌNH VĨNH LONG (THVL)", name: "THVL 1 HD", url: "https://live.fptplay53.net/epzhd1/thvl1_vhls.smil/chunklist_b5000000.m3u8" },
-            { group: "TRUYỀN HÌNH VĨNH LONG (THVL)", name: "THVL 2 HD", url: "https://live.fptplay53.net/epzhd1/thvl2_vhls.smil/chunklist_b5000000.m3u8" },
-            { group: "ĐÀI TRUYỀN HÌNH VIỆT NAM (VTV)", name: "VTV1 HD", url: "https://live.fptplay53.net/live/media/vtv1/live247-hls-avc/vtv1-avc1_5600000=10000-mp4a_131600=20000.m3u8" },
-            { group: "ĐÀI TRUYỀN HÌNH VIỆT NAM (VTV)", name: "VTV3 HD", url: "https://vips-livecdn.fptplay.net/live/media/vtv3/live247-hls-avc/vtv3-avc1_5600000=10000-mp4a_140800_vie=20000.m3u8" },
-            { group: "TRUYỀN HÌNH TP.HCM (HTV)", name: "HTV7 HD", url: "https://live.fptplay53.net/epzhd1/htv7hd_vhls.smil/chunklist_b5000000.m3u8" },
-            { group: "TRUYỀN HÌNH TP.HCM (HTV)", name: "HTV9 HD", url: "https://live.fptplay53.net/epzhd1/htv9hd_vhls.smil/chunklist_b5000000.m3u8" }
+            { group: "TRUYỀN HÌNH VĨNH LONG", name: "THVL 1 HD", url: "https://live.fptplay53.net/epzhd1/thvl1_vhls.smil/chunklist_b5000000.m3u8" },
+            { group: "TRUYỀN HÌNH VĨNH LONG", name: "THVL 2 HD", url: "https://live.fptplay53.net/epzhd1/thvl2_vhls.smil/chunklist_b5000000.m3u8" },
+            { group: "ĐÀI TRUYỀN HÌNH VIỆT NAM", name: "VTV1 HD", url: "https://live.fptplay53.net/live/media/vtv1/live247-hls-avc/vtv1-avc1_5600000=10000-mp4a_131600=20000.m3u8" },
+            { group: "ĐÀI TRUYỀN HÌNH VIỆT NAM", name: "VTV3 HD", url: "https://vips-livecdn.fptplay.net/live/media/vtv3/live247-hls-avc/vtv3-avc1_5600000=10000-mp4a_140800_vie=20000.m3u8" },
+            { group: "TRUYỀN HÌNH TP.HCM", name: "HTV7 HD", url: "https://live.fptplay53.net/epzhd1/htv7hd_vhls.smil/chunklist_b5000000.m3u8" },
+            { group: "TRUYỀN HÌNH TP.HCM", name: "HTV9 HD", url: "https://live.fptplay53.net/epzhd1/htv9hd_vhls.smil/chunklist_b5000000.m3u8" }
         ];
 
         let currentChannels = [...defaultChannels];
         let hlsInstance = null;
         let shakaInstance = null;
+        let mpegtsPlayer = null;
 
         const videoPlayer = document.getElementById('tv-player');
+        const iframePlayer = document.getElementById('iframe-player');
         const channelListContainer = document.getElementById('channel-list');
         const currentTitle = document.getElementById('current-title');
         const loadingOverlay = document.getElementById('loading-overlay');
+        const loadingText = document.getElementById('loading-text');
 
         function toggleChannelMenu() { channelListContainer.classList.toggle('hidden'); }
         function openModal() { document.getElementById('source-modal').classList.remove('hidden'); }
@@ -153,20 +141,21 @@
         function loadDefaultTV() {
             currentChannels = [...defaultChannels];
             renderChannels();
-            if (currentChannels.length > 0) playChannel(currentChannels[0], channelListContainer.querySelector('.channel-btn'));
             closeModal();
+            if (currentChannels.length > 0) playChannel(currentChannels[0], channelListContainer.querySelector('.channel-btn'));
         }
 
         async function loadFromUrl(url) {
-            if (!url) return;
+            showLoading("Đang tải playlist...");
             try {
                 const response = await fetch(url);
-                if (!response.ok) throw new Error("Không thể tải nguồn IPTV");
                 const text = await response.text();
                 parseAndSetM3u(text);
                 closeModal();
             } catch (err) {
                 alert("Lỗi khi tải nguồn phát: " + err.message);
+            } finally {
+                hideLoading();
             }
         }
 
@@ -190,7 +179,7 @@
             const lines = m3uContent.split('\n');
             const newChannels = [];
             let currentName = '';
-            let currentGroup = 'KÊNH NHẬP VÀO';
+            let currentGroup = 'KÊNH KHÁC';
 
             lines.forEach(line => {
                 line = line.trim();
@@ -241,80 +230,136 @@
             });
         }
 
-        // BỘ DÒ LINK LUỒNG BÓC TÁCH CHO HBO/AXN (Từ Code 2)
-        async function resolveStreamUrl(url) {
-            if (/\.(m3u8|mpd|ts|mp4)(\?|#|$)/i.test(url)) return url;
-            
-            try {
-                const response = await fetch(url, {
-                    headers: { 'Accept': '*/*' },
-                    redirect: 'follow'
-                });
-                if (response.ok) {
-                    const finalUrl = response.url;
-                    const text = await response.text();
-                    
-                    const match = text.match(/https?:\/\/[^'"\s<>)]+\.(?:m3u8|mpd|ts)[^'"\s<>)]*/i);
-                    if (match) return match[0];
-                    if (finalUrl !== url && !finalUrl.includes('.php')) return finalUrl;
-                }
-            } catch (e) {
-                console.warn("Lỗi resolve link:", e);
-            }
-            return url;
+        function showLoading(msg) {
+            loadingText.textContent = msg || "Đang kết nối...";
+            loadingOverlay.classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            loadingOverlay.classList.add('hidden');
         }
 
         function destroyPlayers() {
             if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
             if (shakaInstance) { shakaInstance.destroy(); shakaInstance = null; }
+            if (mpegtsPlayer) { mpegtsPlayer.destroy(); mpegtsPlayer = null; }
+            
             videoPlayer.pause();
             videoPlayer.removeAttribute('src');
             videoPlayer.load();
+            videoPlayer.classList.add('hidden');
+            
+            iframePlayer.src = 'about:blank';
+            iframePlayer.classList.add('hidden');
+        }
+
+        // BỘ BÓC TÁCH LINK NGUYÊN BẢN TỪ CODE 2 CỦA BẠN (Đọc HBO / AXN cực tốt)
+        async function resolveStreamUrl(url) {
+            if (/\.(m3u8|mpd|ts|mp4)(\?|#|$)/i.test(url)) return url;
+            
+            try {
+                // Thuật toán 1: Fetch trực tiếp
+                const response = await fetch(url, { headers: { 'Accept': '*/*' }, redirect: 'follow' });
+                if (response.ok) {
+                    const finalUrl = response.url;
+                    const text = await response.text();
+                    const match = text.match(/https?:\/\/[^'"\s<>)]+\.(?:m3u8|mpd|ts)[^'"\s<>)]*/i);
+                    if (match) return match[0];
+                    if (finalUrl !== url && !finalUrl.includes('.php')) return finalUrl;
+                }
+            } catch (e) {
+                // Thuật toán 2: Dùng CorsProxy bóc tách liên kết bị vướng CORS
+                try {
+                    const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(url);
+                    const response = await fetch(proxyUrl);
+                    if (response.ok) {
+                        const text = await response.text();
+                        const match = text.match(/https?:\/\/[^'"\s<>)]+\.(?:m3u8|mpd|ts)[^'"\s<>)]*/i);
+                        if (match) return match[0];
+                    }
+                } catch (proxyErr) {
+                    console.warn("Lỗi proxy resolver:", proxyErr);
+                }
+            }
+            return url;
         }
 
         async function playChannel(channel, selectedBtn) {
             destroyPlayers();
-            loadingOverlay.classList.remove('hidden');
+            showLoading(`Đang bóc tách luồng phát: ${channel.name}...`);
             currentTitle.textContent = `Đang kết nối: ${channel.name}`;
 
             document.querySelectorAll('.channel-btn').forEach(b => b.classList.remove('active'));
             if (selectedBtn) selectedBtn.classList.add('active');
 
-            // Bóc tách luồng phát gốc nếu liên kết chứa đường dẫn trung gian (PHP)
+            // Giải mã link gốc (HBO/AXN PHP -> M3U8)
             const resolvedUrl = await resolveStreamUrl(channel.url);
             currentTitle.textContent = `Đang phát: ${channel.name}`;
-            loadingOverlay.classList.add('hidden');
 
-            // Phát luồng với Hls.js hoặc HTML5 Native
+            // Nếu link bóc tách trả về dạng Web Embed (như THVL/VTV web) -> Dùng Iframe
+            if (resolvedUrl.includes('.html') || resolvedUrl.includes('embed') || resolvedUrl.includes('player.php')) {
+                iframePlayer.src = resolvedUrl;
+                iframePlayer.classList.remove('hidden');
+                hideLoading();
+                return;
+            }
+
+            videoPlayer.classList.remove('hidden');
+
+            // 1. Luồng HLS (.m3u8)
             if (Hls.isSupported() && (resolvedUrl.includes('.m3u8') || !videoPlayer.canPlayType('application/vnd.apple.mpegurl'))) {
-                hlsInstance = new Hls({
-                    enableWorker: true,
-                    lowLatencyMode: true
-                });
+                hlsInstance = new Hls({ enableWorker: true, lowLatencyMode: true });
                 hlsInstance.loadSource(resolvedUrl);
                 hlsInstance.attachMedia(videoPlayer);
+                
                 hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+                    hideLoading();
                     videoPlayer.play().catch(() => {});
                 });
+                
                 hlsInstance.on(Hls.Events.ERROR, (event, data) => {
                     if (data.fatal) {
-                        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) hlsInstance.startLoad();
-                        else destroyPlayers();
+                        // Trường hợp link HLS lỗi -> Chuyển sang Iframe Fallback
+                        destroyPlayers();
+                        iframePlayer.src = channel.url;
+                        iframePlayer.classList.remove('hidden');
+                        hideLoading();
                     }
                 });
-            } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl') || resolvedUrl.includes('.mp4')) {
+            } 
+            // 2. Luồng MPEG-TS (.ts)
+            else if (resolvedUrl.includes('.ts') && mpegts.isSupported()) {
+                mpegtsPlayer = mpegts.createPlayer({ type: 'mse', isLive: true, url: resolvedUrl });
+                mpegtsPlayer.attachMediaElement(videoPlayer);
+                mpegtsPlayer.load();
+                mpegtsPlayer.play().then(() => hideLoading()).catch(() => hideLoading());
+            } 
+            // 3. Safari Native HLS / MP4
+            else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl') || resolvedUrl.includes('.mp4')) {
                 videoPlayer.src = resolvedUrl;
-                videoPlayer.play().catch(() => {});
-            } else {
-                // Fallback qua Shaka Player cho định dạng DASH (.mpd)
+                videoPlayer.play().then(() => hideLoading()).catch(() => hideLoading());
+            } 
+            // 4. Luồng DASH (.mpd) dùng Shaka Player
+            else if (typeof shaka !== 'undefined') {
                 shakaInstance = new shaka.Player(videoPlayer);
                 shakaInstance.load(resolvedUrl).then(() => {
+                    hideLoading();
                     videoPlayer.play().catch(() => {});
-                }).catch(e => console.error("Lỗi Shaka:", e));
+                }).catch(e => {
+                    // Fallback cuối cùng: Iframe
+                    destroyPlayers();
+                    iframePlayer.src = channel.url;
+                    iframePlayer.classList.remove('hidden');
+                    hideLoading();
+                });
             }
         }
 
+        // Khởi tạo ứng dụng
         renderChannels();
+        if (currentChannels.length > 0) {
+            playChannel(currentChannels[0], channelListContainer.querySelector('.channel-btn'));
+        }
     </script>
 </body>
 </html>
