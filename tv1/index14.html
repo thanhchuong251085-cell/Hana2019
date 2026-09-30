@@ -228,7 +228,7 @@
 
     <!-- ADD PLAYLIST MODAL -->
     <div id="add-dialog" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 opacity-0 pointer-events-none transition-opacity">
-        <div class="bg-[#1e2837] border border-slate-700 rounded-xl p-5 w-full max-w-sm flex flex-col gap-4 text-white shadow-2xl">
+        <div id="add-dialog-content" class="bg-[#1e2837] border border-slate-700 rounded-xl p-5 w-full max-w-sm flex flex-col gap-4 text-white shadow-2xl transition-transform scale-95">
             <div class="flex items-center justify-between border-b border-slate-700 pb-2">
                 <h3 class="font-bold text-sm flex items-center gap-2">
                     <i data-lucide="list-plus" class="w-4 h-4 text-cyan-400"></i> Thêm Nguồn Phát
@@ -238,10 +238,11 @@
 
             <div class="flex flex-col gap-2">
                 <label class="text-xs text-slate-400">Nguồn phát nhanh</label>
-                <div class="grid grid-cols-2 gap-2">
-                    <button onclick="loadPredefinedUrl('https://raw.githubusercontent.com/hieu-TQS/error/refs/heads/main/error.m3u')" class="p-2 bg-slate-800 hover:bg-slate-700 rounded text-xs font-semibold text-center border border-slate-700">TV</button>
-                    <button onclick="loadPredefinedUrl('https://tinyurl.com/HoiQuanClick/')" class="p-2 bg-slate-800 hover:bg-slate-700 rounded text-xs font-semibold text-center border border-slate-700">Hội Quán</button>
-                    <button onclick="loadPredefinedUrl('https://raw.githubusercontent.com/thanhchuong251085-cell/Hana2019/main/tviptv.m3u')" class="p-2 bg-slate-800 hover:bg-slate-700 rounded text-xs font-semibold text-center border border-slate-700">Bóng Đá</button>
+                <!-- Đã chỉnh sửa grid thành grid-cols-3 để tránh bị tràn/xuống dòng thừa -->
+                <div class="grid grid-cols-3 gap-2">
+                    <button onclick="loadPredefinedUrl('https://raw.githubusercontent.com/hieu-TQS/error/refs/heads/main/error.m3u')" class="p-2 bg-slate-800 hover:bg-slate-700 rounded text-xs font-semibold text-center border border-slate-700 truncate">TV</button>
+                    <button onclick="loadPredefinedUrl('https://tinyurl.com/HoiQuanClick/')" class="p-2 bg-slate-800 hover:bg-slate-700 rounded text-xs font-semibold text-center border border-slate-700 truncate">Hội Quán</button>
+                    <button onclick="loadPredefinedUrl('https://raw.githubusercontent.com/thanhchuong251085-cell/Hana2019/main/tviptv.m3u')" class="p-2 bg-slate-800 hover:bg-slate-700 rounded text-xs font-semibold text-center border border-slate-700 truncate">Bóng Đá</button>
                 </div>
             </div>
 
@@ -249,7 +250,7 @@
                 <label class="text-xs text-slate-400">URL Playlist M3U</label>
                 <div class="flex gap-1">
                     <input type="text" id="url-input" placeholder="https://..." class="flex-1 bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500">
-                    <button onclick="loadFromUrl(); closeAddDialog();" class="bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded text-xs font-medium">Tải</button>
+                    <button onclick="loadFromUrl(); closeAddDialog();" class="bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded text-xs font-medium shrink-0">Tải</button>
                 </div>
             </div>
 
@@ -263,7 +264,7 @@
         </div>
     </div>
 
-      <script>
+    <script>
         // Khởi tạo icons
         lucide.createIcons();
         if (typeof shaka !== 'undefined') shaka.polyfill.installAll();
@@ -271,24 +272,12 @@
         // ============================================================
         // LINK RESOLVER ENGINE V4 — XHR + BLOB URL
         // ============================================================
-        // Cách này hoạt động với MỌI link PHP:
-        // 1. Dùng XMLHttpRequest với responseType = 'document' để bypass CORS
-        // 2. Parse response text tìm stream URL thật
-        // 3. Nếu tìm thấy M3U playlist text → tạo Blob URL cho Hls.js
-        // 4. Nếu tìm thấy URL thật → dùng luôn
-        // 5. Không dùng fetch, không dùng Service Worker, không dùng proxy
-
-        /**
-         * Resolve URL — dùng XHR + Blob URL
-         */
         async function resolveStreamUrl(url, channelProps = {}) {
-            // Link thật — không cần resolve
             if (isDirectStreamUrl(url)) return url;
 
             console.log(`[Resolver] Resolving PHP: ${url.substring(0, 100)}`);
             const startTime = Date.now();
 
-            // === PHƯƠNG ÁN 1: XHR (vượt CORS khi mở từ file://) ===
             try {
                 const result = await xhrFetchText(url);
                 if (result.text && result.text.length > 5) {
@@ -298,7 +287,6 @@
                         console.log(`[Resolver] ✅ XHR OK (${elapsed}s): ${String(parsed).substring(0, 120)}`);
                         return parsed;
                     }
-                    // Nếu finalUrl là .m3u8/.mpd thì dùng luôn
                     if (result.finalUrl && result.finalUrl !== url && /\.(m3u8|mpd|ts)(\?|#|$)/i.test(result.finalUrl)) {
                         console.log(`[Resolver] ✅ XHR finalUrl: ${result.finalUrl.substring(0,120)}`);
                         return result.finalUrl;
@@ -308,7 +296,6 @@
                 console.warn('[Resolver] XHR failed:', e.message);
             }
 
-            // === PHƯƠNG ÁN 2: fetch trực tiếp (follow redirect tự động) ===
             try {
                 const response = await fetch(url, {
                     headers: {
@@ -333,7 +320,6 @@
                 console.warn('[Resolver] Fetch failed:', e.message);
             }
 
-            // === PHƯƠNG ÁN 3: CORS Proxy (cho HTTPS deployment) ===
             const CORS_PROXIES = [
                 'https://api.allorigins.win/raw?url=',
                 'https://corsproxy.io/?url=',
@@ -351,7 +337,6 @@
                                 console.log(`[Resolver] ✅ Proxy ${proxy} OK (${elapsed}s): ${String(parsed).substring(0, 120)}`);
                                 return parsed;
                             }
-                            // Nếu là M3U playlist text, tạo Blob URL
                             if (text.includes('#EXTM3U') || text.includes('#EXTINF')) {
                                 const blob = new Blob([text], { type: 'application/vnd.apple.mpegurl' });
                                 if (currentBlobUrl) URL.revokeObjectURL(currentBlobUrl);
@@ -370,9 +355,6 @@
             return url;
         }
 
-        /**
-         * XMLHttpRequest để lấy response text — vượt CORS
-         */
         function xhrFetchText(url) {
             return new Promise((resolve, reject) => {
                 try {
@@ -386,7 +368,6 @@
 
                     xhr.onload = function() {
                         if (xhr.status === 200 || xhr.status === 302 || xhr.status === 301 || xhr.status === 0) {
-                            // XHR không follow redirect, nhưng responseURL cho ta URL cuối cùng
                             resolve({
                                 text: xhr.responseText,
                                 finalUrl: xhr.responseURL || url
@@ -404,24 +385,19 @@
             });
         }
 
-        /**
-         * Parse response text để tìm stream URL
-         */
         function parseResponseForStream(text, finalUrl, originalUrl) {
             if (!text || text.length < 5) return null;
             const trimmed = text.trim();
 
-            // === JSON ===
             if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
                 try {
                     const json = JSON.parse(trimmed);
                     const url = findUrlInJson(json);
                     if (url) return url;
-                    if (json.keys || json.kid) return trimmed; // ClearKey
+                    if (json.keys || json.kid) return trimmed;
                 } catch { /* not JSON */ }
             }
 
-            // === M3U Playlist ===
             if (text.includes('#EXTM3U') || text.includes('#EXTINF')) {
                 const lines = text.split('\n');
                 for (const line of lines) {
@@ -434,22 +410,19 @@
                     }
                 }
                 if (finalUrl && finalUrl !== originalUrl && !finalUrl.includes('.php')) return finalUrl;
-                return text; // Trả về nguyên playlist để tạo Blob URL
+                return text;
             }
 
-            // === MPD/DASH ===
             if (text.includes('<MPD') || (text.includes('<?xml') && text.includes('mpd:'))) {
                 if (finalUrl && finalUrl !== originalUrl) return finalUrl;
                 return text;
             }
 
-            // === URL trực tiếp ===
             const urls = [...trimmed.matchAll(/https?:\/\/[^\s<>"']+/g)].map(m => m[0]);
             const streamUrls = urls.filter(u => /\.(m3u8|mpd|ts|mp4|flv|aac|mp3|m4a)(\?|#|$)/i.test(u));
             if (streamUrls.length > 0) return streamUrls[0];
             if (urls.length === 1) return urls[0];
 
-            // === HTML ===
             if (text.includes('<html') || text.includes('<!DOCTYPE')) {
                 const patterns = [
                     /<iframe[^>]+src=["'](https?:\/\/[^"']+)["']/i,
@@ -468,16 +441,12 @@
                 }
             }
 
-            // === Deep search ===
             const deepMatch = text.match(/https?:\/\/[^'"\s<>)]+\.(?:m3u8|mpd|ts)[^'"\s<>)]*/i);
             if (deepMatch) return deepMatch[0];
 
             return null;
         }
 
-        /**
-         * Tìm URL trong JSON object (đệ quy)
-         */
         function findUrlInJson(json) {
             if (!json || typeof json !== 'object') return null;
             const keys = ['url', 'link', 'src', 'source', 'file', 'location', 'redirect',
@@ -500,9 +469,6 @@
             return null;
         }
 
-        /**
-         * Kiểm tra URL có phải stream trực tiếp không
-         */
         function isDirectStreamUrl(url) {
             if (!url) return false;
             return /\.(m3u8|mpd|ts|mp4|flv|aac|mp3|m4a|ogg|webm)(\?|#|$)/i.test(url) ||
@@ -510,9 +476,6 @@
                    url.includes('/play/') || url.includes(':2086/') || url.includes(':2087/');
         }
 
-        /**
-         * Detect loại stream từ URL
-         */
         function detectStreamType(url) {
             if (!url) return 'unknown';
             if (url.includes('.mpd') || url.includes('Manifest') || url.includes('mpd:')) return 'dash';
@@ -523,10 +486,6 @@
             return 'unknown';
         }
 
-        // ============================================================
-        // END LINK RESOLVER ENGINE V4
-        // ============================================================
-
         // Trạng thái
         let allChannels = [];
         let hlsInstance = null;
@@ -535,18 +494,15 @@
         let currentPlayingUrl = null;
         let selectedChannelId = null;
 
-        // Anti audio-distortion intervals
         let liveEdgeCheckInterval = null;
         let bufferCleanupInterval = null;
 
-        // EPG State
         const DEFAULT_EPG_URL = 'https://vnepg.site/epg.xml';
-        let epgData = new Map(); // channelId -> [programs]
-        let epgChannels = new Map(); // channelId -> name
+        let epgData = new Map();
+        let epgChannels = new Map();
         let isEPGPanelOpen = false;
-        let epgFetchStatus = 'idle'; // idle, fetching, success, error
+        let epgFetchStatus = 'idle';
 
-        // DOM Elements
         const videoPlayer = document.getElementById('video-player');
         const channelListEl = document.getElementById('channel-list');
         const emptyStateEl = document.getElementById('empty-state');
@@ -563,9 +519,8 @@
             }
         });
 
-        // Hide Cursor & Controls on Inactivity (Desktop + Mobile)
         let inactivityTimeout;
-        const CONTROLS_TIMEOUT = 2500; // 2 giây rồi ẩn (khớp với native controls)
+        const CONTROLS_TIMEOUT = 2500;
 
         function showControls() {
             videoContainer.classList.remove('hide-cursor');
@@ -575,15 +530,12 @@
         }
 
         function hideControls() {
-            // Luôn ẩn controls-active (cả fullscreen lẫn non-fullscreen)
             videoContainer.classList.remove('controls-active');
-            // Chỉ ẩn cursor trong fullscreen
             if (document.fullscreenElement) {
                 videoContainer.classList.add('hide-cursor');
             }
         }
 
-        // Desktop: mousemove hiện controls, mouseleave ẩn ngay
         videoContainer.addEventListener('mousemove', showControls);
         videoContainer.addEventListener('mousedown', showControls);
         videoContainer.addEventListener('mouseleave', () => {
@@ -591,40 +543,32 @@
             hideControls();
         });
 
-        // Mobile: tap vào video toggle controls, tự ẩn sau 3.5s
         videoContainer.addEventListener('touchstart', (e) => {
-            // Nếu tap vào nút control/select → không toggle, để nút hoạt động bình thường
             const tag = e.target.tagName;
             if (tag === 'BUTTON' || tag === 'SELECT' || tag === 'OPTION' ||
                 e.target.closest('button') || e.target.closest('select') ||
                 e.target.closest('#epg-panel')) {
-                return; // Để event đi qua bình thường
+                return;
             }
 
             if (videoContainer.classList.contains('controls-active')) {
-                // Đang hiện → ẩn ngay
                 clearTimeout(inactivityTimeout);
                 hideControls();
             } else {
-                // Đang ẩn → hiện, rồi tự ẩn sau 3.5s
                 showControls();
             }
         }, { passive: true });
 
-        // === Fullscreen Change Listener ===
-        // Cập nhật icon của nút custom khi vào/thoát chế độ toàn màn hình
         function handleFSChange() {
             const fsBtn = document.getElementById('fullscreen-btn');
             const isFS = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
 
             if (isFS) {
-                // Đang fullscreen
                 if (fsBtn) {
                     fsBtn.setAttribute('data-tip', 'Thoát toàn màn hình');
                     fsBtn.innerHTML = '<i data-lucide="minimize" class="w-3.5 h-3.5"></i>';
                 }
             } else {
-                // Đã thoát fullscreen
                 if (fsBtn) {
                     fsBtn.setAttribute('data-tip', 'Toàn màn hình');
                     fsBtn.innerHTML = '<i data-lucide="maximize" class="w-3.5 h-3.5"></i>';
@@ -639,7 +583,6 @@
         document.addEventListener('mozfullscreenchange', handleFSChange);
         document.addEventListener('MSFullscreenChange', handleFSChange);
 
-        // Hàm đóng/mở Dialog Thêm Nguồn
         const addDialog = document.getElementById('add-dialog');
         const addDialogContent = document.getElementById('add-dialog-content');
 
@@ -653,16 +596,15 @@
             addDialogContent.classList.replace('scale-100', 'scale-95');
         }
 
-        // Đóng dialog khi click ra ngoài nền đen
         addDialog.addEventListener('click', (e) => {
             if (e.target === addDialog) {
                 closeAddDialog();
             }
         });
 
-        // Hàm Toast
         function showToast(message, type = 'success') {
             const container = document.getElementById('toast-container');
+            if (!container) return;
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
             const iconName = type === 'success' ? 'check' : 'alert-circle';
@@ -681,18 +623,15 @@
             }, 3300);
         }
 
-        // Logic Parse
         let globalEPGUrl = '';
 
         function parseM3U(text) {
-            // Auto-upgrade http to https for specific sources if needed
             text = text.replace(/http:\/\/vietanhtv\.id\.vn/g, 'https://vietanhtv.id.vn');
             text = text.replace(/http:\/\/xem\.hoiquan\.click/g, 'https://tinyurl.com/HoiQuanClick');
             const lines = text.split('\n');
             const channels = [];
             let currentChannel = null;
 
-            // Extract Global EPG URL from #EXTM3U line
             const m3uHeader = lines.find(l => l.toUpperCase().startsWith('#EXTM3U'));
             if (m3uHeader) {
                 const epgMatch = m3uHeader.match(/x-tvg-url="([^"]+)"/i) || m3uHeader.match(/url-tvg="([^"]+)"/i);
@@ -727,7 +666,6 @@
                     const idMatch = line.match(/tvg-id="([^"]+)"/i);
                     if (idMatch && idMatch[1]) currentChannel.id = idMatch[1];
 
-                    // Capture all catchup attributes
                     const catchupMatch = line.match(/catchup="([^"]+)"/i);
                     if (catchupMatch) currentChannel.props.catchup = catchupMatch[1];
 
@@ -778,19 +716,16 @@
         }
 
         function parseJSON(data) {
-            // Auto-upgrade links to HTTPS
             let dataStr = JSON.stringify(data);
             dataStr = dataStr.replace(/http:\/\/vietanhtv\.id\.vn/g, 'https://vietanhtv.id.vn');
             dataStr = dataStr.replace(/http:\/\/xem\.hoiquan\.click/g, 'https://tinyurl.com/HoiQuanClick');
             data = JSON.parse(dataStr);
 
-            // Trường hợp 1: Định dạng Hailab Cloud (Có 'groups')
             if (data && data.groups && Array.isArray(data.groups)) {
                 const channels = [];
                 data.groups.forEach(group => {
                     if (group.channels && Array.isArray(group.channels)) {
                         group.channels.forEach(channel => {
-                            // Lấy link stream đầu tiên có thể tìm thấy
                             let streamUrl = '';
                             if (channel.sources && channel.sources[0] &&
                                 channel.sources[0].contents && channel.sources[0].contents[0] &&
@@ -814,7 +749,6 @@
                 return channels;
             }
 
-            // Trường hợp 2: Định dạng List đơn giản hoặc JSON IPTV phổ thông
             if (!Array.isArray(data)) data = data.channels || [];
             return data.map(item => ({
                 name: item.name || item.title || item.channel || 'Kênh ẩn danh',
@@ -824,10 +758,8 @@
             })).filter(item => item.url !== '');
         }
 
-        // State for Category
         let currentCategory = 'Tất cả';
 
-        // Render List - Updated for flat list with filter
         function renderChannels(channelsToRender) {
             channelListEl.innerHTML = '';
 
@@ -837,7 +769,6 @@
             }
             emptyStateEl.style.display = 'none';
 
-            // Filter by active category if not 'Tất cả'
             let filtered = channelsToRender;
             if (currentCategory !== 'Tất cả') {
                 filtered = channelsToRender.filter(c => (c.group || 'Khác') === currentCategory);
@@ -885,7 +816,6 @@
             lucide.createIcons({ root: channelListEl });
         }
 
-        // Render Category Tabs
         function renderCategoryTabs() {
             const tabsContainer = document.getElementById('category-tabs');
             tabsContainer.innerHTML = '';
@@ -918,7 +848,6 @@
             showToast(`Đã tải thành công ${allChannels.length} kênh.`);
         }
 
-        // Tải File Local
         function handleFileUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -934,20 +863,16 @@
             event.target.value = '';
         }
 
-        // Tải qua URL có sẵn
         async function loadPredefinedUrl(url) {
             document.getElementById('url-input').value = url;
             closeAddDialog();
             await loadFromUrl();
         }
 
-        // Tải qua URL
         async function loadFromUrl() {
             const urlInput = document.getElementById('url-input').value.trim();
             if (!urlInput) return showToast('Vui lòng dán đường dẫn URL!', 'error');
 
-            // === Phát hiện link luồng trực tiếp (.m3u8, .mpd, .ts) ===
-            // Các link này là stream cần phát, KHÔNG phải playlist IPTV cần parse
             const isDirectM3U8 = /\.m3u8(\?|#|$)/i.test(urlInput);
             const isDirectMPD = /\.mpd(\?|#|$)/i.test(urlInput);
             const isDirectTS = /\.ts(\?|#|$)/i.test(urlInput) || /extension=ts/i.test(urlInput);
@@ -975,13 +900,12 @@
             showToast('Đang kết nối URL...', 'success');
             let text = '';
 
-            // Danh sách các proxy để thử nghiệm vượt rào CORS
             const isLocal = !urlInput.startsWith('http');
             const proxies = isLocal ? [''] : [
-                '', // 1: Thử trực tiếp đầu tiên (Phù hợp Github)
-                'https://api.allorigins.win/raw?url=', // 2: Proxy Allorigins phổ biến
-                'https://corsproxy.io/?url=', // 3: Corsproxy IO
-                'https://crossorigin.me/', // 4: Crossorigin fallback
+                '', 
+                'https://api.allorigins.win/raw?url=', 
+                'https://corsproxy.io/?url=', 
+                'https://crossorigin.me/', 
             ];
 
             let success = false;
@@ -991,7 +915,6 @@
                 try {
                     const fetchUrl = proxy ? proxy + encodeURIComponent(urlInput) : urlInput;
                     const response = await fetch(fetchUrl, {
-                        // Thêm headers cơ bản để bypass một số rule chặn bot đơn giản
                         headers: {
                             'Accept': 'text/plain, */*'
                         }
@@ -999,15 +922,13 @@
 
                     if (response.ok) {
                         text = await response.text();
-                        // Kiểm tra cơ bản xem nội dung trả về có hợp lệ không
-                        // Chấp nhận cả trường hợp thiếu #EXTM3U nhưng có EXTINF
                         const isM3U = text.includes('#EXTM3U') || text.toUpperCase().includes('EXTINF:');
                         const isJSON = text.trim().startsWith('{') || text.trim().startsWith('[');
 
                         if (isM3U || isJSON) {
                             success = true;
                             console.log(`Đã tải nguồn phát thành công bằng luồng: ${proxy ? 'Proxy ' + proxy : 'Direct'}`);
-                            break; // Thoát vòng lặp nếu tải thành công
+                            break; 
                         } else {
                             throw new Error('Nội dung trả về không phải định dạng nguồn phát hợp lệ.');
                         }
@@ -1029,19 +950,16 @@
             catch (e) { processData(parseM3U(text)); }
         }
 
-        // Tìm kiếm & Lọc theo Category
         function filterChannels() {
             const query = searchInput.value.toLowerCase().trim();
             const clearBtn = document.getElementById('clear-search-btn');
             if (clearBtn) clearBtn.classList.toggle('hidden', query === '');
             let filtered = allChannels;
 
-            // 1. Lọc theo Category hiện tại
             if (currentCategory !== 'Tất cả') {
                 filtered = filtered.filter(c => (c.group || 'Khác') === currentCategory);
             }
 
-            // 2. Lọc theo từ khóa tìm kiếm
             if (query) {
                 filtered = filtered.filter(c =>
                     c.name.toLowerCase().includes(query) ||
@@ -1049,12 +967,10 @@
                 );
             }
 
-            // Render lại danh sách flat
             renderChannelsExplicit(filtered);
             channelCountEl.textContent = `${filtered.length} Kênh`;
         }
 
-        // Hàm render list không filter (để dùng trong filterChannels)
         function renderChannelsExplicit(channels) {
             channelListEl.innerHTML = '';
             if (channels.length === 0) {
@@ -1069,7 +985,6 @@
                 const isPlaying = currentPlayingUrl === channel.url;
                 li.className = `channel-item relative flex items-center gap-3 p-2.5 rounded-2xl cursor-pointer select-none ${isPlaying ? 'active' : ''}`;
 
-                // Get Current Program
                 let currentProgram = null;
                 const epgId = findEPGId(channel.id || channel.name);
                 if (epgId && epgData.has(epgId)) {
@@ -1120,7 +1035,6 @@
             renderCategoryTabs();
             filterChannels();
 
-            // Dọn dẹp tất cả intervals
             if (window.stallInterval) { clearInterval(window.stallInterval); window.stallInterval = null; }
             if (liveEdgeCheckInterval) { clearInterval(liveEdgeCheckInterval); liveEdgeCheckInterval = null; }
             if (bufferCleanupInterval) { clearInterval(bufferCleanupInterval); bufferCleanupInterval = null; }
@@ -1131,7 +1045,6 @@
             if (mpegtsInstance) { mpegtsInstance.destroy(); mpegtsInstance = null; }
             videoPlayer.pause(); videoPlayer.removeAttribute('src'); videoPlayer.load();
 
-            // Cleanup Blob URL
             if (currentBlobUrl) {
                 URL.revokeObjectURL(currentBlobUrl);
                 currentBlobUrl = null;
@@ -1141,7 +1054,6 @@
             currentPlayingUrl = null;
         }
 
-        // Helper to convert Base64/Base64Url to Hex for ClearKey
         function base64ToHex(base64) {
             if (!base64) return '';
             let b64 = base64.replace(/-/g, '+').replace(/_/g, '/');
@@ -1160,32 +1072,27 @@
             }
         }
 
-        // === Blob URL tracker — để cleanup khi stop ===
         let currentBlobUrl = null;
-
-        // === Resolve PHP toggle — lưu trạng thái vào localStorage ===
-        let resolveEnabled = localStorage.getItem('resolveEnabled') === 'true'; // mặc định TẮT
+        let resolveEnabled = localStorage.getItem('resolveEnabled') === 'true';
 
         function toggleResolve() {
             resolveEnabled = !resolveEnabled;
             localStorage.setItem('resolveEnabled', resolveEnabled);
             const btn = document.getElementById('resolve-toggle-btn');
-            const dot = btn.querySelector('div');
-            if (resolveEnabled) {
-                btn.style.backgroundColor = '#22c55e';
-                dot.style.transform = 'translateX(1.25rem)';
-            } else {
-                btn.style.backgroundColor = '#444';
-                dot.style.transform = 'translateX(0)';
+            if (btn) {
+                const dot = btn.querySelector('div');
+                if (resolveEnabled) {
+                    btn.style.backgroundColor = '#22c55e';
+                    if (dot) dot.style.transform = 'translateX(1.25rem)';
+                } else {
+                    btn.style.backgroundColor = '#444';
+                    if (dot) dot.style.transform = 'translateX(0)';
+                }
             }
             console.log(`[Settings] Resolve PHP: ${resolveEnabled ? 'BẬT' : 'TẮT'}`);
         }
 
-
-
-        // === Stop Channel ===
         async function stopChannel() {
-            // Dọn dẹp anti-distortion intervals
             if (liveEdgeCheckInterval) { clearInterval(liveEdgeCheckInterval); liveEdgeCheckInterval = null; }
             if (bufferCleanupInterval) { clearInterval(bufferCleanupInterval); bufferCleanupInterval = null; }
             if (window.audioCheckInterval) { clearInterval(window.audioCheckInterval); window.audioCheckInterval = null; }
@@ -1197,7 +1104,6 @@
             videoPlayer.removeAttribute('src');
             videoPlayer.load();
 
-            // Cleanup Blob URL
             if (currentBlobUrl) {
                 URL.revokeObjectURL(currentBlobUrl);
                 currentBlobUrl = null;
@@ -1235,7 +1141,6 @@
                         if (docReqFS) docReqFS.call(document.documentElement);
                     }
                 } else if (videoPlayer.webkitEnterFullscreen) {
-                    // Fallback for iOS Safari which only supports fullscreen on the video element itself
                     videoPlayer.webkitEnterFullscreen();
                 }
             } else {
@@ -1246,8 +1151,6 @@
             }
         }
 
-
-        // === EPG Logic ===
         function toggleEPG() {
             isEPGPanelOpen = !isEPGPanelOpen;
             const panel = document.getElementById('epg-panel');
@@ -1266,14 +1169,12 @@
             if (epgFetchStatus === 'fetching' && !url) return;
             epgFetchStatus = 'fetching';
 
-            // Ưu tiên đọc từ file local (đã được C# tải về, không có CORS)
             const localUrl = 'http://data.local/epg.xml';
             const remoteUrl = url || DEFAULT_EPG_URL;
 
             let text = '';
             let success = false;
 
-            // Thử local trước
             try {
                 const localResponse = await fetch(localUrl);
                 if (localResponse.ok) {
@@ -1287,7 +1188,6 @@
                 console.log('[EPG] Không có file local, thử tải từ mạng...');
             }
 
-            // Nếu local thất bại, fetch trực tiếp (có thể bị CORS)
             if (!success) {
                 console.log('[EPG] Đang tải EPG từ:', remoteUrl);
                 try {
@@ -1311,7 +1211,6 @@
                 const parser = new DOMParser();
                 const xmlDoc = parser.parseFromString(text, "text/xml");
 
-                // Parse Channels
                 const channels = xmlDoc.getElementsByTagName('channel');
                 for (let ch of channels) {
                     const id = ch.getAttribute('id');
@@ -1319,7 +1218,6 @@
                     epgChannels.set(id, name);
                 }
 
-                // Parse Programmes
                 const programmes = xmlDoc.getElementsByTagName('programme');
                 const tempEpgData = new Map();
 
@@ -1345,7 +1243,6 @@
                 console.log(`Đã tải xong EPG cho ${epgData.size} kênh.`);
                 showToast(`Đã cập nhật lịch phát sóng (${epgData.size} kênh)`);
 
-                // Refresh UI if needed
                 filterChannels();
             } catch (e) {
                 console.error("Lỗi parse XMLTV:", e);
@@ -1354,7 +1251,6 @@
             }
         }
 
-        // Bảng ánh xạ tên kênh thường gặp -> ID trong vnepg.site
         const CHANNEL_NAME_MAP = {
             'vtv1': 'vtv1hd', 'vtv2': 'vtv2hd', 'vtv3': 'vtv3hd',
             'vtv4': 'vtv4hd', 'vtv5': 'vtv5hd', 'vtv6': 'vtv6hd',
@@ -1382,34 +1278,27 @@
             if (!id) return null;
             const cleanId = id.toLowerCase().trim();
 
-            // 1. Exact match on data key
             if (epgData.has(id)) return id;
 
-            // 2. Case insensitive match on ID
             for (let key of epgData.keys()) {
                 if (key.toLowerCase() === cleanId) return key;
             }
 
-            // 3. Check hard-coded name map
             const mapped = CHANNEL_NAME_MAP[cleanId];
             if (mapped && epgData.has(mapped)) return mapped;
 
-            // 4. Match against display-name (for numeric/hash IDs in vnepg)
             for (let [epgId, epgName] of epgChannels.entries()) {
                 if (epgName && epgName.toLowerCase().trim() === cleanId) return epgId;
             }
 
-            // 5. Strip suffix hd/vn/hd2 from EPG ID and compare
             for (let key of epgData.keys()) {
                 const stripped = key.toLowerCase().replace(/(hd2?|vn|sd)$/, '');
                 if (stripped === cleanId) return key;
             }
 
-            // 6. Partial name match via display-name
             for (let [epgId, epgName] of epgChannels.entries()) {
                 if (!epgName) continue;
                 const lName = epgName.toLowerCase();
-                // Must be a close match (not substring of much longer string)
                 if ((lName === cleanId) ||
                     (lName.startsWith(cleanId) && lName.length - cleanId.length <= 4) ||
                     (cleanId.startsWith(lName) && cleanId.length - lName.length <= 4)) {
@@ -1421,7 +1310,6 @@
         }
 
         function parseXMLTVDate(str) {
-            // Format: 20240502070000 +0700
             if (!str) return new Date();
             const y = str.substring(0, 4);
             const m = str.substring(4, 6) - 1;
@@ -1430,7 +1318,6 @@
             const min = str.substring(10, 12);
             const s = str.substring(12, 14);
 
-            // Handle timezone if exists
             const date = new Date(Date.UTC(y, m, d, h, min, s));
             const tzMatch = str.match(/([+-])(\d{2})(\d{2})$/);
             if (tzMatch) {
@@ -1478,11 +1365,10 @@
             const programs = epgData.get(epgId).sort((a, b) => a.start - b.start);
             const now = new Date();
 
-            // Only show programs for today/tomorrow
             const filtered = programs.filter(p => {
                 const end = new Date(p.stop);
                 return end >= now;
-            }).slice(0, 50); // Limit to 50 programs
+            }).slice(0, 50);
 
             if (filtered.length === 0) {
                 container.innerHTML = `<p class="text-center text-muted text-xs p-10">Hết lịch phát sóng hôm nay.</p>`;
@@ -1523,15 +1409,12 @@
             });
 
             container.appendChild(fragment);
-            // Scroll to current
             setTimeout(() => {
                 const current = container.querySelector('.epg-item.current');
                 if (current) current.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }, 100);
         }
 
-
-        // === Helper: Hiện trình giả lập Audio ===
         function showAudioVisualizer(channel) {
             const audioVis = document.getElementById('audio-visualizer');
             if (!audioVis || !audioVis.classList.contains('hidden')) return;
@@ -1553,7 +1436,6 @@
             audioVis.classList.remove('hidden');
             lucide.createIcons({ root: audioVis });
 
-            // Cập nhật quality selector thành "Audio"
             const qualitySelector = document.getElementById('quality-selector');
             if (qualitySelector) {
                 qualitySelector.innerHTML = '<option value="audio">Audio</option>';
@@ -1561,12 +1443,11 @@
             }
         }
 
-        // Improved Play Channel
         async function playChannel(channel) {
             selectedChannelId = channel.id || channel.name;
             const epgBtn = document.getElementById('epg-toggle-btn');
             if (!isEPGPanelOpen && epgBtn) {
-                epgBtn.classList.remove('hidden'); // Show if panel is closed
+                epgBtn.classList.remove('hidden');
             }
 
             if (isEPGPanelOpen) renderEPG(selectedChannelId);
@@ -1576,14 +1457,12 @@
             const url = channel.url;
             currentPlayingUrl = url;
 
-            // Stall detection — chỉ reload khi stall nghiêm trọng (không nudge để tránh audio pop)
             let lastVideoTime = -1;
             let stallCount = 0;
             window.stallInterval = setInterval(() => {
                 if (!videoPlayer.paused && currentPlayingUrl === url) {
                     if (videoPlayer.currentTime === lastVideoTime) {
                         stallCount++;
-                        // Stall nghiêm trọng ~10s → reload kênh
                         if (stallCount >= 20) {
                             console.warn("Serious stall detected, forced reload...");
                             stallCount = 0;
@@ -1596,7 +1475,6 @@
                 }
             }, 500);
 
-            // UI Update
             playerOverlay.style.opacity = '0';
             loadingOverlay.classList.remove('hidden');
             document.getElementById('quality-selector').classList.add('hidden');
@@ -1604,15 +1482,12 @@
             const audioVis = document.getElementById('audio-visualizer');
             if (audioVis) audioVis.classList.add('hidden');
 
-            // Force preservesPitch to true to prevent audio distortion when playbackRate changes
             videoPlayer.preservesPitch = true;
             if ('mozPreservesPitch' in videoPlayer) videoPlayer.mozPreservesPitch = true;
             if ('webkitPreservesPitch' in videoPlayer) videoPlayer.webkitPreservesPitch = true;
 
-            // Highlight in list
             filterChannels();
 
-            // Cleanup old stream & anti-distortion intervals
             if (liveEdgeCheckInterval) { clearInterval(liveEdgeCheckInterval); liveEdgeCheckInterval = null; }
             if (bufferCleanupInterval) { clearInterval(bufferCleanupInterval); bufferCleanupInterval = null; }
             if (window.audioCheckInterval) { clearInterval(window.audioCheckInterval); window.audioCheckInterval = null; }
@@ -1627,17 +1502,14 @@
             videoPlayer.removeAttribute('src');
             videoPlayer.load();
 
-            // --- Resolve proxy URL (dùng XHR + Blob URL) ---
             let resolvedUrl = url;
             const needsResolve = url.includes('.php') || url.includes('vietanhtv') || url.includes('tv360') || url.includes('vieon') || url.includes('hoiquan') || url.includes('/play/') || url.includes('dpdns.org');
             if (needsResolve) {
                 if (resolveEnabled) {
-                    // === CHẾ ĐỘ BẬT: Fetch + parse response để tìm stream URL ===
                     loadingOverlay.classList.remove('hidden');
                     const statusEl = document.getElementById('resolve-status');
                     if (statusEl) statusEl.classList.remove('hidden');
 
-                    // Bước 1: Dùng XHR trước (vượt CORS khi mở từ file://)
                     let responseText = null;
                     let finalUrl = null;
                     try {
@@ -1708,7 +1580,6 @@
                         }
                     } else {
                         console.warn('[Resolver] ❌ XHR/Fetch thất bại, thử CORS proxy...');
-                        // === PHƯƠNG ÁN 3: CORS Proxy (cho HTTPS deployment) ===
                         const CORS_PROXIES = [
                             'https://api.allorigins.win/raw?url=',
                             'https://corsproxy.io/?url=',
@@ -1727,7 +1598,6 @@
                                                 console.log(`[Resolver] ✅ Proxy ${proxy} → stream URL: ${resolvedUrl.substring(0,120)}`);
                                                 break;
                                             } else {
-                                                // Tạo Blob URL
                                                 const isM3U = parsed.includes('#EXTM3U') || parsed.includes('#EXTINF');
                                                 const mimeType = isM3U ? 'application/vnd.apple.mpegurl' : 'text/plain';
                                                 const blob = new Blob([parsed], { type: mimeType });
@@ -1757,7 +1627,6 @@
                     if (statusEl) statusEl.classList.add('hidden');
                     console.log(`[Resolver] Kết quả cuối: ${url.substring(0,80)} → ${String(resolvedUrl).substring(0,120)}`);
                 } else {
-                    // === CHẾ ĐỘ TẮT: Chỉ follow redirect, không parse ===
                     console.log('[Resolver] Resolve TẮT, chỉ follow redirect...');
                     try {
                         const xhrResult = await xhrFetchText(url);
@@ -1766,7 +1635,6 @@
                             resolvedUrl = finalUrl;
                             console.log(`[Resolver] ✅ Redirect đến: ${resolvedUrl.substring(0,120)}`);
                         } else if (xhrResult.text && xhrResult.text.length > 5) {
-                            // Không redirect tới stream, thử parse nhanh
                             const parsed = parseResponseForStream(xhrResult.text, finalUrl, url);
                             if (parsed && parsed.startsWith('http')) {
                                 resolvedUrl = parsed;
@@ -1802,16 +1670,13 @@
                             resolvedUrl.includes(':2086/') || resolvedUrl.includes(':2087/') ||
                             resolvedUrl.includes('/play/');
 
-            // --- Case 1: DASH / MPD (Using Shaka Player) ---
             if (typeof shaka !== 'undefined' && isMPD && shaka.Player.isBrowserSupported()) {
                 shakaInstance = new shaka.Player(videoPlayer);
 
-                // Handle DRM
                 const drmType = channel.props && channel.props['inputstream.adaptive.license_type'];
                 const licenseKey = channel.props && channel.props['inputstream.adaptive.license_key'];
 
                 if (drmType === 'widevine' && licenseKey) {
-                    // Widevine — cấu hình license server cho Shaka
                     shakaInstance.configure({
                         drm: {
                             servers: {
@@ -1824,7 +1689,6 @@
                     let keyString = licenseKey;
                     const clearKeys = {};
 
-                    // TH0: resolvedUrl là JSON
                     if (resolvedUrl && (resolvedUrl.startsWith('{') || resolvedUrl.startsWith('['))) {
                         try {
                             const proxyData = JSON.parse(resolvedUrl);
@@ -1839,7 +1703,6 @@
                         } catch(e) { /* ignore */ }
                     }
 
-                    // TH1: license_key là URL (license server trả về key động)
                     if (Object.keys(clearKeys).length === 0 && keyString && (keyString.startsWith('http://') || keyString.startsWith('https://'))) {
                         try {
                             const userAgent = (channel.props && channel.props['http-user-agent']) || 'Dalvik/2.1.0';
@@ -1873,7 +1736,6 @@
                         }
                     }
 
-                    // TH2: key tĩnh (JSON hoặc hex)
                     if (Object.keys(clearKeys).length === 0 && keyString) {
                         try {
                             const keyData = JSON.parse(keyString);
@@ -1917,7 +1779,6 @@
                     await shakaInstance.load(resolvedUrl);
                     videoPlayer.play();
 
-                    // Live stream handling
                     if (shakaInstance.isLive()) {
                         videoPlayer.classList.add('is-live');
                         const seekRange = shakaInstance.seekRange();
@@ -1926,7 +1787,6 @@
                         videoPlayer.classList.remove('is-live');
                     }
 
-                    // Populate quality selector from Shaka variant tracks
                     const qualitySelector = document.getElementById('quality-selector');
                     const tracks = shakaInstance.getVariantTracks();
                     const uniqueHeights = [...new Set(tracks.map(t => t.height).filter(h => h > 0))].sort((a, b) => b - a);
@@ -1972,7 +1832,6 @@
                     showToast('Lỗi phát DASH/DRM: ' + e.message, 'error');
                 }
 
-                // === Shaka Live Edge Recovery ===
                 if (shakaInstance && shakaInstance.isLive && shakaInstance.isLive()) {
                     if (liveEdgeCheckInterval) clearInterval(liveEdgeCheckInterval);
                     liveEdgeCheckInterval = setInterval(() => {
@@ -1991,10 +1850,9 @@
                 }
 
             }
-            // --- Case 2: HLS / M3U8 (Using Hls.js) ---
             else if (typeof Hls !== 'undefined' && Hls.isSupported() && !isMPD) {
                 hlsInstance = new Hls({
-                    enableWorker: false,             // Tắt worker trên Windows để tránh lệch clock âm thanh
+                    enableWorker: false,
                     lowLatencyMode: false,
                     backBufferLength: 10,
                     maxBufferLength: 30,
@@ -2007,7 +1865,6 @@
                     fragLoadingMaxRetry: 10,
                     fragLoadingRetryDelay: 1000,
                     startLevel: -1,
-                    // === ABR Tuning ===
                     abrEwmaFastLive: 3,
                     abrEwmaSlowLive: 9,
                     abrEwmaFastVoD: 3,
@@ -2017,16 +1874,14 @@
                     abrMaxWithRealBitrate: true,
                     abrEwmaDefaultEstimate: 500000,
                     abrEwmaDefaultEstimateMax: 5000000,
-                    // === Discontinuity / Anti-distortion ===
                     liveSyncDurationCount: 3,
                     liveMaxLatencyDurationCount: 6,
                     stretchShortVideoTrack: true,
-                    maxBufferHole: 2.0,              // Tăng lên 2s để tránh khựng khi nối đoạn quảng cáo (như khi có quảng cáo)
+                    maxBufferHole: 2.0,
                     highBufferWatchdogPeriod: 2,
                     forceKeyFrameOnDiscontinuity: true,
                     progressive: false,
-                    // === Audio Sync Tuning ===
-                    maxAudioFramesDrift: 1,          // Ép đồng bộ âm thanh cực gắt
+                    maxAudioFramesDrift: 1,
                     initialLiveManifestSize: 3,
                 });
 
@@ -2039,7 +1894,6 @@
                         loadingOverlay.classList.add('hidden');
                     });
 
-                    // === Kiểm tra Audio-Only từ HLS manifest (chính xác nhất) ===
                     if (hlsInstance.levels && hlsInstance.levels.length > 0) {
                         const allAudioOnly = hlsInstance.levels.every(l => !l.videoCodec || l.videoCodec === '');
                         if (allAudioOnly) {
@@ -2047,7 +1901,6 @@
                         }
                     }
 
-                    // Populate quality selector from HLS levels
                     const qualitySelector = document.getElementById('quality-selector');
                     if (hlsInstance.levels && hlsInstance.levels.length > 1) {
                         const currentLvl = hlsInstance.levels[hlsInstance.currentLevel] || hlsInstance.levels[0];
@@ -2076,7 +1929,6 @@
                     }
                 });
 
-                // === Cập nhật dropdown khi ABR tự chuyển level ===
                 hlsInstance.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
                     const qualitySelector = document.getElementById('quality-selector');
                     if (!qualitySelector) return;
@@ -2090,10 +1942,6 @@
                     }
                 });
 
-
-
-                // === Live Edge Auto-Recovery (Anti audio drift) ===
-                // Chỉ setup 1 lần khi phát hiện live stream
                 let liveEdgeSetup = false;
                 hlsInstance.on(Hls.Events.LEVEL_LOADED, (event, data) => {
                     if (data.details && data.details.live && !liveEdgeSetup) {
@@ -2105,16 +1953,14 @@
                             const currentPos = videoPlayer.currentTime;
                             const drift = liveEdge - currentPos;
 
-                            // Nếu trễ hơn 15 giây so với live edge → seek nhẹ nhàng
                             if (drift > 15 && !videoPlayer.paused) {
                                 console.warn(`[Audio Fix] Drift ${drift.toFixed(1)}s, seeking to live edge...`);
-                                videoPlayer.currentTime = liveEdge - 2; // Về cách live edge 2s
+                                videoPlayer.currentTime = liveEdge - 2;
                             }
                         }, 30000);
                     }
                 });
 
-                // === Xử lý khi qua discontinuity (quảng cáo/chuyển bài) ===
                 hlsInstance.on(Hls.Events.FRAG_CHANGED, (event, data) => {
                     if (data.frag && data.frag.tagList && data.frag.tagList.includes('DISCONTINUITY')) {
                         console.warn('[Audio-Fix] Discontinuity detected, letting Hls.js sync...');
@@ -2166,7 +2012,6 @@
                 });
 
             }
-            // --- Case 3: Raw MPEG-TS stream (Using mpegts.js) ---
             else if (typeof mpegts !== 'undefined' && mpegts.isSupported() && isRawTS) {
                 mpegtsInstance = mpegts.createPlayer({
                     type: 'mpegts',
@@ -2177,10 +2022,10 @@
                     liveBufferLatencyChasing: false,
                     liveBufferLatencyMaxLatency: 5,
                     liveBufferLatencyMinRemain: 1.0,
-                    autoCleanupSourceBuffer: true,       // Tự động dọn buffer cũ
-                    autoCleanupMaxBackwardDuration: 30,   // Chỉ giữ 30s buffer phía sau
-                    autoCleanupMinBackwardDuration: 15,   // Bắt đầu dọn khi >15s
-                    fixAudioTimestampGap: true,           // Sửa audio gap tự động
+                    autoCleanupSourceBuffer: true,
+                    autoCleanupMaxBackwardDuration: 30,
+                    autoCleanupMinBackwardDuration: 15,
+                    fixAudioTimestampGap: true,
                 });
 
                 mpegtsInstance.attachMediaElement(videoPlayer);
@@ -2197,8 +2042,6 @@
                         if (mpegtsRetries < 3) {
                             mpegtsRetries++;
                             console.log(`Mpegts network error, retry ${mpegtsRetries}...`);
-                            // Mpegts.js handles some retries internally if configured,
-                            // but here we manually reload after a delay if it stays dead
                         } else {
                             showToast('Lỗi mạng luồng TS. Đang thử lại...', 'error');
                             setTimeout(() => {
@@ -2210,7 +2053,6 @@
 
                 document.getElementById('quality-selector').classList.add('hidden');
             }
-            // --- Case 4: Fallback (Native browser playback) ---
             else {
                 videoPlayer.src = resolvedUrl;
                 videoPlayer.play().catch(e => {
@@ -2222,15 +2064,12 @@
             videoPlayer.onplaying = () => {
                 loadingOverlay.classList.add('hidden');
 
-                // Kiểm tra nguồn audio đã biết qua domain/đuôi file (cho native/fallback player)
                 const isKnownAudioSource = currentPlayingUrl.includes('zmp3.zmdcdn.me') ||
                     currentPlayingUrl.includes('mp3.zing.vn') ||
                     /\.(mp3|aac|ogg|flac|opus)(\?|$)/i.test(currentPlayingUrl);
                 if (isKnownAudioSource) {
                     showAudioVisualizer(channel);
                 }
-
-
             };
 
             videoPlayer.onwaiting = () => {
@@ -2238,9 +2077,6 @@
             };
 
             videoPlayer.onerror = () => {
-                const nativeError = videoPlayer.error;
-                // Chỉ tự động reload nếu không dùng Hls.js/Shaka/Mpegts (hoặc khi fallback lỗi native thực sự)
-                // Hạn chế reload liên tục nếu lỗi MEDIA_ERR_SRC_NOT_SUPPORTED
                 if (!hlsInstance && !shakaInstance && !mpegtsInstance) {
                     showToast('Lỗi phát luồng trình duyệt. Đang thử lại...', 'error');
                     setTimeout(() => {
@@ -2250,7 +2086,6 @@
             };
         }
 
-        // === Quality Selector Logic ===
         document.getElementById('quality-selector').addEventListener('change', (e) => {
             const val = e.target.value;
             const label = e.target.options[e.target.selectedIndex].text;
@@ -2259,10 +2094,8 @@
                 hlsInstance.currentLevel = val === 'auto' || val === '-1' ? -1 : parseInt(val);
             } else if (shakaInstance) {
                 if (val === 'auto') {
-                    // Bật lại ABR tự động
                     shakaInstance.configure({ abr: { enabled: true } });
                 } else {
-                    // Tắt ABR, chọn track theo height
                     shakaInstance.configure({ abr: { enabled: false } });
                     const targetHeight = parseInt(val);
                     const tracks = shakaInstance.getVariantTracks();
@@ -2273,13 +2106,10 @@
             showToast(`Chất lượng: ${label}`, 'success');
         });
 
-        // === Keyboard Shortcuts ===
         document.addEventListener('keydown', (e) => {
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
-            // Native shortcut for PiP is usually not standard, but we'll remove our custom 'P' map to avoid confusion
         });
 
-        // Chỉ tải EPG mặc định, không tự động tải danh sách kênh
         window.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => fetchEPG(), 100);
         });
