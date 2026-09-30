@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lotus Player - Chạy Chuẩn 100%</title>
+    <title>Lotus Player</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Nhúng thư viện HLS.js để phát stream m3u8 cho Nguồn 2 -->
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
         .channel-btn.active {
@@ -23,16 +24,16 @@
             📺 LOTUS PLAYER
         </h1>
         <span id="current-title" class="text-sm bg-gray-700 px-3 py-1 rounded-full text-gray-200">
-            Đang khởi động...
+            Đang tải dữ liệu...
         </span>
     </header>
 
     <!-- Main Container -->
     <div class="flex-1 flex flex-col md:flex-row">
         
-        <!-- Frame Phát Video (iFrame & Native Video) -->
+        <!-- Frame Phát Video -->
         <div class="flex-1 bg-black relative min-h-[300px] md:min-h-[500px]">
-            <!-- Player Nguồn 1: Chạy 100% iFrame -->
+            <!-- Player Nguồn 1: iFrame (Giữ nguyên gốc) -->
             <iframe 
                 id="iframe-player" 
                 src="about:blank" 
@@ -41,7 +42,7 @@
                 allowfullscreen>
             </iframe>
 
-            <!-- Player Nguồn 2: Chạy HLS.js Stream -->
+            <!-- Player Nguồn 2: Thẻ Video HTML5 + HLS.js giải mã Stream -->
             <video 
                 id="video-player" 
                 controls 
@@ -60,7 +61,7 @@
             </div>
             
             <div id="channel-list" class="flex flex-col gap-2 overflow-y-auto max-h-[450px] md:max-h-full pr-1">
-                <p class="text-xs text-gray-400 text-center py-4">Đang tải danh sách...</p>
+                <p class="text-xs text-gray-400 text-center py-4">Đang nạp danh sách kênh...</p>
             </div>
         </div>
 
@@ -76,16 +77,16 @@
             </div>
 
             <div class="flex flex-col gap-3">
-                <!-- Nguồn 1 -->
+                <!-- Nguồn 1 (Chạy iframe direct) -->
                 <button onclick="loadSource1()" class="w-full bg-emerald-700/80 hover:bg-emerald-600 border border-emerald-500 p-3 rounded-xl text-left transition flex justify-between items-center">
                     <div>
                         <div class="font-bold text-white text-sm">📺 Nguồn 1: Truyen Hinh</div>
-                        <div class="text-xs text-emerald-200 mt-0.5">VTV, HTV, THVL... (Phát iFrame Direct)</div>
+                        <div class="text-xs text-emerald-200 mt-0.5">VTV, HTV, THVL... (Phát iFrame)</div>
                     </div>
                     <span class="text-xs bg-emerald-900 px-2 py-1 rounded border border-emerald-400 font-bold">iFrame</span>
                 </button>
 
-                <!-- Nguồn 2 -->
+                <!-- Nguồn 2 (Giải mã HLS stream) -->
                 <button onclick="loadSource2()" class="w-full bg-purple-700/80 hover:bg-purple-600 border border-purple-500 p-3 rounded-xl text-left transition flex justify-between items-center">
                     <div>
                         <div class="font-bold text-white text-sm">⚽ Nguồn 2: Bóng Đá / IPTV</div>
@@ -108,7 +109,7 @@
     </div>
 
     <script>
-        // --- LINK NGUỒN CỦA BẠN ---
+        // HAI LINK CHÍNH CỦA BẠN
         const SOURCE_1_URL = "https://raw.githubusercontent.com/thanhchuong251085-cell/Hana2019/main/tv.json";
         const SOURCE_2_URL = "https://raw.githubusercontent.com/thanhchuong251085-cell/Hana2019/main/tviptv.m3u";
 
@@ -123,64 +124,42 @@
         function openModal() { document.getElementById('source-modal').classList.remove('hidden'); }
         function closeModal() { document.getElementById('source-modal').classList.add('hidden'); }
 
-        // --- NGUỒN 1: CHẠY IFRAME DIRECT ---
+        // --- NGUỒN 1: Phát iFrame nguyên bản ---
         async function loadSource1() {
             closeModal();
-            channelListContainer.innerHTML = '<p class="text-xs text-gray-400 text-center py-4">Đang nạp Nguồn 1 (Truyền hình)...</p>';
+            channelListContainer.innerHTML = '<p class="text-xs text-gray-400 text-center py-4">Đang nạp Nguồn 1...</p>';
             try {
-                // Thêm timestamp chống lưu cache cũ
-                const res = await fetch(SOURCE_1_URL + "?t=" + new Date().getTime());
-                if (!res.ok) throw new Error("Không thể tải file tv.json");
+                const res = await fetch(SOURCE_1_URL);
                 const data = await res.json();
-                
-                // Chuẩn hóa dữ liệu & Ép kiểu iframe
-                currentChannels = data.map(item => ({
-                    group: item.group || item.category || "TRUYỀN HÌNH",
-                    name: item.name || item.title || "Kênh không tên",
-                    url: item.url || item.link,
-                    type: 'iframe'
-                }));
-
+                currentChannels = data.map(item => ({ ...item, type: 'iframe' }));
                 renderChannels();
                 if (currentChannels.length > 0) playChannel(currentChannels[0], 0);
-            } catch (e) {
-                alert("Lỗi nạp Nguồn 1: " + e.message);
-                channelListContainer.innerHTML = '<p class="text-xs text-red-400 text-center py-4">Lỗi nạp nguồn!</p>';
+            } catch (err) {
+                alert("Lỗi nạp Nguồn 1!");
+                channelListContainer.innerHTML = '<p class="text-xs text-red-400 text-center py-4">Lỗi nạp Nguồn 1!</p>';
             }
         }
 
-        // --- NGUỒN 2: CHẠY HLS.JS ---
+        // --- NGUỒN 2: Gọi file M3U và chạy qua HLS.js ---
         async function loadSource2() {
             closeModal();
-            channelListContainer.innerHTML = '<p class="text-xs text-gray-400 text-center py-4">Đang nạp Nguồn 2 (Bóng đá)...</p>';
-            
-            // Sử dụng Proxy AllOrigins để đảm bảo đọc file M3U không bao giờ lỗi CORS
-            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(SOURCE_2_URL + "?t=" + new Date().getTime())}`;
-
+            channelListContainer.innerHTML = '<p class="text-xs text-gray-400 text-center py-4">Đang nạp Nguồn 2...</p>';
             try {
-                const res = await fetch(proxyUrl);
-                if (!res.ok) throw new Error("Không thể nạp tviptv.m3u");
+                const res = await fetch(SOURCE_2_URL);
                 const text = await res.text();
                 parseM3uData(text);
-            } catch (e) {
-                // Nếu proxy 1 lỗi, thử lại trực tiếp
-                try {
-                    const resDirect = await fetch(SOURCE_2_URL);
-                    const textDirect = await resDirect.text();
-                    parseM3uData(textDirect);
-                } catch(err) {
-                    alert("Lỗi nạp Nguồn 2: " + e.message);
-                    channelListContainer.innerHTML = '<p class="text-xs text-red-400 text-center py-4">Lỗi nạp nguồn!</p>';
-                }
+            } catch (err) {
+                alert("Lỗi nạp Nguồn 2!");
+                channelListContainer.innerHTML = '<p class="text-xs text-red-400 text-center py-4">Lỗi nạp Nguồn 2!</p>';
             }
         }
 
-        // Đọc dữ liệu M3U
+        // Tách dữ liệu M3U cho Nguồn 2
         function parseM3uData(m3uText) {
             const lines = m3uText.split('\n');
             const newChannels = [];
             let currentName = '';
-            let currentGroup = 'BÓNG ĐÁ / STREAM';
+            let currentGroup = 'IPTV / Stream';
 
             lines.forEach(line => {
                 line = line.trim();
@@ -208,11 +187,11 @@
                 renderChannels();
                 playChannel(currentChannels[0], 0);
             } else {
-                alert("File M3U rỗng hoặc sai định dạng!");
+                alert("File M3U không có dữ liệu!");
             }
         }
 
-        // Tải file M3U từ máy
+        // Upload File M3U thủ công
         function handleFileUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -259,32 +238,30 @@
             });
         }
 
-        // BỘ TRÌNH PHÁT ĐA NĂNG
+        // BỘ CHUYỂN PHÁT: Phân loại Nguồn 1 (iframe) và Nguồn 2 (HLS.js)
         function playChannel(channel, index) {
             currentTitle.textContent = `Đang phát: ${channel.name}`;
 
-            // Reset HLS
+            // Hủy phiên HLS cũ nếu đang chạy
             if (hlsEngine) {
                 hlsEngine.destroy();
                 hlsEngine = null;
             }
 
+            // Nguồn 1: Phát bằng iframe
             if (channel.type === 'iframe') {
-                // Dừng video player
                 videoPlayer.pause();
                 videoPlayer.src = "";
                 videoPlayer.classList.add('hidden');
                 
-                // Mở iframe
                 iframePlayer.classList.remove('hidden');
                 iframePlayer.src = channel.url;
 
+            // Nguồn 2: Phát bằng HLS.js
             } else if (channel.type === 'hls') {
-                // Reset & Ẩn iframe để ngắt tiếng
                 iframePlayer.src = "about:blank";
                 iframePlayer.classList.add('hidden');
                 
-                // Mở video player
                 videoPlayer.classList.remove('hidden');
 
                 if (Hls.isSupported()) {
@@ -299,7 +276,7 @@
             }
         }
 
-        // Tự động nạp Nguồn 1 khi truy cập
+        // Tự động nạp Nguồn 1 khi vừa mở ứng dụng
         window.onload = () => {
             loadSource1();
         };
