@@ -11,12 +11,13 @@
     body { background: #121212; color: #fff; display: flex; height: 100vh; overflow: hidden; }
     
     /* Sidebar */
-    #sidebar { width: 320px; background: #1e1e1e; padding: 15px; display: flex; flex-direction: column; gap: 12px; border-right: 1px solid #333; }
+    #sidebar { width: 340px; background: #1e1e1e; padding: 15px; display: flex; flex-direction: column; gap: 12px; border-right: 1px solid #333; }
     .btn { padding: 10px 15px; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
     .btn:hover { background: #1d4ed8; }
     #channel-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-top: 5px; }
-    .channel-item { padding: 10px; background: #2d2d2d; border-radius: 6px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 14px; }
+    .channel-item { padding: 10px; background: #2d2d2d; border-radius: 6px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; }
     .channel-item:hover { background: #3d3d3d; }
+    .channel-item.active { background: #1d4ed8; font-weight: bold; }
     .badge { font-size: 10px; padding: 3px 6px; border-radius: 4px; color: #fff; white-space: nowrap; font-weight: 600; }
     .badge-direct { background: #16a34a; }
     .badge-js { background: #9333ea; }
@@ -24,7 +25,7 @@
     /* Main Video View */
     #main-content { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #000; position: relative; }
     video { width: 100%; height: 100%; object-fit: contain; }
-    #status-info { position: absolute; top: 12px; left: 12px; background: rgba(0,0,0,0.75); padding: 8px 12px; border-radius: 6px; font-size: 13px; z-index: 10; border: 1px solid #444; }
+    #status-info { position: absolute; top: 12px; left: 12px; background: rgba(0,0,0,0.8); padding: 8px 12px; border-radius: 6px; font-size: 13px; z-index: 10; border: 1px solid #444; }
 
     /* Modal Popup */
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 1000; }
@@ -72,15 +73,11 @@
   </div>
 
   <script>
-    // -------------------------------------------------------------
-    // Cấu hình Link Nguồn
-    // -------------------------------------------------------------
     const SOURCE_1_URL = "https://raw.githubusercontent.com/thanhchuong251085-cell/Hana2019/main/tviptv.m3u";
     const SOURCE_2_URL = "https://raw.githubusercontent.com/hieu-TQS/error/refs/heads/main/error.m3u";
 
-    // ĐIỀN LINK CLOUDFLARE WORKER CỦA BẠN VÀO ĐÂY (Để sửa lỗi CORS & HTTP):
-    // Nếu chưa tạo Worker, bạn có thể để nguyên PROXY_URL = "" nhưng sẽ bị chặn trên GitHub Pages.
-    const PROXY_URL = ""; // Ví dụ: "https://iptv-cors-proxy.xxx.workers.dev/?url="
+    // Proxy miễn phí giúp bypass rào cản CORS từ GitHub & Máy chủ đài
+    const CORS_PROXY = "https://corsproxy.io/?";
 
     const video = document.getElementById('video-player');
     const channelList = document.getElementById('channel-list');
@@ -95,65 +92,73 @@
       document.getElementById('source-modal').style.display = 'none';
     }
 
-    // Hàm tải và đọc file M3U từ GitHub
+    // Tải M3U thông qua Proxy
     async function fetchM3UPlaylist(m3uUrl, playMode) {
       closeModal();
       channelList.innerHTML = '<p class="loading-text">Đang tải danh sách kênh...</p>';
 
       try {
-        // Tải nội dung file .m3u
-        const response = await fetch(m3uUrl);
-        if (!response.ok) throw new Error("Không thể tải file M3U");
+        // Dùng Proxy để tránh bị chặn CORS khi fetch dữ liệu file M3U
+        const targetFetchUrl = CORS_PROXY + encodeURIComponent(m3uUrl);
+        const response = await fetch(targetFetchUrl);
+        
+        if (!response.ok) throw new Error("Không thể nạp file M3U");
         const data = await response.text();
 
-        // Tách file .m3u thành danh sách kênh
         const channels = parseM3U(data, playMode);
         renderChannels(channels);
       } catch (err) {
-        channelList.innerHTML = `<p class="loading-text" style="color:#ef4444;">Lỗi: ${err.message}</p>`;
+        channelList.innerHTML = `<p class="loading-text" style="color:#ef4444;">Lỗi tải M3U: ${err.message}</p>`;
       }
     }
 
-    // Hàm Parse (Phân tích) dữ liệu chuẩn M3U
+    // Parser cải tiến: bóc tách chính xác Tên kênh, KODIPROP/Clearkey và Link Stream
     function parseM3U(m3uText, playMode) {
       const lines = m3uText.split('\n');
       const channels = [];
       let currentName = '';
+      let currentClearKey = null;
 
       for (let i = 0; i < lines.length; i++) {
         let line = lines[i].trim();
 
+        // Bóc tách thông số ClearKey DRM nếu có (thường gặp ở Nguồn 2)
+        if (line.includes('license_key') || line.includes('clearkey')) {
+          const match = line.match(/clearkey=(.*?)(:|$)/i) \vert{}\vert{} line.match(/license_key=(.*?)(:\vert{}$)/i);
+          if (match) currentClearKey = match[1];
+        }
+
         if (line.startsWith('#EXTINF:')) {
-          // Lấy tên kênh sau dấu phẩy cuối cùng của dòng #EXTINF
           const commaIndex = line.lastIndexOf(',');
           if (commaIndex !== -1) {
             currentName = line.substring(commaIndex + 1).trim();
           }
         } else if (line.length > 0 && !line.startsWith('#')) {
-          // Dòng chứa URL stream
           if (!currentName) currentName = `Kênh ${channels.length + 1}`;
           
           channels.push({
             name: currentName,
             url: line,
-            mode: playMode
+            mode: playMode,
+            clearkey: currentClearKey
           });
+
           currentName = '';
+          currentClearKey = null;
         }
       }
       return channels;
     }
 
-    // Hiển thị danh sách kênh lên Sidebar
     function renderChannels(channels) {
       channelList.innerHTML = '';
 
       if (channels.length === 0) {
-        channelList.innerHTML = '<p class="loading-text">Không tìm thấy kênh nào trong file .m3u này.</p>';
+        channelList.innerHTML = '<p class="loading-text">Không tìm thấy kênh hợp lệ trong danh sách.</p>';
         return;
       }
 
-      channels.forEach(ch => {
+      channels.forEach((ch, index) => {
         const item = document.createElement('div');
         item.className = 'channel-item';
         
@@ -165,51 +170,87 @@
           <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${ch.name}</span>
           <span class="badge ${badgeClass}">${badgeText}</span>
         `;
-        item.onclick = () => playChannel(ch);
+        item.onclick = () => {
+          document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('active'));
+          item.classList.add('active');
+          playChannel(ch);
+        };
         channelList.appendChild(item);
       });
     }
 
-    // Trình phát video xử lý linh hoạt 2 chế độ
+    // Trình phát video chuyên dụng
     function playChannel(channel) {
-      // Dọn dẹp HLS engine cũ nếu đang chạy
       if (hlsEngine) {
         hlsEngine.destroy();
         hlsEngine = null;
       }
 
-      // Nếu có cài đặt Cloudflare Worker Proxy thì bọc URL lại
-      const streamUrl = PROXY_URL ? PROXY_URL + encodeURIComponent(channel.url) : channel.url;
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
 
       if (channel.mode === 'direct') {
-        // Chế độ Nguồn 1: Phát trực tiếp qua thẻ Native Video
+        // Nguồn 1: Phát Trực Tiếp (Native Player)
         currentModeText.innerText = `Trực tiếp (Native) - ${channel.name}`;
-        video.src = streamUrl;
-        video.play().catch(e => console.log("Lỗi phát trực tiếp:", e));
+        
+        // Bọc Proxy nếu link kênh chạy HTTP để sửa lỗi Mixed Content trên GitHub Pages
+        let directUrl = channel.url;
+        if (directUrl.startsWith('http://')) {
+          directUrl = CORS_PROXY + encodeURIComponent(directUrl);
+        }
+
+        video.src = directUrl;
+        video.play().catch(e => console.log("Lỗi phát direct:", e));
 
       } else if (channel.mode === 'js_player') {
-        // Chế độ Nguồn 2: Phát qua thư viện HLS.js
+        // Nguồn 2: Phát qua thư viện JS Stream (HLS.js)
         currentModeText.innerText = `Thư viện JS Stream - ${channel.name}`;
+        
+        // Chuyển link kênh qua Proxy để xóa bỏ CORS chặn từ đài
+        const streamUrl = CORS_PROXY + encodeURIComponent(channel.url);
 
         if (Hls.isSupported()) {
-          hlsEngine = new Hls({
+          const config = {
             enableWorker: true,
             lowLatencyMode: true,
-            maxBufferLength: 30
-          });
+            maxBufferLength: 30,
+            xhrSetup: function (xhr) {
+              xhr.withCredentials = false; // Xóa credentials gây lỗi CORS
+            }
+          };
+
+          // Nạp cấu hình DRM ClearKey nếu phát hiện có key trong file M3U
+          if (channel.clearkey) {
+            config.emeEnabled = true;
+            config.drmSystems = {
+              'org.w3.clearkey': {
+                clearkey: channel.clearkey
+              }
+            };
+          }
+
+          hlsEngine = new Hls(config);
           hlsEngine.loadSource(streamUrl);
           hlsEngine.attachMedia(video);
+
           hlsEngine.on(Hls.Events.MANIFEST_PARSED, function () {
-            video.play();
+            video.play().catch(e => console.log("Auto-play blocked:", e));
           });
-          
-          // Tự động khôi phục luồng nếu bị ngắt mạng / lag
+
+          // Tự động khôi phục luồng nếu bị ngắt gián đoạn/mạng chập chờn
           hlsEngine.on(Hls.Events.ERROR, function (event, data) {
             if (data.fatal) {
-              if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-                hlsEngine.startLoad();
-              } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-                hlsEngine.recoverMediaError();
+              switch (data.type) {
+                case Hls.ErrorTypes.NETWORK_ERROR:
+                  hlsEngine.startLoad();
+                  break;
+                case Hls.ErrorTypes.MEDIA_ERROR:
+                  hlsEngine.recoverMediaError();
+                  break;
+                default:
+                  hlsEngine.destroy();
+                  break;
               }
             }
           });
@@ -217,7 +258,7 @@
           video.src = streamUrl;
           video.play();
         } else {
-          alert("Trình duyệt không hỗ trợ thư viện HLS này.");
+          alert("Trình duyệt không hỗ trợ phát dạng JS HLS này.");
         }
       }
     }
