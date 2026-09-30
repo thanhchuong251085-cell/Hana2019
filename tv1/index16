@@ -1,0 +1,49 @@
+// --- NGUỒN 1: Tải an toàn, không lo bị chặn CORS hay lệch tên biến ---
+async function loadSource1() {
+    closeModal();
+    channelListContainer.innerHTML = '<p class="text-xs text-gray-400 text-center py-4">Đang nạp Nguồn 1...</p>';
+    
+    try {
+        // Thêm timestamp ?t= để chống lưu cache cũ của GitHub
+        const res = await fetch(SOURCE_1_URL + "?t=" + Date.now());
+        if (!res.ok) throw new Error("Không thể kết nối GitHub");
+        
+        const data = await res.json();
+        
+        // Tự động lấy đường dẫn dù bạn đặt tên là url, link, src hay iframe trong file JSON
+        currentChannels = data.map(item => ({
+            group: item.group || "TRUYỀN HÌNH",
+            name: item.name || item.title || item.kenh || "Kênh TV",
+            url: item.url || item.link || item.src || item.iframe || item.embed,
+            type: 'iframe'
+        })).filter(ch => ch.url); // Loại bỏ kênh bị rỗng link
+
+        if (currentChannels.length === 0) throw new Error("File JSON trống!");
+
+        renderChannels();
+        playChannel(currentChannels[0], 0);
+
+    } catch (err) {
+        console.error("Lỗi chi tiết Nguồn 1:", err);
+        channelListContainer.innerHTML = `
+            <div class="text-center py-4 px-2">
+                <p class="text-xs text-red-400 font-bold mb-2">❌ Không nạp được Nguồn 1 online!</p>
+                <p class="text-[11px] text-gray-400 mb-3">(Do trình duyệt chặn CORS khi mở file local hoặc file JSON sai cấu trúc)</p>
+                <button onclick="loadBackupSource1()" class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded font-bold">
+                    ▶ Dùng danh sách kênh dự phòng
+                </button>
+            </div>
+        `;
+    }
+}
+
+// Hàm dự phòng chạy ngay lập tức nếu GitHub bị chặn
+function loadBackupSource1() {
+    currentChannels = [
+        { group: "VĨNH LONG", name: "THVL1 HD", url: "https://www.thvli.vn/live/thvl1-hd", type: "iframe" },
+        { group: "VĨNH LONG", name: "THVL2 HD", url: "https://www.thvli.vn/live/thvl2-hd", type: "iframe" },
+        { group: "VTV", name: "VTV1 HD", url: "https://vtvgo.vn/xem-truc-tuyen/vtv1-1.html", type: "iframe" }
+    ];
+    renderChannels();
+    playChannel(currentChannels[0], 0);
+}
