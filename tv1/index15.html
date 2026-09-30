@@ -1,267 +1,308 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>IPTV Dual Engine Player</title>
-  <!-- Thư viện HLS.js -->
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
-    body { background: #121212; color: #fff; display: flex; height: 100vh; overflow: hidden; }
-    
-    /* Sidebar */
-    #sidebar { width: 340px; background: #1e1e1e; padding: 15px; display: flex; flex-direction: column; gap: 12px; border-right: 1px solid #333; }
-    .btn { padding: 10px 15px; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
-    .btn:hover { background: #1d4ed8; }
-    #channel-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-top: 5px; }
-    .channel-item { padding: 10px; background: #2d2d2d; border-radius: 6px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; }
-    .channel-item:hover { background: #3d3d3d; }
-    .channel-item.active { background: #1d4ed8; font-weight: bold; }
-    .badge { font-size: 10px; padding: 3px 6px; border-radius: 4px; color: #fff; white-space: nowrap; font-weight: 600; }
-    .badge-direct { background: #16a34a; }
-    .badge-js { background: #9333ea; }
-
-    /* Main Video View */
-    #main-content { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #000; position: relative; }
-    video { width: 100%; height: 100%; object-fit: contain; }
-    #status-info { position: absolute; top: 12px; left: 12px; background: rgba(0,0,0,0.8); padding: 8px 12px; border-radius: 6px; font-size: 13px; z-index: 10; border: 1px solid #444; }
-
-    /* Modal Popup */
-    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-    .modal { background: #242424; padding: 24px; border-radius: 10px; width: 380px; text-align: center; display: flex; flex-direction: column; gap: 15px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
-    .btn-source { padding: 14px; border: none; border-radius: 8px; color: white; cursor: pointer; text-align: left; font-size: 14px; transition: opacity 0.2s; }
-    .btn-source:hover { opacity: 0.9; }
-    .btn-source-1 { background: #059669; }
-    .btn-source-2 { background: #7c3aed; }
-    .btn-close { background: #4b5563; }
-    
-    .loading-text { color: #aaa; font-size: 13px; text-align: center; padding: 20px 0; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lotus Player - Dual Engine (iFrame + JS Stream)</title>
+    <!-- Thư viện Tailwind CSS & HLS.js -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+        .channel-btn.active {
+            background-color: #2563eb;
+            color: #ffffff;
+            font-weight: bold;
+            border-left: 4px solid #ef4444;
+        }
+    </style>
 </head>
-<body>
+<body class="bg-gray-900 text-white min-h-screen flex flex-col font-sans">
 
-  <!-- Sidebar -->
-  <div id="sidebar">
-    <h2>IPTV Player</h2>
-    <button class="btn" onclick="openModal()">+ Chọn Nguồn Kênh</button>
-    <div id="channel-list">
-      <p class="loading-text">Bấm "+ Chọn Nguồn Kênh" để bắt đầu tải danh sách.</p>
+    <!-- Thanh tiêu đề (Header) -->
+    <header class="bg-gray-800 px-4 py-3 border-b border-gray-700 flex justify-between items-center shadow-lg">
+        <h1 class="text-xl font-bold text-red-500 flex items-center gap-2">
+            📺 LOTUS PLAYER
+        </h1>
+        <span id="current-title" class="text-sm bg-gray-700 px-3 py-1 rounded-full text-gray-200">
+            Đang phát: THVL 1 HD
+        </span>
+    </header>
+
+    <!-- Khung nội dung chính -->
+    <div class="flex-1 flex flex-col md:flex-row">
+        
+        <!-- Khung xem Video đa năng (Chứa cả iFrame và Video Native) -->
+        <div class="flex-1 bg-black relative min-h-[300px] md:min-h-[500px]">
+            <!-- Player 1: Dùng cho Nguồn 1 (iFrame) -->
+            <iframe 
+                id="iframe-player" 
+                src="https://www.thvli.vn/live/thvl1-hd" 
+                class="w-full h-full absolute inset-0 border-0 z-10"
+                allow="autoplay; encrypted-media; fullscreen" 
+                allowfullscreen>
+            </iframe>
+
+            <!-- Player 2: Dùng cho Nguồn 2 (Thẻ Video + HLS.js) -->
+            <video 
+                id="video-player" 
+                controls 
+                autoplay 
+                class="w-full h-full absolute inset-0 hidden z-10 bg-black">
+            </video>
+        </div>
+
+        <!-- Khung bên phải: Danh sách kênh -->
+        <div class="w-full md:w-80 bg-gray-800 p-4 border-t md:border-t-0 md:border-l border-gray-700 flex flex-col">
+            <h2 class="text-base font-semibold mb-3 text-gray-300 border-b border-gray-700 pb-2 flex justify-between items-center">
+                <span id="panel-title">DANH SÁCH KÊNH</span>
+                <div class="flex items-center gap-2">
+                    <button onclick="openModal()" class="text-xs bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded text-white font-bold cursor-pointer transition active:scale-95 shadow flex items-center gap-1">
+                        <span>+</span> Thêm nguồn
+                    </button>
+                </div>
+            </h2>
+            
+            <!-- Danh sách kênh -->
+            <div id="channel-list" class="flex flex-col gap-2 overflow-y-auto max-h-[450px] md:max-h-full pr-1">
+                <!-- Danh sách kênh sinh tự động -->
+            </div>
+        </div>
+
     </div>
-  </div>
 
-  <!-- Màn hình chính -->
-  <div id="main-content">
-    <div id="status-info">Chế độ: <span id="current-mode">Chưa chọn kênh</span></div>
-    <video id="video-player" controls autoplay crossorigin="anonymous"></video>
-  </div>
+    <!-- Chân trang -->
+    <footer class="bg-gray-800 py-2 text-center text-xs text-gray-400 border-t border-gray-700">
+        Lotus Player © 2026 - Tự động phát trực tuyến đa nền tảng
+    </footer>
 
-  <!-- Cửa sổ Popup (Modal) chọn nguồn -->
-  <div id="source-modal" class="modal-overlay">
-    <div class="modal">
-      <h3>Chọn Nguồn Kênh IPTV</h3>
-      <button class="btn-source btn-source-1" onclick="fetchM3UPlaylist(SOURCE_1_URL, 'direct')">
-        <strong>Nguồn 1 (Phát Trực Tiếp)</strong><br>
-        <small>VTV, HTV, SCTV, THVL, Kênh địa phương</small>
-      </button>
-      <button class="btn-source btn-source-2" onclick="fetchM3UPlaylist(SOURCE_2_URL, 'js_player')">
-        <strong>Nguồn 2 (Phát Qua JS Stream / DRM)</strong><br>
-        <small>HBO, AXN, Box Movies, Kênh Phim Quốc Tế</small>
-      </button>
-      <button class="btn btn-close" onclick="closeModal()">Đóng</button>
+    <!-- CỬA SỔ POPUP (MODAL): CHỌN NGUỒN PHÁT -->
+    <div id="source-modal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-gray-800 w-full max-w-md rounded-2xl border border-gray-700 p-5 shadow-2xl relative text-gray-200">
+            
+            <div class="flex justify-between items-center pb-3 border-b border-gray-700 mb-4">
+                <h3 class="text-lg font-bold flex items-center gap-2 text-white">
+                    <span class="text-blue-500">≡+</span> Chọn Nguồn Kênh IPTV
+                </h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-white text-xl font-bold p-1">✕</button>
+            </div>
+
+            <!-- Nút chọn các nguồn phát nhanh -->
+            <div class="flex flex-col gap-3">
+                <!-- Nguồn 1: Truyền hình (Chạy dạng iFrame Web Direct) -->
+                <button onclick="loadSource1()" class="w-full bg-emerald-700/80 hover:bg-emerald-600 border border-emerald-500 p-3 rounded-xl text-left transition flex justify-between items-center">
+                    <div>
+                        <div class="font-bold text-white text-sm">📺 Nguồn 1: Truyen Hinh</div>
+                        <div class="text-xs text-emerald-200 mt-0.5">VTV, HTV, THVL, Kênh địa phương (Chạy dạng iFrame)</div>
+                    </div>
+                    <span class="text-xs bg-emerald-900 px-2 py-1 rounded border border-emerald-400">Direct</span>
+                </button>
+
+                <!-- Nguồn 2: Bóng đá / Phim (Chạy dạng JS Stream / HLS.js) -->
+                <button onclick="loadSource2()" class="w-full bg-purple-700/80 hover:bg-purple-600 border border-purple-500 p-3 rounded-xl text-left transition flex justify-between items-center">
+                    <div>
+                        <div class="font-bold text-white text-sm">⚽ Nguồn 2: Bóng Đá / HBO / Phim</div>
+                        <div class="text-xs text-purple-200 mt-0.5">Kênh thể thao, HBO, AXN... (Giải mã qua HLS.js)</div>
+                    </div>
+                    <span class="text-xs bg-purple-900 px-2 py-1 rounded border border-purple-400">JS Stream</span>
+                </button>
+            </div>
+
+            <div class="text-center text-xs text-gray-500 tracking-wider my-4">TÙY CHỈNH MỞ FILE</div>
+
+            <div>
+                <label class="flex items-center justify-center gap-2 w-full bg-gray-700/50 hover:bg-gray-700 border border-gray-600 rounded-xl py-2.5 cursor-pointer transition text-xs font-medium">
+                    📁 Nạp tệp M3U từ máy (.m3u)
+                    <input type="file" accept=".m3u,.m3u8" onchange="handleFileUpload(event)" class="hidden">
+                </label>
+            </div>
+
+        </div>
     </div>
-  </div>
 
-  <script>
-    const SOURCE_1_URL = "https://raw.githubusercontent.com/thanhchuong251085-cell/Hana2019/main/tviptv.m3u";
-    const SOURCE_2_URL = "https://raw.githubusercontent.com/hieu-TQS/error/refs/heads/main/error.m3u";
+    <!-- SCRIPT XỬ LÝ CHÍNH -->
+    <script>
+        // Link dữ liệu 2 nguồn từ GitHub của bạn
+        const SOURCE_1_URL = "https://raw.githubusercontent.com/thanhchuong251085-cell/Hana2019/main/tv.json";
+        const SOURCE_2_URL = "https://raw.githubusercontent.com/thanhchuong251085-cell/Hana2019/main/tviptv.m3u";
 
-    // Proxy miễn phí giúp bypass rào cản CORS từ GitHub & Máy chủ đài
-    const CORS_PROXY = "https://corsproxy.io/?";
+        // Proxy hỗ trợ giải mã CORS cho Nguồn 2 nếu bị chặn
+        const CORS_PROXY = "https://corsproxy.io/?";
 
-    const video = document.getElementById('video-player');
-    const channelList = document.getElementById('channel-list');
-    const currentModeText = document.getElementById('current-mode');
-    let hlsEngine = null;
+        // Danh sách kênh mặc định (Nguồn 1 - iFrame Web Player)
+        const defaultSource1 = [
+            { group: "TRUYỀN HÌNH VĨNH LONG", name: "THVL 1 HD", url: "https://www.thvli.vn/live/thvl1-hd", type: "iframe" },
+            { group: "TRUYỀN HÌNH VĨNH LONG", name: "THVL 2 HD", url: "https://www.thvli.vn/live/thvl2-hd", type: "iframe" },
+            { group: "ĐÀI TRUYỀN HÌNH VIỆT NAM", name: "VTV1 HD (Web)", url: "https://vtvgo.vn/xem-truc-tuyen/vtv1-1.html", type: "iframe" },
+            { group: "TRUYỀN HÌNH TP.HCM", name: "HTV7 HD", url: "https://live.fptplay53.net/epzhd1/htv7hd_vhls.smil/chunklist_b5000000.m3u8", type: "js_stream" },
+            { group: "TRUYỀN HÌNH TP.HCM", name: "HTV9 HD", url: "https://live.fptplay53.net/epzhd1/htv9hd_vhls.smil/chunklist_b5000000.m3u8", type: "js_stream" }
+        ];
 
-    function openModal() {
-      document.getElementById('source-modal').style.display = 'flex';
-    }
+        let currentChannels = [...defaultSource1];
+        let hlsEngine = null;
 
-    function closeModal() {
-      document.getElementById('source-modal').style.display = 'none';
-    }
+        const iframePlayer = document.getElementById('iframe-player');
+        const videoPlayer = document.getElementById('video-player');
+        const channelListContainer = document.getElementById('channel-list');
+        const currentTitle = document.getElementById('current-title');
 
-    // Tải M3U thông qua Proxy
-    async function fetchM3UPlaylist(m3uUrl, playMode) {
-      closeModal();
-      channelList.innerHTML = '<p class="loading-text">Đang tải danh sách kênh...</p>';
+        function openModal() { document.getElementById('source-modal').classList.remove('hidden'); }
+        function closeModal() { document.getElementById('source-modal').classList.add('hidden'); }
 
-      try {
-        // Dùng Proxy để tránh bị chặn CORS khi fetch dữ liệu file M3U
-        const targetFetchUrl = CORS_PROXY + encodeURIComponent(m3uUrl);
-        const response = await fetch(targetFetchUrl);
-        
-        if (!response.ok) throw new Error("Không thể nạp file M3U");
-        const data = await response.text();
-
-        const channels = parseM3U(data, playMode);
-        renderChannels(channels);
-      } catch (err) {
-        channelList.innerHTML = `<p class="loading-text" style="color:#ef4444;">Lỗi tải M3U: ${err.message}</p>`;
-      }
-    }
-
-    // Parser cải tiến: bóc tách chính xác Tên kênh, KODIPROP/Clearkey và Link Stream
-    function parseM3U(m3uText, playMode) {
-      const lines = m3uText.split('\n');
-      const channels = [];
-      let currentName = '';
-      let currentClearKey = null;
-
-      for (let i = 0; i < lines.length; i++) {
-        let line = lines[i].trim();
-
-        // Bóc tách thông số ClearKey DRM nếu có (thường gặp ở Nguồn 2)
-        if (line.includes('license_key') || line.includes('clearkey')) {
-          const match = line.match(/clearkey=(.*?)(:|$)/i) \vert{}\vert{} line.match(/license_key=(.*?)(:\vert{}$)/i);
-          if (match) currentClearKey = match[1];
-        }
-
-        if (line.startsWith('#EXTINF:')) {
-          const commaIndex = line.lastIndexOf(',');
-          if (commaIndex !== -1) {
-            currentName = line.substring(commaIndex + 1).trim();
-          }
-        } else if (line.length > 0 && !line.startsWith('#')) {
-          if (!currentName) currentName = `Kênh ${channels.length + 1}`;
-          
-          channels.push({
-            name: currentName,
-            url: line,
-            mode: playMode,
-            clearkey: currentClearKey
-          });
-
-          currentName = '';
-          currentClearKey = null;
-        }
-      }
-      return channels;
-    }
-
-    function renderChannels(channels) {
-      channelList.innerHTML = '';
-
-      if (channels.length === 0) {
-        channelList.innerHTML = '<p class="loading-text">Không tìm thấy kênh hợp lệ trong danh sách.</p>';
-        return;
-      }
-
-      channels.forEach((ch, index) => {
-        const item = document.createElement('div');
-        item.className = 'channel-item';
-        
-        const isDirect = ch.mode === 'direct';
-        const badgeClass = isDirect ? 'badge-direct' : 'badge-js';
-        const badgeText = isDirect ? 'Trực tiếp' : 'JS Stream';
-
-        item.innerHTML = `
-          <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${ch.name}</span>
-          <span class="badge ${badgeClass}">${badgeText}</span>
-        `;
-        item.onclick = () => {
-          document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('active'));
-          item.classList.add('active');
-          playChannel(ch);
-        };
-        channelList.appendChild(item);
-      });
-    }
-
-    // Trình phát video chuyên dụng
-    function playChannel(channel) {
-      if (hlsEngine) {
-        hlsEngine.destroy();
-        hlsEngine = null;
-      }
-
-      video.pause();
-      video.removeAttribute('src');
-      video.load();
-
-      if (channel.mode === 'direct') {
-        // Nguồn 1: Phát Trực Tiếp (Native Player)
-        currentModeText.innerText = `Trực tiếp (Native) - ${channel.name}`;
-        
-        // Bọc Proxy nếu link kênh chạy HTTP để sửa lỗi Mixed Content trên GitHub Pages
-        let directUrl = channel.url;
-        if (directUrl.startsWith('http://')) {
-          directUrl = CORS_PROXY + encodeURIComponent(directUrl);
-        }
-
-        video.src = directUrl;
-        video.play().catch(e => console.log("Lỗi phát direct:", e));
-
-      } else if (channel.mode === 'js_player') {
-        // Nguồn 2: Phát qua thư viện JS Stream (HLS.js)
-        currentModeText.innerText = `Thư viện JS Stream - ${channel.name}`;
-        
-        // Chuyển link kênh qua Proxy để xóa bỏ CORS chặn từ đài
-        const streamUrl = CORS_PROXY + encodeURIComponent(channel.url);
-
-        if (Hls.isSupported()) {
-          const config = {
-            enableWorker: true,
-            lowLatencyMode: true,
-            maxBufferLength: 30,
-            xhrSetup: function (xhr) {
-              xhr.withCredentials = false; // Xóa credentials gây lỗi CORS
+        // --- NGUỒN 1: TRUYỀN HÌNH (Dạng iFrame Web Direct) ---
+        async function loadSource1() {
+            closeModal();
+            try {
+                const res = await fetch(SOURCE_1_URL);
+                if(res.ok) {
+                    const data = await res.json();
+                    // Đánh dấu toàn bộ kênh thuộc Nguồn 1 chạy dạng iframe
+                    currentChannels = data.map(item => ({ ...item, type: 'iframe' }));
+                } else {
+                    currentChannels = [...defaultSource1];
+                }
+            } catch(e) {
+                currentChannels = [...defaultSource1];
             }
-          };
+            renderChannels();
+            if(currentChannels.length > 0) playChannel(currentChannels[0]);
+        }
 
-          // Nạp cấu hình DRM ClearKey nếu phát hiện có key trong file M3U
-          if (channel.clearkey) {
-            config.emeEnabled = true;
-            config.drmSystems = {
-              'org.w3.clearkey': {
-                clearkey: channel.clearkey
-              }
+        // --- NGUỒN 2: BÓNG ĐÁ / M3U (Dạng Trình đọc JS Stream HLS.js) ---
+        async function loadSource2() {
+            closeModal();
+            channelListContainer.innerHTML = '<p class="text-xs text-gray-400 text-center py-4">Đang tải danh sách Bóng đá...</p>';
+            try {
+                const res = await fetch(CORS_PROXY + encodeURIComponent(SOURCE_2_URL));
+                const text = await res.text();
+                parseM3uData(text, 'js_stream');
+            } catch(e) {
+                alert("Lỗi nạp Nguồn 2: " + e.message);
+            }
+        }
+
+        // Phân tích file M3U và gán Chế độ phát (Type)
+        function parseM3uData(m3uText, defaultType) {
+            const lines = m3uText.split('\n');
+            const newChannels = [];
+            let currentName = '';
+            let currentGroup = 'KÊNH BÓNG ĐÁ / STREAM';
+
+            lines.forEach(line => {
+                line = line.trim();
+                if (line.startsWith('#EXTINF:')) {
+                    const groupMatch = line.match(/group-title="([^"]+)"/i);
+                    if (groupMatch) currentGroup = groupMatch[1];
+
+                    const commaIndex = line.lastIndexOf(',');
+                    if (commaIndex !== -1) currentName = line.substring(commaIndex + 1).trim();
+                } else if (line && !line.startsWith('#')) {
+                    if (currentName) {
+                        newChannels.push({
+                            group: currentGroup,
+                            name: currentName,
+                            url: line,
+                            type: defaultType
+                        });
+                        currentName = '';
+                    }
+                }
+            });
+
+            if (newChannels.length > 0) {
+                currentChannels = newChannels;
+                renderChannels();
+                playChannel(currentChannels[0]);
+            }
+        }
+
+        // Xử lý nạp File M3U thủ công từ thiết bị
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                parseM3uData(e.target.result, 'js_stream');
+                closeModal();
             };
-          }
-
-          hlsEngine = new Hls(config);
-          hlsEngine.loadSource(streamUrl);
-          hlsEngine.attachMedia(video);
-
-          hlsEngine.on(Hls.Events.MANIFEST_PARSED, function () {
-            video.play().catch(e => console.log("Auto-play blocked:", e));
-          });
-
-          // Tự động khôi phục luồng nếu bị ngắt gián đoạn/mạng chập chờn
-          hlsEngine.on(Hls.Events.ERROR, function (event, data) {
-            if (data.fatal) {
-              switch (data.type) {
-                case Hls.ErrorTypes.NETWORK_ERROR:
-                  hlsEngine.startLoad();
-                  break;
-                case Hls.ErrorTypes.MEDIA_ERROR:
-                  hlsEngine.recoverMediaError();
-                  break;
-                default:
-                  hlsEngine.destroy();
-                  break;
-              }
-            }
-          });
-        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-          video.src = streamUrl;
-          video.play();
-        } else {
-          alert("Trình duyệt không hỗ trợ phát dạng JS HLS này.");
+            reader.readAsText(file);
         }
-      }
-    }
-  </script>
+
+        // Hiển thị Danh sách Kênh
+        function renderChannels() {
+            channelListContainer.innerHTML = '';
+            let currentGroup = '';
+
+            currentChannels.forEach((ch, index) => {
+                if (ch.group !== currentGroup) {
+                    currentGroup = ch.group;
+                    const groupTitle = document.createElement('div');
+                    groupTitle.className = 'text-xs font-bold text-yellow-400 mt-3 mb-1 uppercase border-b border-gray-700 pb-1';
+                    groupTitle.textContent = currentGroup;
+                    channelListContainer.appendChild(groupTitle);
+                }
+
+                const btn = document.createElement('button');
+                btn.className = `channel-btn w-full text-left p-2.5 rounded-lg bg-gray-700 hover:bg-gray-600 transition flex items-center justify-between ${index === 0 ? 'active' : ''}`;
+                
+                const badgeColor = ch.type === 'iframe' ? 'bg-emerald-600' : 'bg-purple-600';
+                const badgeText = ch.type === 'iframe' ? 'iFrame' : 'JS Stream';
+
+                btn.innerHTML = `
+                    <span class="text-sm truncate max-w-[180px]">📺 ${ch.name}</span>
+                    <span class="text-[9px] ${badgeColor} text-white px-1.5 py-0.5 rounded font-bold">${badgeText}</span>
+                `;
+                
+                btn.onclick = () => {
+                    document.querySelectorAll('.channel-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    playChannel(ch);
+                };
+                channelListContainer.appendChild(btn);
+            });
+        }
+
+        // BỘ ĐIỀU KHIỂN PHÁT THÔNG MINH (Chuyển đổi giữa iFrame & HLS.js)
+        function playChannel(channel) {
+            currentTitle.textContent = `Đang phát: ${channel.name}`;
+
+            // Dọn dẹp HLS Engine cũ nếu có
+            if (hlsEngine) {
+                hlsEngine.destroy();
+                hlsEngine = null;
+            }
+
+            if (channel.type === 'iframe' || channel.url.includes('.html')) {
+                // CHẾ ĐỘ 1: PHÁT TRỰC TIẾP QUA iFRAME
+                videoPlayer.classList.add('hidden');
+                videoPlayer.pause();
+                
+                iframePlayer.classList.remove('hidden');
+                iframePlayer.src = channel.url;
+
+            } else {
+                // CHẾ ĐỘ 2: PHÁT QUA THƯ VIỆN JS STREAM (HLS.JS)
+                iframePlayer.classList.add('hidden');
+                iframePlayer.src = "about:blank"; // Dừng iFrame ngầm
+                
+                videoPlayer.classList.remove('hidden');
+
+                // Sử dụng Proxy để vượt rào cản CORS từ đài truyền hình
+                const streamUrl = CORS_PROXY + encodeURIComponent(channel.url);
+
+                if (Hls.isSupported()) {
+                    hlsEngine = new Hls({ enableWorker: true, lowLatencyMode: true });
+                    hlsEngine.loadSource(streamUrl);
+                    hlsEngine.attachMedia(videoPlayer);
+                    hlsEngine.on(Hls.Events.MANIFEST_PARSED, () => videoPlayer.play());
+                } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
+                    videoPlayer.src = streamUrl;
+                    videoPlayer.play();
+                }
+            }
+        }
+
+        // Chạy mặc định lần đầu
+        renderChannels();
+    </script>
 </body>
 </html>
