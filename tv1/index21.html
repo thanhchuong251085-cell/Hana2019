@@ -67,9 +67,9 @@
                 allowfullscreen>
             </iframe>
 
-            <!-- Nút bật/tắt toàn màn hình (Mặc định ẩn, hiện khi click vào video) -->
-            <div id="video-controls-bar" class="video-controls opacity-0 pointer-events-none absolute bottom-4 right-4 z-20 flex items-center gap-2">
-                <button onclick="event.stopPropagation(); toggleFullScreen();" class="bg-black/70 hover:bg-black/90 text-white text-xs px-3 py-2 rounded-xl backdrop-blur-md border border-white/20 flex items-center gap-1.5 shadow-lg active:scale-95 transition pointer-events-auto">
+            <!-- Nút bật/tắt toàn màn hình: Trong suốt hoàn toàn (Glassmorphism), thấy xuyên thấu nền video -->
+            <div id="video-controls-bar" class="video-controls opacity-0 pointer-events-none absolute top-4 right-4 z-30 flex items-center gap-2">
+                <button onclick="event.stopPropagation(); toggleFullScreen();" class="bg-black/30 hover:bg-black/60 text-white text-xs px-3 py-2 rounded-xl backdrop-blur-sm border border-white/20 flex items-center gap-1.5 shadow-lg active:scale-95 transition pointer-events-auto">
                     🖵 Phóng to
                 </button>
             </div>
@@ -202,7 +202,7 @@
         const panelTitle = document.getElementById('panel-title');
         const liveToggleBtn = document.getElementById('live-toggle-btn');
 
-        // Xử lý khi click/chạm vào màn hình video để hiện nút, tự động ẩn sau 3 giây
+        // Xử lý khi click/chạm vào màn hình video để hiện nút phóng to
         function handlePlayerClick() {
             controlsBar.classList.remove('opacity-0', 'pointer-events-none');
             controlsBar.classList.add('opacity-100', 'pointer-events-auto');
