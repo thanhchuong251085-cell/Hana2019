@@ -1,0 +1,1475 @@
+{
+    "id": "yanhh3d-api",
+    "name": "YanHH3D Thuyết Minh",
+    "url": "https://aismile.dpdns.org/yan3d",
+    "color": "#004444",
+    "image": {
+        "url": "https://yanhh3d.men/storage/settings/January2026/yme.png",
+        "type": "cover"
+    },
+    "description": "Dữ liệu phim từ YanHH3D.",
+    "description_api": "http://aismile.dpdns.org/thong_tin_phim.php?id=${name}",
+    "share": {
+        "url": "https://aismile.dpdns.org/yan3d"
+    },
+    "sorts": [
+        {
+            "text": "Mới nhất",
+            "type": "radio",
+            "url": "https://aismile.dpdns.org/yan3d/sort/newest"
+        },
+        {
+            "text": "Thể Loại",
+            "type": "dropdown",
+            "value": [
+                {
+                    "text": "Huyền Huyễn",
+                    "type": "radio",
+                    "url": "https://aismile.dpdns.org/yan3d/sort/the-loai/huyen-huyen"
+                },
+                {
+                    "text": "Xuyên Không",
+                    "type": "radio",
+                    "url": "https://aismile.dpdns.org/yan3d/sort/the-loai/xuyen-khong"
+                },
+                {
+                    "text": "Trùng Sinh",
+                    "type": "radio",
+                    "url": "https://aismile.dpdns.org/yan3d/sort/the-loai/trung-sinh"
+                },
+                {
+                    "text": "Tiên Hiệp",
+                    "type": "radio",
+                    "url": "https://aismile.dpdns.org/yan3d/sort/the-loai/tien-hiep"
+                },
+                {
+                    "text": "Cổ Trang",
+                    "type": "radio",
+                    "url": "https://aismile.dpdns.org/yan3d/sort/the-loai/co-trang"
+                },
+                {
+                    "text": "Hài Hước",
+                    "type": "radio",
+                    "url": "https://aismile.dpdns.org/yan3d/sort/the-loai/hai-huoc"
+                },
+                {
+                    "text": "Kiếm Hiệp",
+                    "type": "radio",
+                    "url": "https://aismile.dpdns.org/yan3d/sort/the-loai/kiem-hiep"
+                },
+                {
+                    "text": "Hiện Đại",
+                    "type": "radio",
+                    "url": "https://aismile.dpdns.org/yan3d/sort/the-loai/hien-dai"
+                }
+            ]
+        }
+    ],
+    "grid_number": 3,
+    "channels": [
+        {
+            "id": "trach-nhat-phi-thang",
+            "name": "Trạch Nhật Phi Thăng",
+            "description": "",
+            "image": {
+                "url": "https://yanhh3d.kim/storage/movies/trach-nhat-phi-thang-1784351667.jpg",
+                "type": "cover",
+                "width": 480,
+                "height": 640
+            },
+            "type": "playlist",
+            "display": "text-below",
+            "label": {
+                "text": "14/30 [4K] | 4K TM-VS",
+                "position": "top-left",
+                "color": "#35ba8b",
+                "text_color": "#ffffff"
+            },
+            "remote_data": {
+                "url": "https://aismile.dpdns.org/yan3d/info.php?id=trach-nhat-phi-thang"
+            },
+            "enable_detail": true
+        },
+        {
+            "id": "dau-la-dai-luc-2-tuyet-the-duong-mon",
+            "name": "Đấu La Đại Lục 2 - Tuyệt Thế Đường Môn",
+            "description": "",
+            "image": {
+                "url": "https://yanhh3d.kim/storage/movies/dau-la-dai-luc-2-tuyet-the-duong-mon-1787905335.png",
+                "type": "cover",
+                "width": 480,
+                "height": 640
+            },
+            "type": "playlist",
+            "display": "text-below",
+            "label": {
+                "text": "173/182 [4K] | 4K TM-VS",
+                "position": "top-left",
+                "color": "#35ba8b",
+                "text_color": "#ffffff"
+            },
+            "remote_data": {
+                "url": "https://aismile.dpdns.org/yan3d/info.php?id=dau-la-dai-luc-2-tuyet-the-duong-mon"
+            },
+            "enable_detail": true
+        },
+        {
+            "id": "tien-nghich-movie-thi-than-chi-chien",
+            "name": "Tiên Nghịch Movie: Thí Tiên Chi Chiến",
+            "description": "",
+            "image": {
+                "url": "https://yanhh3d.kim/storage/movies/tien-nghich-movie-thi-than-chi-chien.png",
+                "type": "cover",
+                "width": 480,
+                "height": 640
+            },
+            "type": "playlist",
+            "display": "text-below",
+            "label": {
+                "text": "Full Movie [4K] | 4K TM-VS",
+                "position": "top-left",
+                "color": "#35ba8b",
+                "text_color": "#ffffff"
+            },
+            "remote_data": {
+                "url": "https://aismile.dpdns.org/yan3d/info.php?id=tien-nghich-movie-thi-than-chi-chien"
+            },
+            "enable_detail": true
+        },
+        {
+            "id": "thuong-nguyen-do",
+            "name": "Thương Nguyên Đồ",
+            "description": "",
+            "image": {
+                "url": "https://yanhh3d.kim/storage/movies/thuong-nguyen-do-1784281032.jpg",
+                "type": "cover",
+                "width": 480,
+                "height": 640
+            },
+            "type": "playlist",
+            "display": "text-below",
+            "label": {
+                "text": "97/124 [4K] | 4K TM-VS",
+                "position": "top-left",
+                "color": "#35ba8b",
+                "text_color": "#ffffff"
+            },
+            "remote_data": {
+                "url": "https://aismile.dpdns.org/yan3d/info.php?id=thuong-nguyen-do"
+            },
+            "enable_detail": true
+        },
+        {
+            "id": "dai-chua-te-3d",
+            "name": "Đại Chúa Tể 3D",
+            "description": "",
+            "image": {
+                "url": "https://yanhh3d.kim/storage/movies/dai-chua-te-3d-1780629293.jpg",
+                "type": "cover",
+                "width": 480,
+                "height": 640
+            },
+            "type": "playlist",
+            "display": "text-below",
+            "label": {
+                "text": "93/104 [4K] | 4K TM-VS",
+                "position": "top-left",
+                "color": "#35ba8b",
+                "text_color": "#ffffff"
+            },
+            "remote_data": {
+                "url": "https://aismile.dpdns.org/yan3d/info.php?id=dai-chua-te-3d"
+            },
+            "enable_detail": true
+        },
+        {
+            "id": "tru-tien-thuyet-minh",
+            "name": "Tru Tiên",
+            "description": "",
+            "image": {
+                "url": "https://yanhh3d.kim/storage/movies/tru-tien-full-1787205032.png",
+                "type": "cover",
+                "width": 480,
+                "height": 640
+            },
+            "type": "playlist",
+            "display": "text-below",
+            "label": {
+                "text": "87/104 [4K] | 4K TM-VS",
+                "position": "top-left",
+                "color": "#35ba8b",
+                "text_color": "#ffffff"
+            },
+            "remote_data": {
+                "url": "https://aismile.dpdns.org/yan3d/info.php?id=tru-tien-thuyet-minh"
+            },
+            "enable_detail": true
+        },
+        {
+            "id": "pham-nhan-tu-tien",
+            "name": "Phàm Nhân Tu Tiên",
+            "description": "",
+            "image": {
+                "url": "https://yanhh3d.kim/storage/movies/pham-nhan-tu-tien-1782552683.jpg",
+                "type": "cover",
+                "width": 480,
+                "height": 640
+            },
+            "type": "playlist",
+            "display": "text-below",
+            "label": {
+                "text": "Trailer 194/... Trưa T7 | 4K TM-VS",
+                "position": "top-left",
+                "color": "#35ba8b",
+                "text_color": "#ffffff"
+            },
+            "remote_data": {
+                "url": "https://aismile.dpdns.org/yan3d/info.php?id=pham-nhan-tu-tien"
+            },
+            "enable_detail": true
+        },
+        {
+            "id": "quan-am-chi-ngoai",
+            "name": "Quang Âm Chi Ngoại",
+            "description": "",
+            "image": {
+                "url": "https://yanhh3d.kim/storage/movies/quang-am-chi-ngoai-1782552600.jpg",
+                "type": "cover",
+                "width": 480,
+                "height": 640
+            },
+            "type": "playlist",
+            "display": "text-below",
+            "label": {
+                "text": "Trailer 42/78 Trưa T7 | 4K TM-VS",
+                "position": "top-left",
+                "color": "#35ba8b",
+                "text_color": "#ffffff"
+            },
+            "remote_data": {
+                "url": "https://aismile.dpdns.org/yan3d/info.php?id=quan-am-chi-ngoai"
+            },
+            "enable_detail": true
+        },
+        {
+            "id": "dau-pha-thuong-khung-phan-5-thuyet-minh-new",
+            "name": "Đấu Phá Thương Khung Phần 5-6",
+            "description": "",
+            "image": {
+                "url": "https://yanhh3d.kim/storage/movies/dau-pha-thuong-khung-phan-5-6-1761998684.jpg",
+                "type": "cover",
+                "width": 480,
+                "height": 640
+            },
+            "type": "playlist",
+            "display": "text-below",
+            "label": {
+                "text": "Trailer 213/219 Tối T7 | 4K TM-VS",
+                "position": "top-left",
+                "color": "#35ba8b",
+                "text_color": "#ffffff"
+            },
+            "remote_data": {
+                "url": "https://aismile.dpdns.org/yan3d/info.php?id=dau-pha-thuong-khung-phan-5-thuyet-minh-new"
+            },
+            "enable_detail": true
+        },
+        {
+            "id": "nguoi-dai-dien-thoi-gian-link-click-phan-3",
+            "name": "Người Đại Diện Thời Gian - Link Click Phần 3",
+            "description": "",
+            "image": {
+                "url": "https://yanhh3d.kim/storage/movies/nguoi-dai-dien-thoi-gian-link-click-phan-3.jpg",
+                "type": "cover",
+                "width": 480,
+                "height": 640
+            },
+            "type": "playlist",
+            "display": "text-below",
+            "label": {
+                "text": "09/12 | 2D  TM-VS",
+                "position": "top-left",
+                "color": "#35ba8b",
+                "text_color": "#ffffff"
+            },
+            "remote_data": {
+                "url": "https://aismile.dpdns.org/yan3d/info.php?id=nguoi-dai-dien-thoi-gian-link-click-phan-3"
+            },
+            "enable_detail": true
+        },
+        {
+            "id": "nghich-thien-chi-ton",
+            "name": "Nghịch Thiên Chí Tôn",
+            "description": "",
+            "image": {
+                "url": "https://yanhh3d.kim/storage/movies/nghich-thien-chi-ton-1739903432.jpg",
+                "type": "cover",
+                "width": 480,
+                "height": 640
+            },
+            "type": "playlist",
+            "display": "text-below",
+            "label": {
+                "text": "554/580 | TM-VS",
+                "position": "top-left",
+                "color": "#35ba8b",
+                "text_color": "#ffffff"
+            },
+            "remote_data": {
+                "url": "https://aismile.dpdns.org/yan3d/info.php?id=nghich-thien-chi-ton"
+            },
+            "enable_detail": true
+        },
+        {
+            "id": "vo-thuong-than-de",
+            "name": "Vô Thượng Thần Đế",
+            "description": "",
+            "image": {
+                "url": "https://yanhh3d.kim/storage/movies/vo-thuong-than-de-1784280906.jpg",
+                "type": "cover",
+                "width": 480,
+                "height": 640
+            },
+            "type": "playlist",
+            "display": "text-below",
+            "label": {
+                "text": "645/688 | TM-VS",
+                "position": "top-left",
+                "color": "#35ba8b",
+                "text_color": "#ffffff"
+            },
+            "remote_data": {
+                "url": "https://aismile.dpdns.org/yan3d/info.php?id=vo-thuong-than-de"
+            },
+            "enable_detail": true
+        },
+        {
+            "id": "bat-dau-voi-chi-ton-dan-dien",
+            "name": "Bắt Đầu Với Chí Tôn Đan Điền",
+            "description": "",
+            "image": {
+                "url": "https://yanhh3d.kim/storage/movies/bat-dau-voi-chi-ton-dan-dien-1759545474.jpg",
+                "type": "cover",
+                "width": 480,
+                "height": 640
+            },
+            "type": "playlist",
+            "display": "text-below",
+            "label": {
+                "text": "31~32/40 | TM-VS",
+                "position": "top-left",
+                "color": "#35ba8b",
+                "text_color": "#ffffff"
+            },
+            "remote_data": {
+                "url": "https://aismile.dpdns.org/yan3d/info.php?id=bat-dau-voi-chi-ton-dan-dien"
+            },
+            "enable_detail": true
+        },
+        {
+            "id": "dai-luc-linh-vo",
+            "name": "Đại Lục Linh Võ",
+            "description": "",
+            "image": {
+                "url": "https://yanhh3d.kim/storage/movies/dai-luc-linh-vo-1780629488.jpg",
+                "type": "cover",
+                "width": 480,
+                "height": 640
+            },
+            "type": "playlist",
+            "display": "text-below",
+            "label": {
+                "text": "220/... | AI TM-VS",
+                "position": "top-left",
+                "color": "#35ba8b",
+                "text_color": "#ffffff"
+            },
+            "remote_data": {
+                "url": "https://aismile.dpdns.org/yan3d/info.php?id=dai-luc-linh-vo"
+            },
+            "enable_detail": true
+        },
+        {
+            "id": "tu-linh-phap-su-ta-chinh-la-thien-tai",
+            "name": "Tử Linh Pháp Sư: Ta Chính Là Thiên Tai",
+            "description": "",
+            "image": {
+                "url": "https://yanhh3d.kim/storage/movies/tu-linh-phap-su-ta-chinh-la-thien-tai.jpg",
+                "type": "cover",
+                "width": 480,
+                "height": 640
+            },
+            "type": "playlist",
+            "display": "text-below",
+            "label": {
+                "text": "22~23/60 | AI TM-VS",
+                "position": "top-left",
+                "color": "#35ba8b",
+                "text_color": "#ffffff"
+            },
+            "remote_data": {
+                "url": "https://aismile.dpdns.org/yan3d/info.php?id=tu-linh-phap-su-ta-chinh-la-thien-tai"
+            },
+            "enable_detail": true
+        },
+        {
+            "id": "nghich-thien-ta-than-3d",
+            "name": "Nghịch Thiên Tà Thần 3D",
+            "description": "",
+            "image": {
+                "url": "https://yanhh3d.kim/storage/movies/nghich-thien-ta-than-3d-1776260879.png",
+                "type": "cover",
+                "width": 480,
+                "height": 640
+            },
+            "type": "playlist",
+            "display": "text-below",
+            "label": {
+                "text": "57/82 [4K] | 4K TM-VS",
+                "position": "top-left",
+                "color": "#35ba8b",
+                "text_color": "#ffffff"
+            },
+            "remote_data": {
+                "url": "https://aismile.dpdns.org/yan3d/info.php?id=nghich-thien-ta-than-3d"
+            },
+            "enable_detail": true
+        },
+        {
+            "id": "dong-dai-cao-vo-hoc-vien",
+            "name": "Học Viện Cao Võ Đông Đại",
+            "description": "",
+            "image": {
+                "url": "https://yanhh3d.kim/storage/movies/hoc-vien-cao-vo-dong-dai-1787804231.jpg",
+                "type": "cover",
+                "width": 480,
+                "height": 640
+            },
+            "type": "playlist",
+            "display": "text-below",
+            "label": {
+                "text": "12/26 [4K] | 4K TM-VS",
+                "position": "top-left",
+                "color": "#35ba8b",
+                "text_color": "#ffffff"
+            },
+            "remote_data": {
+                "url": "https://aismile.dpdns.org/yan3d/info.php?id=dong-dai-cao-vo-hoc-vien"
+            },
+            "enable_detail": true
+        },
+        {
+            "id": "the-gioi-hoan-my-thuyet-minh-tieng-viet",
+            "name": "Thế Giới Hoàn Mỹ",
+            "description": "",
+            "image": {
+                "url": "https://yanhh3d.kim/storage/movies/the-gioi-hoan-my-1782129775.png",
+                "type": "cover",
+                "width": 480,
+                "height": 640
+            },
+            "type": "playlist",
+            "display": "text-below",
+            "label": {
+                "text": "Hoãn Đến 31/12/2026 | 4K TM-VS",
+                "position": "top-left",
+                "color": "#35ba8b",
+                "text_color": "#ffffff"
+            },
+            "remote_data": {
+                "url": "https://aismile.dpdns.org/yan3d/info.php?id=the-gioi-hoan-my-thuyet-minh-tieng-viet"
+            },
+            "enable_detail": true
+        },
+        {
+            "id": "nguoi-giu-mo-dai-ha",
+            "name": "Người Giữ Mộ Đại Hạ",
+            "description": "",
+            "image": {
+                "url": "https://yanhh3d.kim/storage/movies/nguoi-giu-mo-dai-ha-1790689505.png",
+                "type": "cover",
+                "width": 480,
+                "height": 640
+            },
+            "type": "playlist",
+            "display": "text-below",
+            "label": {
+                "text": "04/59 | TM-VS",
+                "position": "top-left",
+                "color": "#35ba8b",
+                "text_color": "#ffffff"
+            },
+            "remote_data": {
+                "url": "https://aismile.dpdns.org/yan3d/info.php?id=nguoi-giu-mo-dai-ha"
+            },
+            "enable_detail": true
+        },
+        {
+            "id": "thai-co-than-ton",
+            "name": "Thái Cổ Thần Tôn",
+            "description": "",
+            "image": {
+                "url": "https://yanhh3d.kim/storage/movies/thai-co-than-ton.jpg",
+                "type": "cover",
+                "width": 480,
+                "height": 640
+            },
+            "type": "playlist",
+            "display": "text-below",
+            "label": {
+                "text": "22/40 | TM-VS",
+                "position": "top-left",
+                "color": "#35ba8b",
+                "text_color": "#ffffff"
+            },
+            "remote_data": {
+                "url": "https://aismile.dpdns.org/yan3d/info.php?id=thai-co-than-ton"
+            },
+            "enable_detail": true
+        },
+        {
+            "id": "linh-canh-hanh-gia",
+            "name": "Linh Cảnh Hành Giả",
+            "description": "",
+            "image": {
+                "url": "https://yanhh3d.kim/storage/movies/linh-canh-hanh-gia-1788946286.png",
+                "type": "cover",
+                "width": 480,
+                "height": 640
+            },
+            "type": "playlist",
+            "display": "text-below",
+            "label": {
+                "text": "06/26 [4K] | 4K TM-VS",
+                "position": "top-left",
+                "color": "#35ba8b",
+                "text_color": "#ffffff"
+            },
+            "remote_data": {
+                "url": "https://aismile.dpdns.org/yan3d/info.php?id=linh-canh-hanh-gia"
+            },
+            "enable_detail": true
+        },
+        {
+            "id": "su-huynh-a-su-huynh",
+            "name": "Sư Huynh A Sư Huynh",
+            "description": "",
+            "image": {
+                "url": "https://yanhh3d.kim/storage/movies/su-huynh-a-su-huynh-1784281077.jpg",
+                "type": "cover",
+                "width": 480,
+                "height": 640
+            },
+            "type": "playlist",
+            "display": "text-below",
+            "label": {
+                "text": "161/169 [4K] | 4K TM-VS",
+                "position": "top-left",
+                "color": "#35ba8b",
+                "text_color": "#ffffff"
+            },
+            "remote_data": {
+                "url": "https://aismile.dpdns.org/yan3d/info.php?id=su-huynh-a-su-huynh"
+            },
+            "enable_detail": true
+        },
+        {
+            "id": "gia-thien",
+            "name": "Già Thiên",
+            "description": "",
+            "image": {
+                "url": "https://yanhh3d.kim/storage/movies/gia-thien-1782129259.jpg",
+                "type": "cover",
+                "width": 480,
+                "height": 640
+            },
+            "type": "playlist",
+            "display": "text-below",
+            "label": {
+                "text": "183/208 [4K] | 4K TM-VS",
+                "position": "top-left",
+                "color": "#35ba8b",
+                "text_color": "#ffffff"
+            },
+            "remote_data": {
+                "url": "https://aismile.dpdns.org/yan3d/info.php?id=gia-thien"
+            },
+            "enable_detail": true
+        },
+        {
+            "id": "nhat-niem-vinh-hang-phan-1",
+            "name": "Nhất Niệm Vĩnh Hằng",
+            "description": "",
+            "image": {
+                "url": "https://yanhh3d.kim/storage/movies/nhat-niem-vinh-hang-full-1784692050.jpg",
+                "type": "cover",
+                "width": 480,
+                "height": 640
+            },
+            "type": "playlist",
+            "display": "text-below",
+            "label": {
+                "text": "178/211 [4K] | 2D TM-VS",
+                "position": "top-left",
+                "color": "#35ba8b",
+                "text_color": "#ffffff"
+            },
+            "remote_data": {
+                "url": "https://aismile.dpdns.org/yan3d/info.php?id=nhat-niem-vinh-hang-phan-1"
+            },
+            "enable_detail": true
+        }
+    ],
+    "load_more": {
+        "remote_data": {
+            "url": "https://aismile.dpdns.org/yan3d/sort/newest",
+            "external": false
+        },
+        "paging": {
+            "page_key": "p",
+            "size_key": "s"
+        },
+        "pageInfo": {
+            "current_page": 1,
+            "total": 24,
+            "per_page": 60,
+            "last_page": 1
+        }
+    },
+    "groups": [
+        {
+            "id": "bxh",
+            "name": "Bảng Xếp Hạng",
+            "display": "horizontal",
+            "channels": [
+                {
+                    "id": "bxh_tien-nghich",
+                    "name": "Tiên Nghịch",
+                    "description": "Top 1",
+                    "image": {
+                        "url": "https://yanhh3d.kim/storage/movies/tien-nghich-1782036350.png",
+                        "type": "cover",
+                        "width": 480,
+                        "height": 640
+                    },
+                    "type": "playlist",
+                    "display": "text-below",
+                    "label": {
+                        "text": "159/180 [4K]",
+                        "position": "top-left",
+                        "color": "#ff9800",
+                        "text_color": "#ffffff"
+                    },
+                    "remote_data": {
+                        "url": "https://aismile.dpdns.org/yan3d/info.php?id=tien-nghich"
+                    },
+                    "enable_detail": true
+                },
+                {
+                    "id": "bxh_dau-pha-thuong-khung-phan-5-thuyet-minh-new",
+                    "name": "Đấu Phá Thương Khung Phần 5-6",
+                    "description": "Top 2",
+                    "image": {
+                        "url": "https://yanhh3d.kim/storage/movies/dau-pha-thuong-khung-phan-5-6-1761998684.jpg",
+                        "type": "cover",
+                        "width": 480,
+                        "height": 640
+                    },
+                    "type": "playlist",
+                    "display": "text-below",
+                    "label": {
+                        "text": "Trailer 213/219 Tối T7",
+                        "position": "top-left",
+                        "color": "#ff9800",
+                        "text_color": "#ffffff"
+                    },
+                    "remote_data": {
+                        "url": "https://aismile.dpdns.org/yan3d/info.php?id=dau-pha-thuong-khung-phan-5-thuyet-minh-new"
+                    },
+                    "enable_detail": true
+                },
+                {
+                    "id": "bxh_pham-nhan-tu-tien",
+                    "name": "Phàm Nhân Tu Tiên",
+                    "description": "Top 3",
+                    "image": {
+                        "url": "https://yanhh3d.kim/storage/movies/pham-nhan-tu-tien-1782552683.jpg",
+                        "type": "cover",
+                        "width": 480,
+                        "height": 640
+                    },
+                    "type": "playlist",
+                    "display": "text-below",
+                    "label": {
+                        "text": "Trailer 194/... Trưa T7",
+                        "position": "top-left",
+                        "color": "#ff9800",
+                        "text_color": "#ffffff"
+                    },
+                    "remote_data": {
+                        "url": "https://aismile.dpdns.org/yan3d/info.php?id=pham-nhan-tu-tien"
+                    },
+                    "enable_detail": true
+                },
+                {
+                    "id": "bxh_the-gioi-hoan-my-thuyet-minh-tieng-viet",
+                    "name": "Thế Giới Hoàn Mỹ",
+                    "description": "Top 4",
+                    "image": {
+                        "url": "https://yanhh3d.kim/storage/movies/the-gioi-hoan-my-1782129775.png",
+                        "type": "cover",
+                        "width": 480,
+                        "height": 640
+                    },
+                    "type": "playlist",
+                    "display": "text-below",
+                    "label": {
+                        "text": "Hoãn Đến 31/12/2026",
+                        "position": "top-left",
+                        "color": "#ff9800",
+                        "text_color": "#ffffff"
+                    },
+                    "remote_data": {
+                        "url": "https://aismile.dpdns.org/yan3d/info.php?id=the-gioi-hoan-my-thuyet-minh-tieng-viet"
+                    },
+                    "enable_detail": true
+                },
+                {
+                    "id": "bxh_muc-than-ky",
+                    "name": "Mục Thần Ký",
+                    "description": "Top 5",
+                    "image": {
+                        "url": "https://yanhh3d.kim/storage/movies/muc-than-ky-1781429555.png",
+                        "type": "cover",
+                        "width": 480,
+                        "height": 640
+                    },
+                    "type": "playlist",
+                    "display": "text-below",
+                    "label": {
+                        "text": "102/130 [4K]",
+                        "position": "top-left",
+                        "color": "#ff9800",
+                        "text_color": "#ffffff"
+                    },
+                    "remote_data": {
+                        "url": "https://aismile.dpdns.org/yan3d/info.php?id=muc-than-ky"
+                    },
+                    "enable_detail": true
+                },
+                {
+                    "id": "bxh_thon-phe-tinh-khong",
+                    "name": "Thôn Phệ Tinh Không",
+                    "description": "Top 6",
+                    "image": {
+                        "url": "https://yanhh3d.kim/storage/movies/thon-phe-tinh-khong-1782129200.jpg",
+                        "type": "cover",
+                        "width": 480,
+                        "height": 640
+                    },
+                    "type": "playlist",
+                    "display": "text-below",
+                    "label": {
+                        "text": "243/260 [4K]",
+                        "position": "top-left",
+                        "color": "#ff9800",
+                        "text_color": "#ffffff"
+                    },
+                    "remote_data": {
+                        "url": "https://aismile.dpdns.org/yan3d/info.php?id=thon-phe-tinh-khong"
+                    },
+                    "enable_detail": true
+                },
+                {
+                    "id": "bxh_gia-thien",
+                    "name": "Già Thiên",
+                    "description": "Top 7",
+                    "image": {
+                        "url": "https://yanhh3d.kim/storage/movies/gia-thien-1782129259.jpg",
+                        "type": "cover",
+                        "width": 480,
+                        "height": 640
+                    },
+                    "type": "playlist",
+                    "display": "text-below",
+                    "label": {
+                        "text": "183/208 [4K]",
+                        "position": "top-left",
+                        "color": "#ff9800",
+                        "text_color": "#ffffff"
+                    },
+                    "remote_data": {
+                        "url": "https://aismile.dpdns.org/yan3d/info.php?id=gia-thien"
+                    },
+                    "enable_detail": true
+                },
+                {
+                    "id": "bxh_quan-am-chi-ngoai",
+                    "name": "Quang Âm Chi Ngoại",
+                    "description": "Top 8",
+                    "image": {
+                        "url": "https://yanhh3d.kim/storage/movies/quang-am-chi-ngoai-1782552600.jpg",
+                        "type": "cover",
+                        "width": 480,
+                        "height": 640
+                    },
+                    "type": "playlist",
+                    "display": "text-below",
+                    "label": {
+                        "text": "Trailer 42/78 Trưa T7",
+                        "position": "top-left",
+                        "color": "#ff9800",
+                        "text_color": "#ffffff"
+                    },
+                    "remote_data": {
+                        "url": "https://aismile.dpdns.org/yan3d/info.php?id=quan-am-chi-ngoai"
+                    },
+                    "enable_detail": true
+                },
+                {
+                    "id": "bxh_dau-la-dai-luc-2-tuyet-the-duong-mon",
+                    "name": "Đấu La Đại Lục 2 - Tuyệt Thế Đường Môn",
+                    "description": "Top 9",
+                    "image": {
+                        "url": "https://yanhh3d.kim/storage/movies/dau-la-dai-luc-2-tuyet-the-duong-mon-1787905335.png",
+                        "type": "cover",
+                        "width": 480,
+                        "height": 640
+                    },
+                    "type": "playlist",
+                    "display": "text-below",
+                    "label": {
+                        "text": "173/182 [4K]",
+                        "position": "top-left",
+                        "color": "#ff9800",
+                        "text_color": "#ffffff"
+                    },
+                    "remote_data": {
+                        "url": "https://aismile.dpdns.org/yan3d/info.php?id=dau-la-dai-luc-2-tuyet-the-duong-mon"
+                    },
+                    "enable_detail": true
+                },
+                {
+                    "id": "bxh_tram-than-phan-2",
+                    "name": "Trảm Thần Phần 2",
+                    "description": "Top 10",
+                    "image": {
+                        "url": "https://yanhh3d.kim/storage/movies/tram-than-phan-2-1782552790.jpg",
+                        "type": "cover",
+                        "width": 480,
+                        "height": 640
+                    },
+                    "type": "playlist",
+                    "display": "text-below",
+                    "label": {
+                        "text": "15/15 [4K]",
+                        "position": "top-left",
+                        "color": "#ff9800",
+                        "text_color": "#ffffff"
+                    },
+                    "remote_data": {
+                        "url": "https://aismile.dpdns.org/yan3d/info.php?id=tram-than-phan-2"
+                    },
+                    "enable_detail": true
+                }
+            ]
+        },
+        {
+            "id": "lichphim",
+            "name": "Lịch Phim: Thứ bảy, ngày 03/10/2026",
+            "display": "horizontal",
+            "channels": [
+                {
+                    "id": "error_ajax",
+                    "name": "Không tải được Lịch Phim",
+                    "description": "Lỗi kết nối",
+                    "image": {
+                        "url": "https://dummyimage.com/480x640/333333/ffffff.png&text=Loi+AJAX",
+                        "type": "cover",
+                        "width": 480,
+                        "height": 640
+                    },
+                    "type": "playlist",
+                    "display": "text-below",
+                    "remote_data": {
+                        "url": ""
+                    },
+                    "enable_detail": false
+                }
+            ]
+        },
+        {
+            "id": "all",
+            "name": "Mới Cập Nhật",
+            "display": "vertical",
+            "channels": [
+                {
+                    "id": "trach-nhat-phi-thang",
+                    "name": "Trạch Nhật Phi Thăng",
+                    "description": "",
+                    "image": {
+                        "url": "https://yanhh3d.kim/storage/movies/trach-nhat-phi-thang-1784351667.jpg",
+                        "type": "cover",
+                        "width": 480,
+                        "height": 640
+                    },
+                    "type": "playlist",
+                    "display": "text-below",
+                    "label": {
+                        "text": "14/30 [4K] | 4K TM-VS",
+                        "position": "top-left",
+                        "color": "#35ba8b",
+                        "text_color": "#ffffff"
+                    },
+                    "remote_data": {
+                        "url": "https://aismile.dpdns.org/yan3d/info.php?id=trach-nhat-phi-thang"
+                    },
+                    "enable_detail": true
+                },
+                {
+                    "id": "dau-la-dai-luc-2-tuyet-the-duong-mon",
+                    "name": "Đấu La Đại Lục 2 - Tuyệt Thế Đường Môn",
+                    "description": "",
+                    "image": {
+                        "url": "https://yanhh3d.kim/storage/movies/dau-la-dai-luc-2-tuyet-the-duong-mon-1787905335.png",
+                        "type": "cover",
+                        "width": 480,
+                        "height": 640
+                    },
+                    "type": "playlist",
+                    "display": "text-below",
+                    "label": {
+                        "text": "173/182 [4K] | 4K TM-VS",
+                        "position": "top-left",
+                        "color": "#35ba8b",
+                        "text_color": "#ffffff"
+                    },
+                    "remote_data": {
+                        "url": "https://aismile.dpdns.org/yan3d/info.php?id=dau-la-dai-luc-2-tuyet-the-duong-mon"
+                    },
+                    "enable_detail": true
+                },
+                {
+                    "id": "tien-nghich-movie-thi-than-chi-chien",
+                    "name": "Tiên Nghịch Movie: Thí Tiên Chi Chiến",
+                    "description": "",
+                    "image": {
+                        "url": "https://yanhh3d.kim/storage/movies/tien-nghich-movie-thi-than-chi-chien.png",
+                        "type": "cover",
+                        "width": 480,
+                        "height": 640
+                    },
+                    "type": "playlist",
+                    "display": "text-below",
+                    "label": {
+                        "text": "Full Movie [4K] | 4K TM-VS",
+                        "position": "top-left",
+                        "color": "#35ba8b",
+                        "text_color": "#ffffff"
+                    },
+                    "remote_data": {
+                        "url": "https://aismile.dpdns.org/yan3d/info.php?id=tien-nghich-movie-thi-than-chi-chien"
+                    },
+                    "enable_detail": true
+                },
+                {
+                    "id": "thuong-nguyen-do",
+                    "name": "Thương Nguyên Đồ",
+                    "description": "",
+                    "image": {
+                        "url": "https://yanhh3d.kim/storage/movies/thuong-nguyen-do-1784281032.jpg",
+                        "type": "cover",
+                        "width": 480,
+                        "height": 640
+                    },
+                    "type": "playlist",
+                    "display": "text-below",
+                    "label": {
+                        "text": "97/124 [4K] | 4K TM-VS",
+                        "position": "top-left",
+                        "color": "#35ba8b",
+                        "text_color": "#ffffff"
+                    },
+                    "remote_data": {
+                        "url": "https://aismile.dpdns.org/yan3d/info.php?id=thuong-nguyen-do"
+                    },
+                    "enable_detail": true
+                },
+                {
+                    "id": "dai-chua-te-3d",
+                    "name": "Đại Chúa Tể 3D",
+                    "description": "",
+                    "image": {
+                        "url": "https://yanhh3d.kim/storage/movies/dai-chua-te-3d-1780629293.jpg",
+                        "type": "cover",
+                        "width": 480,
+                        "height": 640
+                    },
+                    "type": "playlist",
+                    "display": "text-below",
+                    "label": {
+                        "text": "93/104 [4K] | 4K TM-VS",
+                        "position": "top-left",
+                        "color": "#35ba8b",
+                        "text_color": "#ffffff"
+                    },
+                    "remote_data": {
+                        "url": "https://aismile.dpdns.org/yan3d/info.php?id=dai-chua-te-3d"
+                    },
+                    "enable_detail": true
+                },
+                {
+                    "id": "tru-tien-thuyet-minh",
+                    "name": "Tru Tiên",
+                    "description": "",
+                    "image": {
+                        "url": "https://yanhh3d.kim/storage/movies/tru-tien-full-1787205032.png",
+                        "type": "cover",
+                        "width": 480,
+                        "height": 640
+                    },
+                    "type": "playlist",
+                    "display": "text-below",
+                    "label": {
+                        "text": "87/104 [4K] | 4K TM-VS",
+                        "position": "top-left",
+                        "color": "#35ba8b",
+                        "text_color": "#ffffff"
+                    },
+                    "remote_data": {
+                        "url": "https://aismile.dpdns.org/yan3d/info.php?id=tru-tien-thuyet-minh"
+                    },
+                    "enable_detail": true
+                },
+                {
+                    "id": "pham-nhan-tu-tien",
+                    "name": "Phàm Nhân Tu Tiên",
+                    "description": "",
+                    "image": {
+                        "url": "https://yanhh3d.kim/storage/movies/pham-nhan-tu-tien-1782552683.jpg",
+                        "type": "cover",
+                        "width": 480,
+                        "height": 640
+                    },
+                    "type": "playlist",
+                    "display": "text-below",
+                    "label": {
+                        "text": "Trailer 194/... Trưa T7 | 4K TM-VS",
+                        "position": "top-left",
+                        "color": "#35ba8b",
+                        "text_color": "#ffffff"
+                    },
+                    "remote_data": {
+                        "url": "https://aismile.dpdns.org/yan3d/info.php?id=pham-nhan-tu-tien"
+                    },
+                    "enable_detail": true
+                },
+                {
+                    "id": "quan-am-chi-ngoai",
+                    "name": "Quang Âm Chi Ngoại",
+                    "description": "",
+                    "image": {
+                        "url": "https://yanhh3d.kim/storage/movies/quang-am-chi-ngoai-1782552600.jpg",
+                        "type": "cover",
+                        "width": 480,
+                        "height": 640
+                    },
+                    "type": "playlist",
+                    "display": "text-below",
+                    "label": {
+                        "text": "Trailer 42/78 Trưa T7 | 4K TM-VS",
+                        "position": "top-left",
+                        "color": "#35ba8b",
+                        "text_color": "#ffffff"
+                    },
+                    "remote_data": {
+                        "url": "https://aismile.dpdns.org/yan3d/info.php?id=quan-am-chi-ngoai"
+                    },
+                    "enable_detail": true
+                },
+                {
+                    "id": "dau-pha-thuong-khung-phan-5-thuyet-minh-new",
+                    "name": "Đấu Phá Thương Khung Phần 5-6",
+                    "description": "",
+                    "image": {
+                        "url": "https://yanhh3d.kim/storage/movies/dau-pha-thuong-khung-phan-5-6-1761998684.jpg",
+                        "type": "cover",
+                        "width": 480,
+                        "height": 640
+                    },
+                    "type": "playlist",
+                    "display": "text-below",
+                    "label": {
+                        "text": "Trailer 213/219 Tối T7 | 4K TM-VS",
+                        "position": "top-left",
+                        "color": "#35ba8b",
+                        "text_color": "#ffffff"
+                    },
+                    "remote_data": {
+                        "url": "https://aismile.dpdns.org/yan3d/info.php?id=dau-pha-thuong-khung-phan-5-thuyet-minh-new"
+                    },
+                    "enable_detail": true
+                },
+                {
+                    "id": "nguoi-dai-dien-thoi-gian-link-click-phan-3",
+                    "name": "Người Đại Diện Thời Gian - Link Click Phần 3",
+                    "description": "",
+                    "image": {
+                        "url": "https://yanhh3d.kim/storage/movies/nguoi-dai-dien-thoi-gian-link-click-phan-3.jpg",
+                        "type": "cover",
+                        "width": 480,
+                        "height": 640
+                    },
+                    "type": "playlist",
+                    "display": "text-below",
+                    "label": {
+                        "text": "09/12 | 2D  TM-VS",
+                        "position": "top-left",
+                        "color": "#35ba8b",
+                        "text_color": "#ffffff"
+                    },
+                    "remote_data": {
+                        "url": "https://aismile.dpdns.org/yan3d/info.php?id=nguoi-dai-dien-thoi-gian-link-click-phan-3"
+                    },
+                    "enable_detail": true
+                },
+                {
+                    "id": "nghich-thien-chi-ton",
+                    "name": "Nghịch Thiên Chí Tôn",
+                    "description": "",
+                    "image": {
+                        "url": "https://yanhh3d.kim/storage/movies/nghich-thien-chi-ton-1739903432.jpg",
+                        "type": "cover",
+                        "width": 480,
+                        "height": 640
+                    },
+                    "type": "playlist",
+                    "display": "text-below",
+                    "label": {
+                        "text": "554/580 | TM-VS",
+                        "position": "top-left",
+                        "color": "#35ba8b",
+                        "text_color": "#ffffff"
+                    },
+                    "remote_data": {
+                        "url": "https://aismile.dpdns.org/yan3d/info.php?id=nghich-thien-chi-ton"
+                    },
+                    "enable_detail": true
+                },
+                {
+                    "id": "vo-thuong-than-de",
+                    "name": "Vô Thượng Thần Đế",
+                    "description": "",
+                    "image": {
+                        "url": "https://yanhh3d.kim/storage/movies/vo-thuong-than-de-1784280906.jpg",
+                        "type": "cover",
+                        "width": 480,
+                        "height": 640
+                    },
+                    "type": "playlist",
+                    "display": "text-below",
+                    "label": {
+                        "text": "645/688 | TM-VS",
+                        "position": "top-left",
+                        "color": "#35ba8b",
+                        "text_color": "#ffffff"
+                    },
+                    "remote_data": {
+                        "url": "https://aismile.dpdns.org/yan3d/info.php?id=vo-thuong-than-de"
+                    },
+                    "enable_detail": true
+                },
+                {
+                    "id": "bat-dau-voi-chi-ton-dan-dien",
+                    "name": "Bắt Đầu Với Chí Tôn Đan Điền",
+                    "description": "",
+                    "image": {
+                        "url": "https://yanhh3d.kim/storage/movies/bat-dau-voi-chi-ton-dan-dien-1759545474.jpg",
+                        "type": "cover",
+                        "width": 480,
+                        "height": 640
+                    },
+                    "type": "playlist",
+                    "display": "text-below",
+                    "label": {
+                        "text": "31~32/40 | TM-VS",
+                        "position": "top-left",
+                        "color": "#35ba8b",
+                        "text_color": "#ffffff"
+                    },
+                    "remote_data": {
+                        "url": "https://aismile.dpdns.org/yan3d/info.php?id=bat-dau-voi-chi-ton-dan-dien"
+                    },
+                    "enable_detail": true
+                },
+                {
+                    "id": "dai-luc-linh-vo",
+                    "name": "Đại Lục Linh Võ",
+                    "description": "",
+                    "image": {
+                        "url": "https://yanhh3d.kim/storage/movies/dai-luc-linh-vo-1780629488.jpg",
+                        "type": "cover",
+                        "width": 480,
+                        "height": 640
+                    },
+                    "type": "playlist",
+                    "display": "text-below",
+                    "label": {
+                        "text": "220/... | AI TM-VS",
+                        "position": "top-left",
+                        "color": "#35ba8b",
+                        "text_color": "#ffffff"
+                    },
+                    "remote_data": {
+                        "url": "https://aismile.dpdns.org/yan3d/info.php?id=dai-luc-linh-vo"
+                    },
+                    "enable_detail": true
+                },
+                {
+                    "id": "tu-linh-phap-su-ta-chinh-la-thien-tai",
+                    "name": "Tử Linh Pháp Sư: Ta Chính Là Thiên Tai",
+                    "description": "",
+                    "image": {
+                        "url": "https://yanhh3d.kim/storage/movies/tu-linh-phap-su-ta-chinh-la-thien-tai.jpg",
+                        "type": "cover",
+                        "width": 480,
+                        "height": 640
+                    },
+                    "type": "playlist",
+                    "display": "text-below",
+                    "label": {
+                        "text": "22~23/60 | AI TM-VS",
+                        "position": "top-left",
+                        "color": "#35ba8b",
+                        "text_color": "#ffffff"
+                    },
+                    "remote_data": {
+                        "url": "https://aismile.dpdns.org/yan3d/info.php?id=tu-linh-phap-su-ta-chinh-la-thien-tai"
+                    },
+                    "enable_detail": true
+                },
+                {
+                    "id": "nghich-thien-ta-than-3d",
+                    "name": "Nghịch Thiên Tà Thần 3D",
+                    "description": "",
+                    "image": {
+                        "url": "https://yanhh3d.kim/storage/movies/nghich-thien-ta-than-3d-1776260879.png",
+                        "type": "cover",
+                        "width": 480,
+                        "height": 640
+                    },
+                    "type": "playlist",
+                    "display": "text-below",
+                    "label": {
+                        "text": "57/82 [4K] | 4K TM-VS",
+                        "position": "top-left",
+                        "color": "#35ba8b",
+                        "text_color": "#ffffff"
+                    },
+                    "remote_data": {
+                        "url": "https://aismile.dpdns.org/yan3d/info.php?id=nghich-thien-ta-than-3d"
+                    },
+                    "enable_detail": true
+                },
+                {
+                    "id": "dong-dai-cao-vo-hoc-vien",
+                    "name": "Học Viện Cao Võ Đông Đại",
+                    "description": "",
+                    "image": {
+                        "url": "https://yanhh3d.kim/storage/movies/hoc-vien-cao-vo-dong-dai-1787804231.jpg",
+                        "type": "cover",
+                        "width": 480,
+                        "height": 640
+                    },
+                    "type": "playlist",
+                    "display": "text-below",
+                    "label": {
+                        "text": "12/26 [4K] | 4K TM-VS",
+                        "position": "top-left",
+                        "color": "#35ba8b",
+                        "text_color": "#ffffff"
+                    },
+                    "remote_data": {
+                        "url": "https://aismile.dpdns.org/yan3d/info.php?id=dong-dai-cao-vo-hoc-vien"
+                    },
+                    "enable_detail": true
+                },
+                {
+                    "id": "the-gioi-hoan-my-thuyet-minh-tieng-viet",
+                    "name": "Thế Giới Hoàn Mỹ",
+                    "description": "",
+                    "image": {
+                        "url": "https://yanhh3d.kim/storage/movies/the-gioi-hoan-my-1782129775.png",
+                        "type": "cover",
+                        "width": 480,
+                        "height": 640
+                    },
+                    "type": "playlist",
+                    "display": "text-below",
+                    "label": {
+                        "text": "Hoãn Đến 31/12/2026 | 4K TM-VS",
+                        "position": "top-left",
+                        "color": "#35ba8b",
+                        "text_color": "#ffffff"
+                    },
+                    "remote_data": {
+                        "url": "https://aismile.dpdns.org/yan3d/info.php?id=the-gioi-hoan-my-thuyet-minh-tieng-viet"
+                    },
+                    "enable_detail": true
+                },
+                {
+                    "id": "nguoi-giu-mo-dai-ha",
+                    "name": "Người Giữ Mộ Đại Hạ",
+                    "description": "",
+                    "image": {
+                        "url": "https://yanhh3d.kim/storage/movies/nguoi-giu-mo-dai-ha-1790689505.png",
+                        "type": "cover",
+                        "width": 480,
+                        "height": 640
+                    },
+                    "type": "playlist",
+                    "display": "text-below",
+                    "label": {
+                        "text": "04/59 | TM-VS",
+                        "position": "top-left",
+                        "color": "#35ba8b",
+                        "text_color": "#ffffff"
+                    },
+                    "remote_data": {
+                        "url": "https://aismile.dpdns.org/yan3d/info.php?id=nguoi-giu-mo-dai-ha"
+                    },
+                    "enable_detail": true
+                },
+                {
+                    "id": "thai-co-than-ton",
+                    "name": "Thái Cổ Thần Tôn",
+                    "description": "",
+                    "image": {
+                        "url": "https://yanhh3d.kim/storage/movies/thai-co-than-ton.jpg",
+                        "type": "cover",
+                        "width": 480,
+                        "height": 640
+                    },
+                    "type": "playlist",
+                    "display": "text-below",
+                    "label": {
+                        "text": "22/40 | TM-VS",
+                        "position": "top-left",
+                        "color": "#35ba8b",
+                        "text_color": "#ffffff"
+                    },
+                    "remote_data": {
+                        "url": "https://aismile.dpdns.org/yan3d/info.php?id=thai-co-than-ton"
+                    },
+                    "enable_detail": true
+                },
+                {
+                    "id": "linh-canh-hanh-gia",
+                    "name": "Linh Cảnh Hành Giả",
+                    "description": "",
+                    "image": {
+                        "url": "https://yanhh3d.kim/storage/movies/linh-canh-hanh-gia-1788946286.png",
+                        "type": "cover",
+                        "width": 480,
+                        "height": 640
+                    },
+                    "type": "playlist",
+                    "display": "text-below",
+                    "label": {
+                        "text": "06/26 [4K] | 4K TM-VS",
+                        "position": "top-left",
+                        "color": "#35ba8b",
+                        "text_color": "#ffffff"
+                    },
+                    "remote_data": {
+                        "url": "https://aismile.dpdns.org/yan3d/info.php?id=linh-canh-hanh-gia"
+                    },
+                    "enable_detail": true
+                },
+                {
+                    "id": "su-huynh-a-su-huynh",
+                    "name": "Sư Huynh A Sư Huynh",
+                    "description": "",
+                    "image": {
+                        "url": "https://yanhh3d.kim/storage/movies/su-huynh-a-su-huynh-1784281077.jpg",
+                        "type": "cover",
+                        "width": 480,
+                        "height": 640
+                    },
+                    "type": "playlist",
+                    "display": "text-below",
+                    "label": {
+                        "text": "161/169 [4K] | 4K TM-VS",
+                        "position": "top-left",
+                        "color": "#35ba8b",
+                        "text_color": "#ffffff"
+                    },
+                    "remote_data": {
+                        "url": "https://aismile.dpdns.org/yan3d/info.php?id=su-huynh-a-su-huynh"
+                    },
+                    "enable_detail": true
+                },
+                {
+                    "id": "gia-thien",
+                    "name": "Già Thiên",
+                    "description": "",
+                    "image": {
+                        "url": "https://yanhh3d.kim/storage/movies/gia-thien-1782129259.jpg",
+                        "type": "cover",
+                        "width": 480,
+                        "height": 640
+                    },
+                    "type": "playlist",
+                    "display": "text-below",
+                    "label": {
+                        "text": "183/208 [4K] | 4K TM-VS",
+                        "position": "top-left",
+                        "color": "#35ba8b",
+                        "text_color": "#ffffff"
+                    },
+                    "remote_data": {
+                        "url": "https://aismile.dpdns.org/yan3d/info.php?id=gia-thien"
+                    },
+                    "enable_detail": true
+                },
+                {
+                    "id": "nhat-niem-vinh-hang-phan-1",
+                    "name": "Nhất Niệm Vĩnh Hằng",
+                    "description": "",
+                    "image": {
+                        "url": "https://yanhh3d.kim/storage/movies/nhat-niem-vinh-hang-full-1784692050.jpg",
+                        "type": "cover",
+                        "width": 480,
+                        "height": 640
+                    },
+                    "type": "playlist",
+                    "display": "text-below",
+                    "label": {
+                        "text": "178/211 [4K] | 2D TM-VS",
+                        "position": "top-left",
+                        "color": "#35ba8b",
+                        "text_color": "#ffffff"
+                    },
+                    "remote_data": {
+                        "url": "https://aismile.dpdns.org/yan3d/info.php?id=nhat-niem-vinh-hang-phan-1"
+                    },
+                    "enable_detail": true
+                }
+            ]
+        }
+    ],
+    "search": {
+        "url": "https://aismile.dpdns.org/yan3d/search.php",
+        "suggest_url": "https://aismile.dpdns.org/yan3d/search/suggest",
+        "search_key": "q",
+        "paging": {
+            "page_key": "p",
+            "size_key": "s"
+        }
+    },
+    "option": {
+        "save_history": true,
+        "save_search_history": true,
+        "save_wishlist": true
+    }
+}
