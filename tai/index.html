@@ -1,0 +1,410 @@
+<!DOCTYPE html><html lang="vi"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smile Player - Tải cho Android</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:wght@300;400;500;600&amp;family=JetBrains+Mono:wght@400;600&amp;display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #080c10;
+      --surface: #0e1318;
+      --surface2: #131a22;
+      --accent: #00d4ff;
+      --accent2: #0066ff;
+      --accent3: #7b2fff;
+      --text: #e8f0f8;
+      --muted: #5a7080;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .bg-grid {
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none; z-index: 0;
+    }
+    .bg-orb1 {
+      position: fixed; top: -200px; right: -200px;
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(0,102,255,0.15) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
+      animation: orbFloat1 12s ease-in-out infinite;
+    }
+    .bg-orb2 {
+      position: fixed; bottom: -150px; left: -150px;
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(123,47,255,0.12) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
+      animation: orbFloat2 15s ease-in-out infinite;
+    }
+    .bg-orb3 {
+      position: fixed; top: 40%; left: 40%;
+      width: 300px; height: 300px;
+      background: radial-gradient(circle, rgba(0,212,255,0.06) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
+      animation: orbFloat3 20s ease-in-out infinite;
+    }
+    @keyframes orbFloat1 {
+      0%,100% { transform: translate(0,0) scale(1); }
+      50% { transform: translate(-40px, 60px) scale(1.1); }
+    }
+    @keyframes orbFloat2 {
+      0%,100% { transform: translate(0,0) scale(1); }
+      50% { transform: translate(50px, -40px) scale(1.08); }
+    }
+    @keyframes orbFloat3 {
+      0%,100% { transform: translate(-50%,-50%) scale(1); }
+      33% { transform: translate(calc(-50% + 30px), calc(-50% - 20px)) scale(1.05); }
+      66% { transform: translate(calc(-50% - 20px), calc(-50% + 30px)) scale(0.95); }
+    }
+
+    .wrapper {
+      position: relative; z-index: 1;
+      max-width: 520px; margin: 0 auto; padding: 0 20px 60px;
+    }
+
+    .navbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 28px 0 0; animation: fadeDown 0.8s ease both;
+    }
+    .nav-logo { display: flex; align-items: center; gap: 10px; }
+    .nav-logo img {
+      width: 36px; height: 36px; border-radius: 10px;
+      filter: drop-shadow(0 0 8px rgba(0,212,255,0.5));
+    }
+    .nav-logo-text {
+      font-family: 'Bebas Neue', sans-serif; font-size: 1.4em; letter-spacing: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .nav-badge {
+      font-family: 'JetBrains Mono', monospace; font-size: 0.72em;
+      color: var(--accent); border: 1px solid rgba(0,212,255,0.3);
+      padding: 4px 10px; border-radius: 20px; background: rgba(0,212,255,0.05);
+    }
+
+    .hero { text-align: center; padding: 60px 0 40px; }
+    .hero-logo-wrap {
+      position: relative; display: inline-block; margin-bottom: 28px;
+      animation: fadeUp 0.9s 0.1s ease both;
+    }
+    .hero-logo-wrap img {
+      width: 100px; height: 100px; border-radius: 24px; position: relative; z-index: 1;
+      filter: drop-shadow(0 0 24px rgba(0,212,255,0.6));
+      animation: logoPulse 3s ease-in-out infinite;
+    }
+    .hero-logo-ring {
+      position: absolute; inset: -12px; border-radius: 36px;
+      border: 1px solid rgba(0,212,255,0.2); animation: ringPulse 3s ease-in-out infinite;
+    }
+    .hero-logo-ring2 {
+      position: absolute; inset: -24px; border-radius: 48px;
+      border: 1px solid rgba(0,212,255,0.1); animation: ringPulse 3s 0.5s ease-in-out infinite;
+    }
+    @keyframes logoPulse {
+      0%,100% { filter: drop-shadow(0 0 24px rgba(0,212,255,0.6)); }
+      50% { filter: drop-shadow(0 0 40px rgba(0,212,255,0.9)); }
+    }
+    @keyframes ringPulse {
+      0%,100% { opacity:1; transform: scale(1); }
+      50% { opacity:0.4; transform: scale(1.05); }
+    }
+
+    .hero-eyebrow {
+      font-family: 'JetBrains Mono', monospace; font-size: 0.75em;
+      color: var(--accent); letter-spacing: 3px; text-transform: uppercase;
+      margin-bottom: 12px; animation: fadeUp 0.9s 0.2s ease both;
+    }
+    .hero-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(3.5em, 14vw, 5em); letter-spacing: 4px; line-height: 0.9;
+      margin-bottom: 16px; animation: fadeUp 0.9s 0.3s ease both;
+    }
+    .hero-title span {
+      display: block;
+      background: linear-gradient(135deg, #fff 0%, var(--accent) 50%, var(--accent2) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .hero-title .sub-word {
+      font-size: 0.55em; letter-spacing: 8px;
+      background: linear-gradient(90deg, var(--muted), var(--accent));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .hero-desc {
+      font-size: 1em; color: #8aa5b8; line-height: 1.65;
+      max-width: 380px; margin: 0 auto 40px; font-weight: 300;
+      animation: fadeUp 0.9s 0.4s ease both;
+    }
+
+    .stats-row {
+      display: flex; justify-content: center; gap: 24px;
+      margin-bottom: 48px; animation: fadeUp 0.9s 0.5s ease both;
+    }
+    .stat-item { text-align: center; }
+    .stat-num {
+      font-family: 'Bebas Neue', sans-serif; font-size: 1.8em;
+      letter-spacing: 2px; color: var(--accent); line-height: 1;
+    }
+    .stat-label {
+      font-size: 0.72em; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 1px; margin-top: 2px;
+    }
+    .stat-divider { width: 1px; height: 36px; background: rgba(0,212,255,0.15); align-self: center; }
+
+    .download-section { margin-bottom: 48px; animation: fadeUp 0.9s 0.55s ease both; }
+    .section-label {
+      font-family: 'JetBrains Mono', monospace; font-size: 0.72em;
+      letter-spacing: 3px; color: var(--accent); text-transform: uppercase;
+      margin-bottom: 16px; display: flex; align-items: center; gap: 10px;
+    }
+    .section-label::after {
+      content: ''; flex: 1; height: 1px;
+      background: linear-gradient(90deg, rgba(0,212,255,0.3), transparent);
+    }
+
+    .btn-primary {
+      display: flex; align-items: center; justify-content: center; gap: 12px;
+      width: 100%; padding: 18px 24px;
+      background: linear-gradient(135deg, var(--accent2) 0%, var(--accent) 100%);
+      border-radius: 14px; color: #fff;
+      font-family: 'DM Sans', sans-serif; font-size: 1.05em; font-weight: 600;
+      text-decoration: none; letter-spacing: 0.3px;
+      position: relative; overflow: hidden;
+      transition: transform 0.25s, box-shadow 0.25s;
+      box-shadow: 0 4px 24px rgba(0,102,255,0.3), 0 0 60px rgba(0,212,255,0.1);
+      margin-bottom: 12px; border: none; cursor: pointer;
+    }
+    .btn-primary::before {
+      content: ''; position: absolute; top: 0; left: -100%;
+      width: 100%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+      transition: left 0.5s;
+    }
+    .btn-primary:hover::before { left: 100%; }
+    .btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 32px rgba(0,102,255,0.45), 0 0 80px rgba(0,212,255,0.2);
+    }
+    .btn-primary:active { transform: translateY(-1px); }
+    .btn-icon { width: 22px; height: 22px; flex-shrink: 0; }
+
+    .apk-accordion {
+      background: var(--surface); border: 1px solid rgba(0,212,255,0.1);
+      border-radius: 14px; overflow: hidden;
+    }
+    .apk-accordion-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 18px; cursor: pointer; user-select: none; transition: background 0.2s;
+    }
+    .apk-accordion-header:hover { background: rgba(0,212,255,0.04); }
+    .apk-accordion-title { font-size: 0.85em; color: var(--muted); font-weight: 500; }
+    .apk-accordion-arrow { color: var(--accent); transition: transform 0.3s; font-size: 0.9em; }
+    .apk-accordion.open .apk-accordion-arrow { transform: rotate(180deg); }
+    .apk-accordion-body { max-height: 0; overflow: hidden; transition: max-height 0.4s cubic-bezier(0.4,0,0.2,1); }
+    .apk-accordion.open .apk-accordion-body { max-height: 500px; }
+    .apk-list { list-style: none; padding: 0 12px 12px; }
+    .apk-list li { margin-bottom: 8px; }
+    .apk-list li:last-child { margin-bottom: 0; }
+    .apk-list a {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 14px; background: var(--surface2);
+      border: 1px solid rgba(0,212,255,0.08); border-radius: 10px;
+      color: var(--text); text-decoration: none; font-size: 0.88em; font-weight: 500;
+      transition: border-color 0.2s, background 0.2s, transform 0.2s;
+    }
+    .apk-list a:hover {
+      border-color: rgba(0,212,255,0.35); background: rgba(0,212,255,0.06);
+      transform: translateX(4px);
+    }
+    .apk-chip {
+      font-family: 'JetBrains Mono', monospace; font-size: 0.78em;
+      padding: 2px 8px; border-radius: 6px;
+      background: rgba(0,212,255,0.1); color: var(--accent);
+      margin-left: auto; white-space: nowrap;
+    }
+    .apk-icon { color: var(--accent2); flex-shrink: 0; }
+
+    .features { margin-bottom: 40px; animation: fadeUp 0.9s 0.65s ease both; }
+    .feature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .feature-card {
+      background: var(--surface); border: 1px solid rgba(0,212,255,0.08);
+      border-radius: 14px; padding: 18px 16px;
+      transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s;
+      position: relative; overflow: hidden;
+    }
+    .feature-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(0,212,255,0.4), transparent);
+      opacity: 0; transition: opacity 0.3s;
+    }
+    .feature-card:hover {
+      border-color: rgba(0,212,255,0.25); transform: translateY(-4px);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.3), 0 0 24px rgba(0,212,255,0.08);
+    }
+    .feature-card:hover::before { opacity: 1; }
+    .feature-icon-wrap {
+      width: 40px; height: 40px; border-radius: 10px;
+      background: rgba(0,212,255,0.08); border: 1px solid rgba(0,212,255,0.15);
+      display: flex; align-items: center; justify-content: center; margin-bottom: 12px;
+    }
+    .feature-icon-wrap svg { color: var(--accent); }
+    .feature-card h3 { font-size: 0.88em; font-weight: 600; color: var(--text); margin-bottom: 5px; line-height: 1.3; }
+    .feature-card p { font-size: 0.78em; color: var(--muted); line-height: 1.5; }
+
+    footer {
+      text-align: center; padding-top: 24px;
+      border-top: 1px solid rgba(0,212,255,0.07);
+      animation: fadeUp 0.9s 0.85s ease both;
+    }
+    footer p { font-family: 'JetBrains Mono', monospace; font-size: 0.75em; color: var(--muted); letter-spacing: 1px; }
+    .footer-dot {
+      display: inline-block; width: 4px; height: 4px; border-radius: 50%;
+      background: var(--accent); margin: 0 8px; vertical-align: middle;
+      animation: blink 2s ease-in-out infinite;
+    }
+    @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.2; } }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeDown { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: translateY(0); } }
+
+    .scanline {
+      position: fixed; inset: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+      pointer-events: none; z-index: 2;
+    }
+
+    @media (max-width: 480px) {
+      .hero-title { font-size: clamp(3em, 18vw, 4em); }
+      .feature-grid { grid-template-columns: 1fr; }
+      .stats-row { gap: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="bg-orb1"></div>
+  <div class="bg-orb2"></div>
+  <div class="bg-orb3"></div>
+  <div class="scanline"></div>
+
+  <div class="wrapper">
+
+    <nav class="navbar">
+      <div class="nav-logo">
+        <img src="images/logo.png" alt="logo">
+        <span class="nav-logo-text">Smile Player</span>
+      </div>
+      <div class="nav-badge">APK</div>
+    </nav>
+
+    <header class="hero">
+      <div class="hero-logo-wrap">
+        <div class="hero-logo-ring"></div>
+        <div class="hero-logo-ring2"></div>
+        <img src="images/logo.png" alt="Smile Player Logo">
+      </div>
+      <p class="hero-eyebrow">Media Player · Android</p>
+      <h1 class="hero-title">
+        <span>Smile</span>
+        <span class="sub-word">Player</span>
+      </h1>
+      <p class="hero-desc">
+        Trình phát media chuyên nghiệp — hỗ trợ <strong>DRM</strong>, <strong>IPTV</strong>, <strong>M3U</strong> và tích hợp REST API mở rộng.
+      </p>
+      <div class="stats-row">
+        <div class="stat-item">
+          <div class="stat-num">1+</div>
+          <div class="stat-label">Kiến trúc</div>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <div class="stat-num">4K</div>
+          <div class="stat-label">Hỗ trợ</div>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <div class="stat-num">DRM</div>
+          <div class="stat-label">Bảo mật</div>
+        </div>
+      </div>
+    </header>
+
+    <section class="download-section">
+      <div class="section-label">Tải xuống</div>
+
+            <a href="Smile_Player-universal-release.apk" download="Smile_Player-universal-release.apk" class="btn-primary">
+        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"></path>
+          <path d="M8 12l4 4 4-4M12 8v8"></path>
+        </svg>
+        Tải APK Universal (Tất cả thiết bị)
+        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left:auto">
+          <path d="M5 12h14M12 5l7 7-7 7"></path>
+        </svg>
+      </a>
+      
+          </section>
+
+    <section class="features">
+      <div class="section-label">Tính năng</div>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="feature-icon-wrap">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          </div>
+          <h3>MPD DRM</h3>
+          <p>Hỗ trợ <strong style="color:var(--accent)">Widevine</strong> &amp; <strong style="color:var(--accent)">ClearKey</strong></p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon-wrap">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+          </div>
+          <h3>M3U &amp; IPTV</h3>
+          <p>Phát trực tuyến mượt mà không giới hạn</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon-wrap">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"></path><path d="M1.42 9a16 16 0 0 1 21.16 0"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><circle cx="12" cy="20" r="1"></circle></svg>
+          </div>
+          <h3>REST API (Mon API)</h3>
+          <p>Tích hợp và mở rộng không giới hạn</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon-wrap">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M9 9l6 3-6 3V9z"></path><path d="M3 15h18"></path></svg>
+          </div>
+          <h3>Phát dưới nền</h3>
+          <p>Tiếp tục phát khi tắt màn hình hoặc chuyển app</p>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <p>© 2026 Smile Player<span class="footer-dot"></span>All rights reserved</p>
+    </footer>
+
+  </div>
+
+  <script>
+    function toggleAccordion() {
+      document.getElementById('apkAccordion').classList.toggle('open');
+    }
+    document.querySelectorAll('.feature-card').forEach((card, i) => {
+      card.style.animation = `fadeUp 0.6s ${0.7 + i * 0.1}s ease both`;
+    });
+  </script>
+<!-- Added by website-downloader.com to the free version of this archive. -->
+<div style="position:fixed;left:12px;bottom:12px;z-index:2147483647;font:13px/1.4 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#ffffff;color:#0f172a;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 2px 8px rgba(15,23,42,.12);padding:8px 12px;max-width:280px">
+  <a href="" style="color:#2563eb;text-decoration:underline;font-weight:600" target="_blank" rel="noopener">tinh la gi</a>
+  <span style="color:#475569"> — saved offline for free</span>
+</div>
+</body></html>
