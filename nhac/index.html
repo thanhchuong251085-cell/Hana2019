@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Winamp Player</title>
+  <style>
+    :root {
+      --bg-color: #121214;
+      --panel-bg: #222328;
+      --panel-border: #44454d;
+      --display-bg: #0f170f;
+      --text-green: #00ff66;
+      --text-orange: #ff9900;
+      --accent: #00cc55;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Courier New', Courier, monospace;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      color: #fff;
+      padding: 20px;
+    }
+
+    /* Khung máy nghe nhạc Winamp */
+    .winamp-container {
+      width: 360px;
+      background-color: var(--panel-bg);
+      border: 3px solid var(--panel-border);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+      border-radius: 4px;
+      padding: 12px;
+    }
+
+    .winamp-header {
+      background: linear-gradient(90deg, #101530, #3a4570);
+      padding: 4px 8px;
+      font-weight: bold;
+      font-size: 12px;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+      border: 1px solid #556699;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* Màn hình hiển thị LED */
+    .display-screen {
+      background-color: var(--display-bg);
+      border: 2px inset #333;
+      padding: 10px;
+      margin-bottom: 12px;
+      border-radius: 2px;
+    }
+
+    .track-title {
+      color: var(--text-green);
+      font-size: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 6px;
+      text-shadow: 0 0 5px rgba(0, 255, 102, 0.5);
+    }
+
+    .time-info {
+      color: var(--text-orange);
+      font-size: 18px;
+      font-weight: bold;
+      text-shadow: 0 0 5px rgba(255, 153, 0, 0.5);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* Thanh tiến trình (Progress bar) */
+    .progress-container {
+      width: 100%;
+      background: #333;
+      height: 8px;
+      margin-top: 8px;
+      cursor: pointer;
+      border: 1px solid #555;
+    }
+
+    .progress-bar {
+      width: 0%;
+      height: 100%;
+      background: var(--text-green);
+    }
+
+    /* Bảng điều khiển nút bấm */
+    .controls {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .btn {
+      background: linear-gradient(180deg, #444, #222);
+      color: #fff;
+      border: 1px solid #666;
+      padding: 6px 12px;
+      font-size: 11px;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 2px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+
+    .btn:active {
+      background: #111;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);
+    }
+
+    /* Thanh âm lượng */
+    .volume-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: #aaa;
+      margin-bottom: 12px;
+    }
+
+    .volume-slider {
+      flex-grow: 1;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    /* Danh sách phát nhạc (Playlist) */
+    .playlist-title {
+      font-size: 11px;
+      color: #888;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+    }
+
+    .playlist {
+      background-color: #000;
+      border: 1px solid #444;
+      height: 180px;
+      overflow-y: auto;
+      list-style: none;
+    }
+
+    .playlist li {
+      padding: 5px 8px;
+      font-size: 11px;
+      color: var(--text-green);
+      cursor: pointer;
+      border-bottom: 1px solid #111;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .playlist li:hover {
+      background-color: #112211;
+    }
+
+    .playlist li.active {
+      background-color: #004411;
+      color: #fff;
+      font-weight: bold;
+    }
+
+    /* Tùy chỉnh thanh cuộn playlist */
+    .playlist::-webkit-scrollbar {
+      width: 6px;
+    }
+    .playlist::-webkit-scrollbar-thumb {
+      background: #444;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="winamp-container">
+    <div class="winamp-header">
+      <span>WINAMP</span>
+      <span>v1.0</span>
+    </div>
+
+    <!-- Màn hình LED -->
+    <div class="display-screen">
+      <div class="track-title" id="trackTitle">Chưa chọn bài hát</div>
+      <div class="time-info">
+        <span id="currentTime">00:00</span>
+        <span id="duration">00:00</span>
+      </div>
+      <div class="progress-container" id="progressContainer">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+    </div>
+
+    <!-- Nút điều khiển -->
+    <div class="controls">
+      <button class="btn" onclick="prevTrack()">|&#9664;</button>
+      <button class="btn" onclick="playTrack()">&#9654;</button>
+      <button class="btn" onclick="pauseTrack()">&#10074;&#10074;</button>
+      <button class="btn" onclick="stopTrack()">&#9632;</button>
+      <button class="btn" onclick="nextTrack()">&#9654;|</button>
+    </div>
+
+    <!-- Âm lượng -->
+    <div class="volume-container">
+      <span>VOL</span>
+      <input type="range" class="volume-slider" id="volumeSlider" min="0" max="1" step="0.01" value="0.8" oninput="changeVolume(this.value)">
+    </div>
+
+    <!-- Danh sách 30 bài hát -->
+    <div class="playlist-title">Danh sách bài hát</div>
+    <ul class="playlist" id="playlist"></ul>
+  </div>
+
+  <!-- Thẻ audio ẩn xử lý phát nhạc -->
+  <audio id="audioPlayer"></audio>
+
+  <script>
+    // 1. Khai báo danh sách 30 bài hát (thay tên file thực tế vào đây)
+    const playlistData = [
+      { title: "01. Hòa tấu Hoài Mong", src: "mp3/1.mp3" },
+      { title: "02. Hòa tấu 999 Đóa Hồng", src: "mp3/2.mp3" },
+      { title: "03. Hòa Tấu Những Lời Dối Dang", src: "mp3/3.mp3" },
+      { title: "04. Hòa Tấu Tình Đầu Không Nguôi", src: "mp3/4.mp3" },
+      { title: "05. Hòa Tấu Tình Ơi Xin Ngủ Yên ", src: "mp3/5.mp3" },
+      { title: "06. Hòa Tấu Gợi Nhớ Quê Hương", src: "mp3/6.mp3" },
+      { title: "07. Hòa Tấu Tương Tư Nàng Ca Sĩ", src: "mp3/7.mp3" },
+      { title: "08. Hòa Tấu Hoa Nào Không Phai", src: "mp3/8.mp3" },
+      { title: "09. Hòa TẤu Lk Hoa Nào Tàn Phai", src: "mp3/song9.mp3" },
+      { title: "10. Bài hát số 10", src: "mp3/song10.mp3" },
+      { title: "11. Bài hát số 11", src: "mp3/song11.mp3" },
+      { title: "12. Bài hát số 12", src: "mp3/song12.mp3" },
+      { title: "13. Bài hát số 13", src: "mp3/song13.mp3" },
+      { title: "14. Bài hát số 14", src: "mp3/song14.mp3" },
+      { title: "15. Bài hát số 15", src: "mp3/song15.mp3" },
+      { title: "16. Bài hát số 16", src: "mp3/song16.mp3" },
+      { title: "17. Bài hát số 17", src: "mp3/song17.mp3" },
+      { title: "18. Bài hát số 18", src: "mp3/song18.mp3" },
+      { title: "19. Bài hát số 19", src: "mp3/song19.mp3" },
+      { title: "20. Bài hát số 20", src: "mp3/song20.mp3" },
+      { title: "21. Bài hát số 21", src: "mp3/song21.mp3" },
+      { title: "22. Bài hát số 22", src: "mp3/song22.mp3" },
+      { title: "23. Bài hát số 23", src: "mp3/song23.mp3" },
+      { title: "24. Tình Xưa Nghĩa Cũ 1 - Jimmy Nguyễn", src: "mp3/song24.mp3" },
+      { title: "25. Tình Xưa Nghĩa Cũ 2 - Jimmy Nguyễn", src: "mp3/song25.mp3" },
+      { title: "26. Unbreak My Heart - Toni Braxton", src: "mp3/song26.mp3" },
+      { title: "27. Bài hát số 27", src: "mp3/song27.mp3" },
+      { title: "28. Bài hát số 28", src: "mp3/song28.mp3" },
+      { title: "29. Bài hát số 29", src: "mp3/song29.mp3" },
+      { title: "30. Bài hát số 30", src: "mp3/song30.mp3" }
+    ];
+
+    let currentTrackIndex = 0;
+    const audio = document.getElementById('audioPlayer');
+    const playlistElement = document.getElementById('playlist');
+    const trackTitle = document.getElementById('trackTitle');
+    const currentTimeElement = document.getElementById('currentTime');
+    const durationElement = document.getElementById('duration');
+    const progressBar = document.getElementById('progressBar');
+    const progressContainer = document.getElementById('progressContainer');
+
+    // 2. Khởi tạo danh sách phát
+    function initPlaylist() {
+      playlistData.forEach((track, index) => {
+        const li = document.createElement('li');
+        li.textContent = track.title;
+        li.onclick = () => selectTrack(index);
+        playlistElement.appendChild(li);
+      });
+      loadTrack(currentTrackIndex);
+    }
+
+    // 3. Tải bài hát
+    function loadTrack(index) {
+      currentTrackIndex = index;
+      audio.src = playlistData[index].src;
+      trackTitle.textContent = playlistData[index].title;
+      
+      // Cập nhật trạng thái active trong danh sách
+      const items = playlistElement.querySelectorAll('li');
+      items.forEach((item, i) => {
+        item.classList.toggle('active', i === index);
+      });
+    }
+
+    function playTrack() {
+      audio.play();
+    }
+
+    function pauseTrack() {
+      audio.pause();
+    }
+
+    function stopTrack() {
+      audio.pause();
+      audio.currentTime = 0;
+    }
+
+    function prevTrack() {
+      currentTrackIndex = (currentTrackIndex - 1 + playlistData.length) % playlistData.length;
+      loadTrack(currentTrackIndex);
+      playTrack();
+    }
+
+    function nextTrack() {
+      currentTrackIndex = (currentTrackIndex + 1) % playlistData.length;
+      loadTrack(currentTrackIndex);
+      playTrack();
+    }
+
+    function selectTrack(index) {
+      loadTrack(index);
+      playTrack();
+    }
+
+    function changeVolume(val) {
+      audio.volume = val;
+    }
+
+    // Format thời gian (giây -> phút:giây)
+    function formatTime(seconds) {
+      if (isNaN(seconds)) return "00:00";
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}`;
+    }
+
+    // Cập nhật thời gian phát
+    audio.addEventListener('timeupdate', () => {
+      currentTimeElement.textContent = formatTime(audio.currentTime);
+      durationElement.textContent = formatTime(audio.duration);
+      const progressPercent = (audio.currentTime / audio.duration) * 100;
+      progressBar.style.width = `${progressPercent}%`;
+    });
+
+    // Tua nhạc khi click vào thanh tiến trình
+    progressContainer.addEventListener('click', (e) => {
+      const width = progressContainer.clientWidth;
+      const clickX = e.offsetX;
+      const duration = audio.duration;
+      if (duration) {
+        audio.currentTime = (clickX / width) * duration;
+      }
+    });
+
+    // Tự động chuyển bài khi hết nhạc
+    audio.addEventListener('ended', nextTrack);
+
+    // Chạy khi trang tải xong
+    window.onload = initPlaylist;
+  </script>
+</body>
+</html>

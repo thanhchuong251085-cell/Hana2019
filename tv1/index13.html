@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xem Truyền Hình Trực Tuyến - IPTV Player</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .channel-btn.active {
+            border-left: 4px solid #ef4444;
+            background-color: #374151;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex flex-col font-sans">
+
+    <!-- Header / Navbar -->
+    <header class="bg-gray-800 border-b border-gray-700 p-4 shadow-lg flex justify-between items-center">
+        <div class="flex items-center gap-2">
+            <span class="text-red-600 text-2xl font-black">LIVE</span>
+            <h1 class="text-xl font-bold tracking-wide">TV ONLINE</h1>
+        </div>
+        <button onclick="openModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-1">
+            ⚙️ Nguồn M3U
+        </button>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 flex flex-col lg:flex-row p-4 gap-4 max-w-7xl w-full mx-auto">
+        
+        <!-- Frame Phát Video (Bên trái / Trên) -->
+        <div class="lg:w-2/3 flex flex-col gap-2">
+            <div class="relative w-full bg-black rounded-xl overflow-hidden shadow-2xl border border-gray-800 aspect-video">
+                <iframe id="tv-player" class="w-full h-full border-0" allowfullscreen allow="autoplay; encrypted-media"></iframe>
+            </div>
+            <div class="bg-gray-800 p-3 rounded-xl border border-gray-700 flex justify-between items-center">
+                <div id="current-title" class="font-bold text-base text-yellow-400 truncate">
+                    Đang phát: THVL 1 HD
+                </div>
+                <button id="live-toggle-btn" onclick="toggleChannelMenu()" class="bg-red-600 hover:bg-red-700 text-xs px-3 py-1.5 rounded-lg font-semibold transition shrink-0">
+                    Lịch Phát Sống
+                </button>
+            </div>
+        </div>
+
+        <!-- Sidebar Danh Sách / EPG (Bên phải / Dưới) -->
+        <div class="lg:w-1/3 bg-gray-800 rounded-xl border border-gray-700 flex flex-col h-[500px] lg:h-auto overflow-hidden">
+            <div class="p-3 bg-gray-700/50 border-b border-gray-700 font-bold text-sm tracking-wide text-gray-300" id="panel-title">
+                DANH SÁCH KÊNH
+            </div>
+
+            <!-- List Kênh -->
+            <div id="channel-list" class="p-3 flex flex-col gap-1.5 overflow-y-auto flex-1">
+                <!-- Data kênh render bằng Javascript -->
+            </div>
+
+            <!-- Lịch phát sóng (EPG) -->
+            <div id="epg-schedule" class="p-3 flex-col gap-2 overflow-y-auto flex-1 hidden">
+                <!-- Data EPG render bằng Javascript -->
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 border-t border-gray-700 text-center py-3 text-xs text-gray-400">
+        Web Player IPTV - Tải trang thành công
+    </footer>
+
+    <!-- Modal chọn Nguồn IPTV M3U -->
+    <div id="source-modal" class="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 hidden backdrop-blur-sm">
+        <div class="bg-gray-800 border border-gray-700 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-gray-700 pb-2">
+                <h3 class="font-bold text-lg text-white">Nguồn Kênh IPTV</h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-white font-bold text-xl">&times;</button>
+            </div>
+
+            <div class="space-y-3 text-sm">
+                <div>
+                    <label class="block text-gray-300 font-medium mb-1">Dùng danh sách mặc định:</label>
+                    <button onclick="loadDefaultTV()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 rounded-lg transition">
+                        Khôi phục 33 Kênh Mặc Định
+                    </button>
+                </div>
+
+                <div class="border-t border-gray-700 pt-3">
+                    <label class="block text-gray-300 font-medium mb-1">Nhập Link List M3U / URL IPTV:</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="custom-url-input" placeholder="https://domain.com/list.m3u" class="bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-white flex-1 text-xs focus:outline-none focus:border-blue-500">
+                        <button onclick="loadCustomUrl()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0">
+                            Tải Link
+                        </button>
+                    </div>
+                </div>
+
+                <div class="border-t border-gray-700 pt-3">
+                    <label class="block text-gray-300 font-medium mb-1">Tải file .m3u từ máy tính:</label>
+                    <input type="file" accept=".m3u,.m3u8,.txt" onchange="handleFileUpload(event)" class="text-xs text-gray-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-gray-700 file:text-white hover:file:bg-gray-600 cursor-pointer">
+                </div>
+            </div>
+
+            <div class="text-right border-t border-gray-700 pt-3">
+                <button onclick="closeModal()" class="bg-gray-700 hover:bg-gray-600 text-white text-xs px-4 py-2 rounded-lg">
+                    Đóng
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Xử Lý -->
+    <script>
+        // Danh sách 33 kênh mặc định
+        const defaultChannels = [
+            // --- NHÓM TRUYỀN HÌNH VĨNH LONG (THVL) ---
+            { group: "TRUYỀN HÌNH VĨNH LONG (THVL)", name: "THVL 1 HD", url: "https://www.thvli.vn/live/thvl1-hd" },
+            { group: "TRUYỀN HÌNH VĨNH LONG (THVL)", name: "THVL 2 HD", url: "https://www.thvli.vn/live/thvl2-hd" },
+            { group: "TRUYỀN HÌNH VĨNH LONG (THVL)", name: "THVL 3 HD", url: "https://www.thvli.vn/live/thvl3-hd" },
+            { group: "TRUYỀN HÌNH VĨNH LONG (THVL)", name: "THVL 4 HD", url: "https://www.thvli.vn/live/thvl4-hd" },
+            { group: "TRUYỀN HÌNH VĨNH LONG (THVL)", name: "THVL 5 HD", url: "https://www.thvli.vn/live/thvl5-hd" },
+
+            // --- NHÓM KÊNH VTV ---
+            { group: "ĐÀI TRUYỀN HÌNH VIỆT NAM (VTV)", name: "VTV Home", url: "https://vtvgo.vn/xem-truc-tuyen/vtv1-1.html" },
+            { group: "ĐÀI TRUYỀN HÌNH VIỆT NAM (VTV)", name: "VTV1 HD", url: "https://live.fptplay53.net/live/media/vtv1/live247-hls-avc/vtv1-avc1_5600000=10000-mp4a_131600=20000.m3u8" },
+            { group: "ĐÀI TRUYỀN HÌNH VIỆT NAM (VTV)", name: "VTV2 HD", url: "https://vips-livecdn.fptplay.net/live/media/vtv2/live247-hls-avc/vtv2-avc1_5600000=10000-mp4a_131600=20000.m3u8" },
+            { group: "ĐÀI TRUYỀN HÌNH VIỆT NAM (VTV)", name: "VTV3 HD", url: "https://vips-livecdn.fptplay.net/live/media/vtv3/live247-hls-avc/vtv3-avc1_5600000=10000-mp4a_140800_vie=20000.m3u8" },
+            { group: "ĐÀI TRUYỀN HÌNH VIỆT NAM (VTV)", name: "VTV4 HD", url: "https://live.fptplay53.net/live/media/vtv4/live247-hls-avc/vtv4-avc1_5600000=10000-mp4a_131600=20000.m3u8" },
+            { group: "ĐÀI TRUYỀN HÌNH VIỆT NAM (VTV)", name: "VTV5 Quốc Gia", url: "https://live.fptplay53.net/live/media/vtv5/live247-hls-avc/vtv5-avc1_5600000=10000-mp4a_131600=20000.m3u8" },
+            { group: "ĐÀI TRUYỀN HÌNH VIỆT NAM (VTV)", name: "VTV5 Tây Nguyên", url: "https://live.fptplay53.net/live/media/vtv5tn/live-hls-avc/vtv5tn-avc1_4000000=10000-mp4a_131600=20000.m3u8" },
+            { group: "ĐÀI TRUYỀN HÌNH VIỆT NAM (VTV)", name: "VTV5 Tây Nam Bộ", url: "https://live.fptplay53.net/live/media/vtv5tnb/live-hls-avc/vtv5tnb-avc1_4000000=10000-mp4a_131600=20000.m3u8" },
+            { group: "ĐÀI TRUYỀN HÌNH VIỆT NAM (VTV)", name: "VTV6 HD", url: "https://vips-livecdn.fptplay.net/live/media/vtv6/live247-hls-avc/vtv6-avc1_5600000=10000-mp4a_140800_vie=20000.m3u8" },
+            { group: "ĐÀI TRUYỀN HÌNH VIỆT NAM (VTV)", name: "VTV7 HD", url: "https://vips-livecdn.fptplay.net/live/media/vtv7/live247-hls-avc/vtv7-avc1_5600000=10000-mp4a_140800_vie=20000.m3u8" },
+            { group: "ĐÀI TRUYỀN HÌNH VIỆT NAM (VTV)", name: "VTV8 HD", url: "https://vips-livecdn.fptplay.net/live/media/vtv8/live-hls-avc/vtv8-avc1_4000000=10000-mp4a_131600=20000.m3u8" },
+            { group: "ĐÀI TRUYỀN HÌNH VIỆT NAM (VTV)", name: "VTV9 HD", url: "https://vips-livecdn.fptplay.net/live/media/vtv9/live247-hls-avc/vtv9-avc1_5600000=10000-mp4a_140800_vie=20000.m3u8" },
+            { group: "ĐÀI TRUYỀN HÌNH VIỆT NAM (VTV)", name: "VTV10 HD", url: "https://vips-livecdn.fptplay.net/live/media/vtv10/live247-hls-avc/vtv10-avc1_5600000=10000-mp4a_131600=20000.m3u8" },
+            { group: "ĐÀI TRUYỀN HÌNH VIỆT NAM (VTV)", name: "VTV vietnamtoday", url: "https://live.fptplay53.net/fnxhd1/vntoday_vhls.smil/chunklist_b5000000.m3u8" },
+
+            // --- NHÓM KÊNH HTV & HTVC ---
+            { group: "TRUYỀN HÌNH TP.HCM (HTV & HTVC)", name: "HTV1 (public)", url: "https://live.fptplay53.net/epzhd1/htv1_hls.smil/chunklist_b2500000.m3u8" },
+            { group: "TRUYỀN HÌNH TP.HCM (HTV & HTVC)", name: "HTV2 (Vie Channel)", url: "https://live.fptplay53.net/epzhd1/htv2hd_vhls.smil/chunklist_b5000000.m3u8" },
+            { group: "TRUYỀN HÌNH TP.HCM (HTV & HTVC)", name: "HTV3 (Thanh thiếu nhi)", url: "https://live.fptplay53.net/epzhd1/htv3_hls.smil/chunklist_b2500000.m3u8" },
+            { group: "TRUYỀN HÌNH TP.HCM (HTV & HTVC)", name: "HTV7 HD", url: "https://live.fptplay53.net/epzhd1/htv7hd_vhls.smil/chunklist_b5000000.m3u8" },
+            { group: "TRUYỀN HÌNH TP.HCM (HTV & HTVC)", name: "HTV9 HD", url: "https://live.fptplay53.net/epzhd1/htv9hd_vhls.smil/chunklist_b5000000.m3u8" },
+            { group: "TRUYỀN HÌNH TP.HCM (HTV & HTVC)", name: "HTV Thể Thao", url: "https://live.fptplay53.net/epzhd1/htvcthethao_vhls.smil/chunklist_b5000000.m3u8" },
+            { group: "TRUYỀN HÌNH TP.HCM (HTV & HTVC)", name: "HTVC Thuần Việt", url: "https://live.fptplay53.net/epzhd1/htvcthuanviethd_vhls.smil/chunklist_b5000000.m3u8" },
+            { group: "TRUYỀN HÌNH TP.HCM (HTV & HTVC)", name: "HTVC Gia Đình", url: "https://live.fptplay53.net/epzhd1/htvcgiadinh_vhls.smil/chunklist_b5000000.m3u8" },
+            { group: "TRUYỀN HÌNH TP.HCM (HTV & HTVC)", name: "HTVC Phim", url: "https://live.fptplay53.net/epzhd1/htvcmovieshd_vhls.smil/chunklist_b5000000.m3u8" },
+            { group: "TRUYỀN HÌNH TP.HCM (HTV & HTVC)", name: "HTVC Ca Nhạc", url: "https://live.fptplay53.net/epzhd1/htvcmusic_vhls.smil/chunklist_b5000000.m3u8" },
+            { group: "TRUYỀN HÌNH TP.HCM (HTV & HTVC)", name: "HTVC Phụ Nữ", url: "https://live.fptplay53.net/epzhd1/htvcphunu_vhls.smil/chunklist_b2500000.m3u8" },
+            { group: "TRUYỀN HÌNH TP.HCM (HTV & HTVC)", name: "HTVC Du Lịch & Cuộc Sống", url: "https://live.fptplay53.net/epzhd1/htvcdulich_vhls.smil/chunklist_b5000000.m3u8" },
+
+            // --- NHÓM KÊNH ĐỊA PHƯƠNG ---
+            { group: "KÊNH ĐỊA PHƯƠNG TỔNG HỢP", name: "Hà Nội 1 (HN1)", url: "https://hanoitv.vn/tv-truc-tuyen.html" },
+            { group: "KÊNH ĐỊA PHƯƠNG TỔNG HỢP", name: "Đồng Nai 1 (DN1)", url: "https://dnrtv.org.vn/tv-online/dn1.html" }
+        ];
+
+        let currentChannels = [...defaultChannels];
+        let currentChannelObj = defaultChannels[0];
+        let isShowingChannels = true;
+        let loadedEpgData = {}; 
+
+        const player = document.getElementById('tv-player');
+        const channelListContainer = document.getElementById('channel-list');
+        const epgContainer = document.getElementById('epg-schedule');
+        const currentTitle = document.getElementById('current-title');
+        const panelTitle = document.getElementById('panel-title');
+        const liveToggleBtn = document.getElementById('live-toggle-btn');
+
+        function toggleChannelMenu() {
+            isShowingChannels = !isShowingChannels;
+
+            if (isShowingChannels) {
+                channelListContainer.classList.remove('hidden');
+                channelListContainer.classList.add('flex');
+                epgContainer.classList.add('hidden');
+                epgContainer.classList.remove('flex');
+                
+                panelTitle.textContent = "DANH SÁCH KÊNH";
+                liveToggleBtn.classList.remove('bg-gray-600', 'hover:bg-gray-700');
+                liveToggleBtn.classList.add('bg-red-600', 'hover:bg-red-700');
+            } else {
+                channelListContainer.classList.add('hidden');
+                channelListContainer.classList.remove('flex');
+                epgContainer.classList.remove('hidden');
+                epgContainer.classList.add('flex');
+                
+                panelTitle.textContent = "LỊCH PHÁT SỐNG";
+                liveToggleBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
+                liveToggleBtn.classList.add('bg-gray-600', 'hover:bg-gray-700');
+                
+                renderSchedule();
+            }
+        }
+
+        function getScheduleForChannel(channel) {
+            if (channel.schedule && channel.schedule.length > 0) return channel.schedule;
+            if (loadedEpgData[channel.name] && loadedEpgData[channel.name].length > 0) return loadedEpgData[channel.name];
+            if (loadedEpgData[channel.tvgId] && loadedEpgData[channel.tvgId].length > 0) return loadedEpgData[channel.tvgId];
+            return [];
+        }
+
+        function renderSchedule() {
+            epgContainer.innerHTML = '';
+            const scheduleData = getScheduleForChannel(currentChannelObj);
+
+            const header = document.createElement('div');
+            header.className = 'text-xs font-bold text-cyan-400 mb-2 border-b border-gray-700 pb-2 flex justify-between items-center';
+            header.innerHTML = `<span>📺 Lịch phát: ${currentChannelObj.name}</span><span class="text-[10px] bg-gray-700 text-gray-300 px-2 py-0.5 rounded">Hôm nay</span>`;
+            epgContainer.appendChild(header);
+
+            if (scheduleData.length === 0) {
+                const emptyDiv = document.createElement('div');
+                emptyDiv.className = 'text-center text-gray-500 text-xs py-8 italic border border-dashed border-gray-700 rounded-lg mt-2';
+                emptyDiv.innerHTML = '<i>Chưa có dữ liệu lịch phát sóng cho kênh này.</i>';
+                epgContainer.appendChild(emptyDiv);
+                return;
+            }
+
+            scheduleData.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = `p-2.5 rounded-lg text-xs flex justify-between items-center ${item.isLive ? 'bg-red-900/40 border border-red-500/50' : 'bg-gray-700/50 hover:bg-gray-700'}`;
+                
+                itemDiv.innerHTML = `
+                    <div class="flex items-center gap-2 overflow-hidden">
+                        <span class="font-mono text-gray-400 font-bold shrink-0">${item.time}</span>
+                        <span class="${item.isLive ? 'font-bold text-white' : 'text-gray-300'} truncate">${item.title}</span>
+                    </div>
+                    ${item.isLive ? '<span class="text-[9px] bg-red-600 text-white font-bold px-1.5 py-0.5 rounded uppercase animate-pulse shrink-0">Đang phát</span>' : ''}
+                `;
+                epgContainer.appendChild(itemDiv);
+            });
+        }
+
+        function openModal() {
+            document.getElementById('source-modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('source-modal').classList.add('hidden');
+        }
+
+        function loadDefaultTV() {
+            currentChannels = [...defaultChannels];
+            loadedEpgData = {};
+            renderChannels();
+            if (currentChannels.length > 0) playChannel(currentChannels[0], channelListContainer.querySelector('.channel-btn'));
+            closeModal();
+        }
+
+        // HÀM TẢI M3U VƯỢT LỖI CORS QUA PROXY
+        async function loadFromUrl(url) {
+            if (!url) return;
+            
+            // Các server trung gian vượt rào cản CORS
+            const proxies = [
+                (target) => `https://api.allorigins.win/raw?url=${encodeURIComponent(target)}`,
+                (target) => `https://corsproxy.io/?${encodeURIComponent(target)}`,
+                (target) => target
+            ];
+
+            let text = "";
+            let success = false;
+
+            for (const getProxyUrl of proxies) {
+                try {
+                    const proxyUrl = getProxyUrl(url);
+                    const response = await fetch(proxyUrl);
+                    if (response.ok) {
+                        text = await response.text();
+                        if (text && text.trim().length > 0) {
+                            success = true;
+                            break;
+                        }
+                    }
+                } catch (e) {
+                    console.log("Thử proxy tiếp theo...");
+                }
+            }
+
+            if (success) {
+                parseAndSetM3u(text);
+                closeModal();
+            } else {
+                alert("Không thể tải link IPTV này. Kiểm tra đường dẫn hoặc kênh máy chủ.");
+            }
+        }
+
+        function loadCustomUrl() {
+            const url = document.getElementById('custom-url-input').value.trim();
+            if (url) loadCustomLink(url);
+        }
+
+        async function loadCustomLink(url) {
+            if (url.endsWith('.json')) {
+                try {
+                    const res = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`);
+                    const data = await res.json();
+                    if (Array.isArray(data)) {
+                        currentChannels = data;
+                        renderChannels();
+                        closeModal();
+                        return;
+                    }
+                } catch(e) {}
+            }
+            loadFromUrl(url);
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                parseAndSetM3u(e.target.result);
+                closeModal();
+            };
+            reader.readAsText(file);
+        }
+
+        function parseAndSetM3u(m3uContent) {
+            const lines = m3uContent.split('\n');
+            const newChannels = [];
+            let currentName = '';
+            let currentGroup = 'KÊNH NHẬP VÀO';
+            let currentTvgId = '';
+
+            lines.forEach(line => {
+                line = line.trim();
+                if (line.startsWith('#EXTINF:')) {
+                    const groupMatch = line.match(/group-title="([^"]+)"/i);
+                    if (groupMatch) currentGroup = groupMatch[1];
+
+                    const tvgIdMatch = line.match(/tvg-id="([^"]+)"/i);
+                    if (tvgIdMatch) currentTvgId = tvgIdMatch[1];
+
+                    const commaIndex = line.lastIndexOf(',');
+                    if (commaIndex !== -1) {
+                        currentName = line.substring(commaIndex + 1).trim();
+                    }
+                } else if (line && !line.startsWith('#')) {
+                    if (currentName) {
+                        newChannels.push({
+                            group: currentGroup,
+                            name: currentName,
+                            tvgId: currentTvgId,
+                            url: line,
+                            schedule: []
+                        });
+                        currentName = '';
+                        currentTvgId = '';
+                    }
+                }
+            });
+
+            if (newChannels.length > 0) {
+                currentChannels = newChannels;
+                renderChannels();
+                const firstBtn = channelListContainer.querySelector('.channel-btn');
+                if (firstBtn) playChannel(currentChannels[0], firstBtn);
+            } else {
+                alert("Không tìm thấy danh sách kênh m3u hợp lệ.");
+            }
+        }
+
+        function renderChannels() {
+            channelListContainer.innerHTML = '';
+            let currentGroup = '';
+
+            currentChannels.forEach((ch, index) => {
+                if (ch.group !== currentGroup) {
+                    currentGroup = ch.group;
+                    const groupTitle = document.createElement('div');
+                    groupTitle.className = 'text-xs font-bold text-yellow-400 mt-3 mb-1 uppercase tracking-wider border-b border-gray-700 pb-1';
+                    groupTitle.textContent = currentGroup;
+                    channelListContainer.appendChild(groupTitle);
+                }
+
+                const btn = document.createElement('button');
+                btn.className = `channel-btn w-full text-left p-2.5 rounded-lg bg-gray-700 hover:bg-gray-600 transition flex items-center justify-between ${index === 0 ? 'active' : ''}`;
+                btn.innerHTML = `
+                    <span class="text-sm">📺 ${ch.name}</span>
+                    <span class="text-[10px] bg-red-600 text-white px-1.5 py-0.5 rounded">LIVE</span>
+                `;
+                
+                btn.onclick = () => playChannel(ch, btn);
+                channelListContainer.appendChild(btn);
+            });
+        }
+
+        function playChannel(channel, selectedBtn) {
+            player.src = channel.url;
+            currentChannelObj = channel;
+            currentTitle.textContent = `Đang phát: ${channel.name}`;
+
+            document.querySelectorAll('.channel-btn').forEach(b => b.classList.remove('active'));
+            if (selectedBtn) selectedBtn.classList.add('active');
+
+            if (!isShowingChannels) {
+                renderSchedule();
+            }
+        }
+
+        // Khởi chạy mặc định khi load trang
+        renderChannels();
+        if(currentChannels.length > 0) {
+            player.src = currentChannels[0].url;
+        }
+    </script>
+</body>
+</html>
