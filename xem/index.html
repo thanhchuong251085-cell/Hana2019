@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Máy Phát Đa Năng</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+        * { font-family: 'Poppins', sans-serif; }
+        
+        body {
+            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+            min-height: 100vh;
+        }
+
+        .player-box {
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            border-radius: 24px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.3);
+        }
+
+        .screen-box {
+            background: linear-gradient(180deg, #0c1222, #1a2744);
+            border-radius: 20px;
+            box-shadow: inset 0 4px 15px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05);
+            padding: 16px;
+        }
+
+        .btn-circle {
+            width: 56px; height: 56px; border-radius: 50%;
+            background: linear-gradient(145deg, #334155, #1e293b);
+            box-shadow: 6px 6px 12px rgba(0,0,0,0.4), -3px -3px 8px rgba(255,255,255,0.05);
+            transition: all 0.15s ease;
+        }
+        .btn-circle:active {
+            transform: scale(0.92);
+            box-shadow: inset 4px 4px 8px rgba(0,0,0,0.5);
+        }
+        .btn-play {
+            width: 72px; height: 72px;
+            background: linear-gradient(145deg, #ef4444, #dc2626);
+            box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4);
+        }
+        .btn-play:active {
+            box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3);
+        }
+
+        .progress-bar {
+            height: 6px; border-radius: 3px; background: #1e293b; cursor: pointer;
+        }
+        .progress-fill {
+            height: 100%; border-radius: 3px;
+            background: linear-gradient(90deg, #ef4444, #f97316);
+            width: 0%; transition: width 0.1s linear;
+        }
+
+        .song-item {
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 12px; transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+        .song-item:hover {
+            background: rgba(239, 68, 68, 0.15); transform: translateX(4px);
+        }
+        .song-item.active {
+            background: rgba(239, 68, 68, 0.25); border-left-color: #ef4444;
+        }
+
+        .tag { font-size: 10px; padding: 2px 6px; border-radius: 10px; }
+        .tag-yt { background: rgba(255,0,0,0.2); color: #ffb3b3; }
+        .tag-mp4 { background: rgba(59,130,246,0.2); color: #b3d4ff; }
+
+        input[type="range"] {
+            -webkit-appearance: none; appearance: none;
+            height: 4px; border-radius: 2px; background: #334155; outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
+            background: #ef4444; cursor: pointer; box-shadow: 0 0 6px rgba(239,68,68,0.5);
+        }
+    </style>
+</head>
+<body class="text-white">
+
+<div class="max-w-4xl mx-auto px-3 py-5">
+    <div class="player-box p-5 mb-5">
+        <div class="screen-box mb-5">
+            <div id="videoContainer" class="w-full rounded-xl overflow-hidden bg-black aspect-video">
+                <video id="player" controls class="w-full h-full outline-none hidden" preload="metadata"></video>
+                <iframe id="ytPlayer" class="w-full h-full hidden" frameborder="0" allowfullscreen allow="autoplay; encrypted-media"></iframe>
+                <div id="placeholder" class="flex items-center justify-center h-full min-h-[300px] text-slate-400">
+                    <div class="text-center">
+                        <p class="text-5xl mb-3">🎬</p>
+                        <p class="text-lg">Chưa chọn nội dung</p>
+                    </div>
+                </div>
+            </div>
+            <p id="titleDisplay" class="text-center text-orange-300 font-medium mt-4 text-lg truncate">
+                🎵 Chưa chọn nội dung
+            </p>
+        </div>
+
+        <div id="progressSection" class="px-2 mb-4 hidden">
+            <div class="progress-bar" id="progressBar" onclick="seekVideo(event)">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="flex justify-between text-xs text-slate-400 mt-2">
+                <span id="timeCurrent">00:00</span>
+                <span id="timeTotal">00:00</span>
+            </div>
+        </div>
+
+        <div class="flex items-center justify-center gap-4 mb-5">
+            <button class="btn-circle flex items-center justify-center text-lg" onclick="prevItem()" title="Trước">⏮</button>
+            <button class="btn-circle btn-play flex items-center justify-center text-2xl" id="playBtn" onclick="togglePlay()">▶</button>
+            <button class="btn-circle flex items-center justify-center text-lg" onclick="nextItem()" title="Sau">⏭</button>
+        </div>
+
+        <div class="flex items-center justify-center gap-3">
+            <span class="text-slate-400">🔈</span>
+            <input type="range" id="volumeSlider" min="0" max="100" value="80" class="w-32" oninput="setVolume(this.value)">
+            <span class="text-slate-400">🔊</span>
+        </div>
+        <p id="hintText" class="text-center text-xs text-slate-500 mt-2">💡 YouTube: bấm trực tiếp trên màn hình để phát/tạm dừng</p>
+    </div>
+
+    <div class="bg-slate-800/50 rounded-xl p-4 mb-4 border border-slate-700">
+        <h3 class="font-semibold text-emerald-300 mb-3">➕ Thêm Nội Dung Mới</h3>
+        <input type="text" id="linkInput" placeholder="Dán link MP4 / Google Drive / GitHub / YouTube..."
+            class="w-full bg-slate-900/60 border border-slate-600 rounded-lg px-4 py-3 mb-3 outline-none focus:border-orange-500">
+        <input type="text" id="nameInput" placeholder="Tên (tùy chọn)"
+            class="w-full bg-slate-900/60 border border-slate-600 rounded-lg px-4 py-3 mb-3 outline-none focus:border-orange-500">
+        <button onclick="addItem()" class="w-full bg-red-600 hover:bg-red-500 py-3 rounded-lg font-semibold transition">
+            ➕ Thêm vào danh sách
+        </button>
+        <p class="text-xs text-slate-400 mt-2">
+            ✅ Hỗ trợ: YouTube | Link MP4 | GitHub (raw) | Google Drive (dạng uc?export=download)
+        </p>
+    </div>
+
+    <div class="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
+        <div class="flex justify-between items-center mb-3">
+            <h3 class="font-semibold text-amber-300">📋 Danh Sách Phát</h3>
+            <button onclick="clearAll()" class="text-red-400 text-sm hover:text-red-300">🗑 Xóa hết</button>
+        </div>
+        <ul id="playlist" class="space-y-2">
+            <li class="text-slate-500 text-center py-4" id="emptyMsg">Chưa có gì</li>
+        </ul>
+    </div>
+</div>
+
+<script>
+const player = document.getElementById('player');
+const ytPlayer = document.getElementById('ytPlayer');
+const placeholder = document.getElementById('placeholder');
+const titleDisplay = document.getElementById('titleDisplay');
+const progressSection = document.getElementById('progressSection');
+const progressFill = document.getElementById('progressFill');
+const timeCurrent = document.getElementById('timeCurrent');
+const timeTotal = document.getElementById('timeTotal');
+const playBtn = document.getElementById('playBtn');
+const hintText = document.getElementById('hintText');
+
+let playlist = JSON.parse(localStorage.getItem('multiPlayerList') || '[]');
+let currentIndex = -1;
+let currentType = null;
+
+function detectType(link) {
+    if (link.includes('youtube.com/') || link.includes('youtu.be/')) return 'youtube';
+    return 'mp4';
+}
+
+function getYtId(link) {
+    if (link.includes('youtu.be/')) return link.split('youtu.be/')[1].split('?')[0];
+    if (link.includes('youtube.com/watch')) {
+        const url = new URL(link);
+        return url.searchParams.get('v');
+    }
+    return null;
+}
+
+function loadItem(index) {
+    if (index < 0 || index >= playlist.length) return;
+    currentIndex = index;
+    const item = playlist[index];
+    currentType = item.type;
+
+    player.classList.add('hidden');
+    ytPlayer.classList.add('hidden');
+    placeholder.classList.add('hidden');
+    progressSection.classList.add('hidden');
+
+    if (item.type === 'youtube') {
+        ytPlayer.src = `https://www.youtube.com/embed/${getYtId(item.link)}`;
+        ytPlayer.classList.remove('hidden');
+        hintText.textContent = '💡 YouTube: bấm trực tiếp trên màn hình để phát/tạm dừng';
+        hintText.classList.remove('hidden');
+    } else {
+        player.src = item.link;
+        player.classList.remove('hidden');
+        progressSection.classList.remove('hidden');
+        hintText.classList.add('hidden');
+    }
+
+    titleDisplay.textContent = item.name;
+    playBtn.textContent = '▶';
+    updateActiveItem();
+}
+
+function togglePlay() {
+    if (currentIndex === -1 && playlist.length > 0) loadItem(0);
+    
+    if (currentType === 'youtube') {
+        alert('ℹ️ Đối với YouTube: vui lòng BẤM TRỰC TIẾP trên màn hình video để phát hoặc tạm dừng!\n\nĐây là giới hạn bảo mật của YouTube, không cho nút ngoài điều khiển được.');
+        return;
+    }
+    
+    if (player.paused) { player.play(); playBtn.textContent = '⏸'; }
+    else { player.pause(); playBtn.textContent = '▶'; }
+}
+
+function prevItem() {
+    if (playlist.length === 0) return;
+    loadItem((currentIndex - 1 + playlist.length) % playlist.length);
+}
+function nextItem() {
+    if (playlist.length === 0) return;
+    loadItem((currentIndex + 1) % playlist.length);
+}
+
+player.addEventListener('timeupdate', () => {
+    if (!player.paused && player.duration) {
+        progressFill.style.width = (player.currentTime / player.duration * 100) + '%';
+        timeCurrent.textContent = formatTime(player.currentTime);
+    }
+});
+player.addEventListener('loadedmetadata', () => {
+    timeTotal.textContent = formatTime(player.duration);
+});
+player.addEventListener('ended', () => nextItem());
+player.addEventListener('play', () => playBtn.textContent = '⏸');
+player.addEventListener('pause', () => playBtn.textContent = '▶');
+
+function seekVideo(e) {
+    if (!player.duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    player.currentTime = (e.clientX - rect.left) / rect.width * player.duration;
+}
+
+function formatTime(sec) {
+    if (!sec) return '00:00';
+    const m = Math.floor(sec / 60), s = Math.floor(sec % 60);
+    return `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+}
+
+function setVolume(val) { player.volume = val / 100; }
+
+function addItem() {
+    const link = document.getElementById('linkInput').value.trim();
+    const name = document.getElementById('nameInput').value.trim() || `Nội dung ${playlist.length + 1}`;
+    if (!link) return alert('Bạn chưa dán link!');
+    
+    const type = detectType(link);
+    if (type === 'youtube' && !getYtId(link)) return alert('Link YouTube không hợp lệ!');
+    
+    playlist.push({ link, name, type });
+    saveAndRender();
+    
+    document.getElementById('linkInput').value = '';
+    document.getElementById('nameInput').value = '';
+    if (playlist.length === 1) loadItem(0);
+}
+
+function removeItem(idx) {
+    if (!confirm('Xóa nội dung này?')) return;
+    playlist.splice(idx, 1);
+    if (currentIndex === idx) {
+        currentIndex = -1;
+        player.src = ''; ytPlayer.src = '';
+        titleDisplay.textContent = '🎵 Chưa chọn nội dung';
+        placeholder.classList.remove('hidden');
+        hintText.classList.add('hidden');
+    } else if (currentIndex > idx) currentIndex--;
+    saveAndRender();
+}
+
+function clearAll() {
+    if (!confirm('Xóa toàn bộ danh sách?')) return;
+    playlist = []; currentIndex = -1;
+    player.src = ''; ytPlayer.src = '';
+    titleDisplay.textContent = '🎵 Chưa chọn nội dung';
+    placeholder.classList.remove('hidden');
+    hintText.classList.add('hidden');
+    saveAndRender();
+}
+
+function saveAndRender() {
+    localStorage.setItem('multiPlayerList', JSON.stringify(playlist));
+    renderList();
+}
+
+function renderList() {
+    const ul = document.getElementById('playlist');
+    if (playlist.length === 0) {
+        ul.innerHTML = '<li class="text-slate-500 text-center py-4">Chưa có nội dung nào</li>';
+        return;
+    }
+    ul.innerHTML = '';
+    playlist.forEach((item, idx) => {
+        const li = document.createElement('li');
+        li.className = `song-item p-3 px-4 flex justify-between items-center ${idx === currentIndex ? 'active' : ''}`;
+        li.innerHTML = `
+            <span class="cursor-pointer flex-1" onclick="loadItem(${idx})">
+                <span class="tag ${item.type === 'youtube' ? 'tag-yt' : 'tag-mp4'} mr-2">
+                    ${item.type === 'youtube' ? 'YouTube' : 'MP4'}
+                </span>
+                ${item.name}
+            </span>
+            <button class="text-red-400 hover:text-red-300 text-sm ml-2" onclick="event.stopPropagation(); removeItem(${idx})">✕</button>
+        `;
+        ul.appendChild(li);
+    });
+}
+
+function updateActiveItem() { renderList(); }
+
+renderList();
+player.volume = 0.8;
+</script>
+
+</body>
+</html>
