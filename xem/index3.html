@@ -1,1 +1,430 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Máy Phát Đa Năng</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+        * { font-family: 'Poppins', sans-serif; }
+        
+        body {
+            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+            min-height: 100vh;
+        }
 
+        .player-box {
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            border-radius: 24px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.3);
+        }
+
+        .screen-box {
+            background: linear-gradient(180deg, #0c1222, #1a2744);
+            border-radius: 20px;
+            box-shadow: inset 0 4px 15px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05);
+            padding: 16px;
+        }
+
+        .btn-circle {
+            width: 52px; height: 52px; border-radius: 50%;
+            background: linear-gradient(145deg, #334155, #1e293b);
+            box-shadow: 6px 6px 12px rgba(0,0,0,0.4), -3px -3px 8px rgba(255,255,255,0.05);
+            transition: all 0.15s ease;
+        }
+        .btn-circle:active {
+            transform: scale(0.92);
+            box-shadow: inset 4px 4px 8px rgba(0,0,0,0.5);
+        }
+        .btn-play {
+            width: 68px; height: 68px;
+            background: linear-gradient(145deg, #ef4444, #dc2626);
+            box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4);
+        }
+        .btn-play:active {
+            box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-add {
+            width: 52px; height: 52px; border-radius: 50%;
+            background: linear-gradient(145deg, #10b981, #059669);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+            transition: all 0.2s ease;
+        }
+        .btn-add:active {
+            transform: scale(0.92);
+        }
+
+        .progress-bar {
+            height: 6px; border-radius: 3px; background: #1e293b; cursor: pointer;
+        }
+        .progress-fill {
+            height: 100%; border-radius: 3px;
+            background: linear-gradient(90deg, #ef4444, #f97316);
+            width: 0%; transition: width 0.1s linear;
+        }
+
+        .song-item {
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 10px; transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+        .song-item:hover {
+            background: rgba(239, 68, 68, 0.15); transform: translateX(3px);
+        }
+        .song-item.active {
+            background: rgba(239, 68, 68, 0.25); border-left-color: #ef4444;
+        }
+
+        .tag { font-size: 10px; padding: 2px 6px; border-radius: 10px; }
+        .tag-yt { background: rgba(255,0,0,0.2); color: #ffb3b3; }
+        .tag-mp4 { background: rgba(59,130,246,0.2); color: #b3d4ff; }
+
+        .volume-slider {
+            -webkit-appearance: none; appearance: none;
+            height: 8px; border-radius: 4px; 
+            background: #334155;
+            outline: none; cursor: pointer;
+        }
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none; 
+            width: 22px; height: 22px; border-radius: 50%;
+            background: #ef4444; 
+            cursor: pointer; 
+            border: 3px solid #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+        }
+        .volume-slider::-moz-range-thumb {
+            width: 22px; height: 22px; border-radius: 50%;
+            background: #ef4444; 
+            cursor: pointer; 
+            border: 3px solid #fff;
+        }
+
+        /* === CỬA SỔ THÊM BÀI === */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 999; opacity: 0; visibility: hidden;
+            transition: all 0.25s ease;
+        }
+        .modal-overlay.show {
+            opacity: 1; visibility: visible;
+        }
+        .modal-box {
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            border-radius: 20px; padding: 24px; width: 90%; max-width: 420px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            transform: translateY(20px); transition: transform 0.25s ease;
+        }
+        .modal-overlay.show .modal-box {
+            transform: translateY(0);
+        }
+        .btn-close {
+            width: 36px; height: 36px; border-radius: 50%;
+            background: rgba(239,68,68,0.2); color: #fca5a5;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s ease;
+        }
+        .btn-close:hover {
+            background: rgba(239,68,68,0.4); color: #fff;
+        }
+    </style>
+</head>
+<body class="text-white">
+
+<div class="max-w-7xl mx-auto px-3 py-4">
+    <!-- BỐ CỤC: TRÁI = MÀN HÌNH | PHẢI = DANH SÁCH + NÚT + -->
+    <div class="flex flex-col lg:flex-row gap-4">
+        
+        <!-- BÊN TRÁI: MÀN HÌNH PHÁT & ĐIỀU KHIỂN -->
+        <div class="lg:w-3/5 space-y-4">
+            <div class="player-box p-4">
+                <div class="screen-box mb-4">
+                    <div id="videoContainer" class="w-full rounded-xl overflow-hidden bg-black aspect-video">
+                        <video id="player" class="w-full h-full outline-none hidden" preload="metadata"></video>
+                        <iframe id="ytPlayer" class="w-full h-full hidden" frameborder="0" allowfullscreen allow="autoplay; encrypted-media"></iframe>
+                        <div id="placeholder" class="flex items-center justify-center h-full min-h-[260px] text-slate-400">
+                            <div class="text-center">
+                                <p class="text-4xl mb-2">🎬</p>
+                                <p class="text-base">Chọn bài bên phải để nghe</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <p id="titleDisplay" class="text-center text-orange-300 font-medium mb-3 truncate">
+                    🎵 Chưa chọn nội dung
+                </p>
+
+                <div id="progressSection" class="px-2 mb-3 hidden">
+                    <div class="progress-bar" id="progressBar" onclick="tuanHanh(event)">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div class="flex justify-between text-xs text-slate-400 mt-1">
+                        <span id="timeCurrent">00:00</span>
+                        <span id="timeTotal">00:00</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-center gap-3 mb-3">
+                    <button class="btn-circle flex items-center justify-center text-lg" onclick="baiTruoc()" title="Bài Trước">⏮</button>
+                    <button class="btn-circle btn-play flex items-center justify-center text-xl" id="playBtn" onclick="togglePlay()">▶</button>
+                    <button class="btn-circle flex items-center justify-center text-lg" onclick="baiSau()" title="Bài Sau">⏭</button>
+                </div>
+
+                <div class="flex items-center justify-center gap-3 px-2">
+                    <span class="text-slate-400">🔈</span>
+                    <input type="range" id="volumeSlider" min="0" max="100" value="80" 
+                           class="volume-slider flex-1 max-w-xs" oninput="capNhatAmLuong(this.value)">
+                    <span class="text-slate-400">🔊</span>
+                    <span id="phamTramAmLuong" class="text-xs text-slate-300 w-8 text-right">80%</span>
+                </div>
+                <p id="hintText" class="text-center text-xs text-slate-500 mt-2">
+                    💡 YouTube: điều chỉnh âm lượng trên màn hình video
+                </p>
+            </div>
+        </div>
+
+        <!-- BÊN PHẢI: NÚT + & DANH SÁCH BÀI HÁT -->
+        <div class="lg:w-2/5">
+            <div class="bg-slate-800/50 rounded-xl p-4 border border-slate-700 h-full flex flex-col">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-semibold text-amber-300">📋 Danh Sách Phát</h3>
+                    <div class="flex gap-2">
+                        <button onclick="moThemBai()" class="btn-add flex items-center justify-center text-xl text-white" title="Thêm bài mới">+</button>
+                        <button onclick="xoaHet()" class="text-red-400 text-sm hover:text-red-300">🗑</button>
+                    </div>
+                </div>
+                <ul id="danhSach" class="space-y-2 flex-1 overflow-y-auto pr-1 max-h-[520px]">
+                    <!-- 3 BÀI CÓ SẴN -->
+                    <li class="song-item p-3 flex justify-between items-center" onclick="chonBai(0)">
+                        <span class="cursor-pointer flex-1">
+                            <span class="tag tag-yt mr-1">YT</span>
+                            Cô Đơn Dành Cho Ai
+                        </span>
+                        <button class="text-red-400 hover:text-red-300 text-xs ml-2" onclick="event.stopPropagation(); xoaMot(0)">✕</button>
+                    </li>
+                    <li class="song-item p-3 flex justify-between items-center" onclick="chonBai(1)">
+                        <span class="cursor-pointer flex-1">
+                            <span class="tag tag-yt mr-1">YT</span>
+                            Hoa Bằng Lăng
+                        </span>
+                        <button class="text-red-400 hover:text-red-300 text-xs ml-2" onclick="event.stopPropagation(); xoaMot(1)">✕</button>
+                    </li>
+                    <li class="song-item p-3 flex justify-between items-center" onclick="chonBai(2)">
+                        <span class="cursor-pointer flex-1">
+                            <span class="tag tag-yt mr-1">YT</span>
+                            LK Bolero Trữ Tình
+                        </span>
+                        <button class="text-red-400 hover:text-red-300 text-xs ml-2" onclick="event.stopPropagation(); xoaMot(2)">✕</button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- === CỬA SỔ THÊM BÀI MỚI === -->
+<div id="cuaSoThem" class="modal-overlay" onclick="if(event.target === this) dongThemBai()">
+    <div class="modal-box">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-semibold text-emerald-300 text-lg">➕ Thêm Bài Mới</h3>
+            <button onclick="dongThemBai()" class="btn-close">✕</button>
+        </div>
+        <input type="text" id="linkInput" placeholder="Dán link YouTube / MP4 / Google Drive..."
+            class="w-full bg-slate-900/60 border border-slate-600 rounded-lg px-4 py-3 mb-3 outline-none focus:border-emerald-500">
+        <input type="text" id="nameInput" placeholder="Tên bài (để trống sẽ tự đặt)"
+            class="w-full bg-slate-900/60 border border-slate-600 rounded-lg px-4 py-3 mb-4 outline-none focus:border-emerald-500">
+        <button onclick="xacNhanThem()" class="w-full bg-emerald-600 hover:bg-emerald-500 py-3 rounded-lg font-semibold transition">
+            ✅ Thêm vào danh sách
+        </button>
+    </div>
+</div>
+
+<script>
+const player = document.getElementById('player');
+const ytPlayer = document.getElementById('ytPlayer');
+const placeholder = document.getElementById('placeholder');
+const titleDisplay = document.getElementById('titleDisplay');
+const progressSection = document.getElementById('progressSection');
+const progressFill = document.getElementById('progressFill');
+const timeCurrent = document.getElementById('timeCurrent');
+const timeTotal = document.getElementById('timeTotal');
+const playBtn = document.getElementById('playBtn');
+const volumeSlider = document.getElementById('volumeSlider');
+const phamTramAmLuong = document.getElementById('phamTramAmLuong');
+const cuaSoThem = document.getElementById('cuaSoThem');
+
+// === 3 BÀI CÓ SẴN ===
+let danhSachBai = [
+    { link: "https://youtu.be/N1v7bZuvX9A?si=rQF-Pxpr__-FaPNr", ten: "Cô Đơn Dành Cho Ai - Ngân Ngân Cover", loai: "youtube" },
+    { link: "https://youtu.be/quFHQe6TFs0?si=8Xpn23VtfeUhrp_E", ten: "Hoa Bằng Lăng - Ngân Ngân Cover", loai: "youtube" },
+    { link: "https://youtu.be/B3Pl9nIu434?si=5gJbEtChtFkL4qIm", ten: "LK Bolero Trữ Tình Êm Tai", loai: "youtube" }
+];
+
+let chiSoHienTai = -1;
+let dangLoai = null;
+
+function layIdYoutube(link) {
+    if (link.includes('youtu.be/')) return link.split('youtu.be/')[1].split('?')[0];
+    if (link.includes('youtube.com/watch')) {
+        const url = new URL(link);
+        return url.searchParams.get('v');
+    }
+    return null;
+}
+
+function chonBai(chiSo) {
+    if (chiSo < 0 || chiSo >= danhSachBai.length) return;
+    chiSoHienTai = chiSo;
+    const bai = danhSachBai[chiSo];
+    dangLoai = bai.loai;
+
+    player.classList.add('hidden');
+    ytPlayer.classList.add('hidden');
+    placeholder.classList.add('hidden');
+    progressSection.classList.add('hidden');
+
+    if (bai.loai === 'youtube') {
+        ytPlayer.src = `https://www.youtube.com/embed/${layIdYoutube(bai.link)}`;
+        ytPlayer.classList.remove('hidden');
+    } else {
+        player.src = bai.link;
+        player.classList.remove('hidden');
+        progressSection.classList.remove('hidden');
+        player.volume = volumeSlider.value / 100;
+    }
+
+    titleDisplay.textContent = bai.ten;
+    playBtn.textContent = '▶';
+    renderDanhSach();
+}
+
+function togglePlay() {
+    if (chiSoHienTai === -1 && danhSachBai.length > 0) chonBai(0);
+    if (dangLoai === 'youtube') {
+        alert('ℹ️ YouTube: bấm TRỰC TIẾP trên màn hình video để phát/tạm dừng');
+        return;
+    }
+    if (player.paused) { player.play(); playBtn.textContent = '⏸'; }
+    else { player.pause(); playBtn.textContent = '▶'; }
+}
+
+function baiTruoc() {
+    if (danhSachBai.length === 0) return;
+    chonBai((chiSoHienTai - 1 + danhSachBai.length) % danhSachBai.length);
+}
+function baiSau() {
+    if (danhSachBai.length === 0) return;
+    chonBai((chiSoHienTai + 1) % danhSachBai.length);
+}
+
+player.addEventListener('timeupdate', () => {
+    if (!player.paused && player.duration) {
+        progressFill.style.width = (player.currentTime / player.duration * 100) + '%';
+        timeCurrent.textContent = formatThoiGian(player.currentTime);
+    }
+});
+player.addEventListener('loadedmetadata', () => {
+    timeTotal.textContent = formatThoiGian(player.duration);
+});
+player.addEventListener('ended', () => baiSau());
+player.addEventListener('play', () => playBtn.textContent = '⏸');
+player.addEventListener('pause', () => playBtn.textContent = '▶');
+
+function formatThoiGian(soGiay) {
+    if (!soGiay) return '00:00';
+    const phut = Math.floor(soGiay / 60), giay = Math.floor(soGiay % 60);
+    return `${phut.toString().padStart(2,'0')}:${giay.toString().padStart(2,'0')}`;
+}
+
+function tuanHanh(e) {
+    if (!player.duration) return;
+    const o = e.currentTarget.getBoundingClientRect();
+    player.currentTime = (e.clientX - o.left) / o.width * player.duration;
+}
+
+function capNhatAmLuong(giaTri) {
+    phamTramAmLuong.textContent = giaTri + '%';
+    if (dangLoai !== 'youtube') {
+        player.volume = giaTri / 100;
+    }
+}
+
+// === MỞ / ĐÓNG CỬA SỔ THÊM BÀI ===
+function moThemBai() {
+    cuaSoThem.classList.add('show');
+    document.getElementById('linkInput').focus();
+}
+function dongThemBai() {
+    cuaSoThem.classList.remove('show');
+    document.getElementById('linkInput').value = '';
+    document.getElementById('nameInput').value = '';
+}
+function xacNhanThem() {
+    const link = document.getElementById('linkInput').value.trim();
+    const ten = document.getElementById('nameInput').value.trim() || `Bài ${danhSachBai.length + 1}`;
+    if (!link) return alert('Bạn chưa dán link!');
+    
+    const loai = (link.includes('youtube.com/') || link.includes('youtu.be/')) ? 'youtube' : 'mp4';
+    if (loai === 'youtube' && !layIdYoutube(link)) return alert('Link YouTube không hợp lệ!');
+    
+    danhSachBai.push({ link, ten, loai });
+    dongThemBai();
+    if (danhSachBai.length === 1) chonBai(0);
+    renderDanhSach();
+}
+
+function xoaMot(idx) {
+    if (!confirm('Xóa bài này?')) return;
+    danhSachBai.splice(idx, 1);
+    if (chiSoHienTai === idx) {
+        chiSoHienTai = -1;
+        player.src = ''; ytPlayer.src = '';
+        titleDisplay.textContent = '🎵 Chưa chọn nội dung';
+        placeholder.classList.remove('hidden');
+    } else if (chiSoHienTai > idx) chiSoHienTai--;
+    renderDanhSach();
+}
+
+function xoaHet() {
+    if (!confirm('Xóa toàn bộ danh sách?')) return;
+    danhSachBai = []; chiSoHienTai = -1;
+    player.src = ''; ytPlayer.src = '';
+    titleDisplay.textContent = '🎵 Chưa chọn nội dung';
+    placeholder.classList.remove('hidden');
+    renderDanhSach();
+}
+
+function renderDanhSach() {
+    const ul = document.getElementById('danhSach');
+    if (danhSachBai.length === 0) {
+        ul.innerHTML = '<li class="text-slate-500 text-center py-4 text-sm">Chưa có bài nào. Bấm + để thêm!</li>';
+        return;
+    }
+    ul.innerHTML = '';
+    danhSachBai.forEach((bai, idx) => {
+        const li = document.createElement('li');
+        li.className = `song-item p-3 flex justify-between items-center ${idx === chiSoHienTai ? 'active' : ''}`;
+        li.innerHTML = `
+            <span class="cursor-pointer flex-1" onclick="chonBai(${idx})">
+                <span class="tag ${bai.loai === 'youtube' ? 'tag-yt' : 'tag-mp4'} mr-1">
+                    ${bai.loai === 'youtube' ? 'YT' : 'MP4'}
+                </span>
+                ${bai.ten}
+            </span>
+            <button class="text-red-400 hover:text-red-300 text-xs ml-2" onclick="event.stopPropagation(); xoaMot(${idx})">✕</button>
+        `;
+        ul.appendChild(li);
+    });
+}
+
+// Khởi tạo
+player.volume = 0.8;
+phamTramAmLuong.textContent = '80%';
+</script>
+
+</body>
+</html>
