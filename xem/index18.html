@@ -215,7 +215,7 @@
                 <div id="placeholderNhac" class="wmp-display-text">
                     <span class="icon">🎵</span>
                     <p>Chọn bài hát bên dưới để nghe</p>
-                    <p style="font-size:12px; margin-top:4px; color:#4a78a8;">hoặc bấm nút 📂 Tải nhạc trong máy</p>
+                    <p style="font-size:12px; margin-top:4px; color:#4a78a8;">hoặc bấm nút 📂 chọn nhạc trong máy</p>
                 </div>
             </div>
 
@@ -256,8 +256,8 @@
                 <button class="wmp-action-btn" onclick="moThemNhac()" title="Thêm link YouTube / nhạc">
                     ➕ Thêm Link
                 </button>
-                <button class="wmp-action-btn danger" onclick="xoaHetNhac()" title="Khôi phục danh sách mặc định">
-                    🔄 Khôi Phục
+                <button class="wmp-action-btn danger" onclick="xoaHetNhac()" title="Xóa hết danh sách">
+                    🗑 Xóa Hết
                 </button>
             </div>
 
@@ -453,8 +453,8 @@ const placeholderNhac = document.getElementById('placeholderNhac');
 function layDaLuuNhac() {
     try {
         const d = localStorage.getItem('danhSachNhac');
-        return d ? JSON.parse(d) : null;
-    } catch { return null; }
+        return d ? JSON.parse(d) : [];
+    } catch { return []; }
 }
 function luuNhac() { localStorage.setItem('danhSachNhac', JSON.stringify(danhSachNhac)); }
 
@@ -468,27 +468,21 @@ function layIdYT(url) {
     return (match && match[2].length === 11) ? match[2] : null;
 }
 
-// DANH SÁCH MẶC ĐỊNH GỒM CẢ LINK CŨ VÀ 5 LINK MỚI
+// DANH SÁCH MẶC ĐỊNH (Đã bổ sung 5 link mới)
 const DANH_SACH_MAC_DINH = [
-    // --- Các link cũ ---
-    { link: "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4", ten: "Big Buck Bunny (Video mẫu)", loai: "video" },
-    { link: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3", ten: "SoundHelix Song 1 (MP3 mẫu)", loai: "mp3" },
-    { link: "dLQ3XZidJ-4", ten: "YouTube Song 1", loai: "youtube" },
-    { link: "J3_C6B462C0", ten: "YouTube Song 2", loai: "youtube" },
-    
-    // --- 5 Link mới vừa thêm ---
-    { link: "qe0awWPQdDk", ten: "YouTube Song 3", loai: "youtube" },
-    { link: "XtBcZDVO7jk", ten: "YouTube Song 4", loai: "youtube" },
-    { link: "K_CZxHJPmnU", ten: "YouTube Song 5", loai: "youtube" },
-    { link: "sdyndmOnhKY", ten: "YouTube Song 6", loai: "youtube" },
-    { link: "EhVxFva9EfM", ten: "YouTube Song 7", loai: "youtube" }
+    { link: "N1v7bZuvX9A", ten: "Cô Đơn Dành Cho Ai", loai: "youtube" },
+    { link: "quFHQe6TFs0", ten: "Hoa Bằng Lăng", loai: "youtube" },
+    { link: "B3Pl9nIu434", ten: "LK Bolero Trữ Tình", loai: "youtube" },
+    { link: "qe0awWPQdDk", ten: "YouTube Track 4", loai: "youtube" },
+    { link: "XtBcZDVO7jk", ten: "YouTube Track 5", loai: "youtube" },
+    { link: "K_CZxHJPmnU", ten: "YouTube Track 6", loai: "youtube" },
+    { link: "sdyndmOnhKY", ten: "YouTube Track 7", loai: "youtube" },
+    { link: "EhVxFva9EfM", ten: "YouTube Track 8", loai: "youtube" }
 ];
 
 let danhSachNhac = layDaLuuNhac();
-
-// Nếu chưa có bộ nhớ hoặc bộ nhớ thiếu link mới thì tự động cập nhật lại danh sách đầy đủ
-if(!danhSachNhac || !Array.isArray(danhSachNhac) || danhSachNhac.length < DANH_SACH_MAC_DINH.length) {
-    danhSachNhac = DANH_SACH_MAC_DINH;
+if(danhSachNhac.length === 0) {
+    danhSachNhac = [...DANH_SACH_MAC_DINH];
     luuNhac();
 }
 let chiSoNhac = -1;
@@ -694,7 +688,7 @@ function xoaMotNhac(i) {
 }
 
 function xoaHetNhac() {
-    if(!confirm('Khôi phục lại danh sách mặc định (bao gồm các bài cũ + bài mới)?')) return;
+    if(!confirm('Xóa hết danh sách?')) return;
     danhSachNhac.forEach(b => { if(b.nguon==='local') URL.revokeObjectURL(b.link); });
     danhSachNhac = [...DANH_SACH_MAC_DINH];
     chiSoNhac = -1; dsNgauNhien = [];
