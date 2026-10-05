@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Windows Media Player — Nghe Nhạc & Xem Truyền Hình</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;500;600;700&display=swap');
+        
+        * { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; box-sizing: border-box; }
+        
+        body {
+            background: linear-gradient(180deg, #285c95 0%, #1e4675 40%, #153357 100%);
+            min-height: 100vh; margin: 0; padding: 10px;
+        }
+
+        .wmp-window {
+            background: linear-gradient(180deg, #e6edf5 0%, #c9d8eb 100%);
+            border-radius: 8px;
+            border: 2px solid #0f2b48;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.4);
+            overflow: hidden; max-width: 900px; margin: 0 auto;
+        }
+
+        .wmp-title-bar {
+            background: linear-gradient(180deg, #2b578a 0%, #1e3f66 100%);
+            padding: 6px 12px; display: flex; justify-content: space-between; align-items: center;
+            color: white; font-size: 13px; font-weight: 500;
+            border-bottom: 1px solid #0f2b48;
+        }
+        .wmp-title-buttons { display: flex; gap: 6px; }
+        .wmp-title-btn {
+            width: 20px; height: 16px; background: #3a689c; border: 1px solid #1e3f66;
+            border-radius: 2px; color: white; font-size: 9px; display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+        }
+        .wmp-title-btn:hover { background: #4a78ac; }
+
+        .wmp-tabs {
+            background: linear-gradient(180deg, #d4e1f2 0%, #b8cde8 100%);
+            padding: 4px 10px 0; display: flex; gap: 4px; border-bottom: 1px solid #98a9c2;
+        }
+        .wmp-tab {
+            padding: 6px 18px; background: #b8cde8; border: 1px solid #98a9c2;
+            border-bottom: none; border-radius: 4px 4px 0 0;
+            cursor: pointer; font-size: 13px; color: #2a4365; font-weight: 500;
+            margin-bottom: -1px;
+        }
+        .wmp-tab.active {
+            background: #e6edf5; border-bottom: 1px solid #e6edf5;
+            color: #1a365d; font-weight: 600;
+        }
+        .wmp-tab:hover:not(.active) { background: #c9d8eb; }
+
+        .wmp-content { background: #e6edf5; padding: 15px; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.2s ease; }
+        @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+
+        .wmp-display {
+            background: linear-gradient(180deg, #000a12 0%, #051525 100%);
+            border-radius: 6px; border: 2px solid #4a6b8c;
+            box-shadow: inset 0 0 20px rgba(0,60,120,0.3);
+            aspect-ratio: 16/9; display: flex; align-items: center; justify-content: center;
+            margin-bottom: 12px; overflow: hidden;
+            position: relative;
+        }
+        
+        /* === HIỆU ỨNG SÓNG === */
+        .visualizer-container {
+            position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: center;
+            padding: 20px 10px; gap: 4px; pointer-events: none; z-index: 3;
+            opacity: 0; visibility: hidden; transition: opacity 0.4s ease;
+        }
+        .visualizer-container.show {
+            opacity: 1; visibility: visible;
+        }
+        .viz-bar {
+            width: 14px; border-radius: 4px 4px 2px 2px;
+            transition: height 0.08s ease-out;
+            min-height: 6px;
+            box-shadow: 0 0 8px rgba(0, 255, 136, 0.5), 0 -2px 4px rgba(255, 255, 255, 0.2) inset;
+            background: linear-gradient(to top, 
+                #00ff88 0%, 
+                #00ddaa 25%, 
+                #ffcc00 55%, 
+                #ff6600 85%, 
+                #ff3300 100%);
+        }
+        .viz-bar:nth-child(odd) { width: 12px; }
+        .viz-bar:nth-child(3n) { width: 10px; }
+        
+        .wmp-display-text { 
+            color: #6a95c2; font-size: 15px; text-align: center; 
+            position: relative; z-index: 2; text-shadow: 0 0 10px rgba(0,0,0,0.8);
+        }
+        .wmp-display-text .icon { font-size: 40px; margin-bottom: 8px; display: block; }
+
+        .wmp-info-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 6px 10px; background: #d4e1f2; border: 1px solid #98a9c2;
+            border-radius: 4px; margin-bottom: 10px; font-size: 13px; color: #2a4365;
+        }
+        .wmp-track-name { font-weight: 600; color: #1a365d; }
+
+        .wmp-progress-row {
+            display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+        }
+        .wmp-time { font-size: 12px; color: #2a4365; min-width: 45px; }
+        .wmp-progress {
+            flex: 1; height: 8px; background: #b8cde8; border-radius: 4px; cursor: pointer;
+            border: 1px solid #98a9c2;
+        }
+        .wmp-progress-fill {
+            height: 100%; width: 0%; background: linear-gradient(90deg, #2b7cd3, #4a9cff);
+            border-radius: 3px; transition: width 0.1s linear;
+        }
+
+        .wmp-controls {
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            padding: 10px; background: linear-gradient(180deg, #d4e1f2, #b8cde8);
+            border-radius: 6px; border: 1px solid #98a9c2; margin-bottom: 12px;
+        }
+        .wmp-btn {
+            width: 36px; height: 36px; border-radius: 4px; border: 1px solid #7fa4cc;
+            background: linear-gradient(180deg, #e6f0fa, #c9d8eb);
+            color: #1a365d; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: all 0.1s ease;
+        }
+        .wmp-btn:hover {
+            background: linear-gradient(180deg, #d4e8fc, #b8d0eb); border-color: #5f88b3;
+        }
+        .wmp-btn:active {
+            background: linear-gradient(180deg, #b8d0eb, #d4e8fc); transform: scale(0.95);
+        }
+        .wmp-btn.play-btn {
+            width: 48px; height: 48px; font-size: 20px;
+            background: linear-gradient(180deg, #4a9cff, #2b7cd3);
+            border-color: #1f5cad; color: white; box-shadow: inset 0 1px 0 rgba(255,255,255,0.3);
+        }
+        .wmp-btn.play-btn:hover { background: linear-gradient(180deg, #5aacff, #3b8ce3); }
+
+        .wmp-volume-row {
+            display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-bottom: 12px;
+        }
+        .wmp-volume-icon { font-size: 14px; color: #2a4365; }
+        .wmp-volume {
+            width: 100px; height: 6px; background: #b8cde8; border-radius: 3px;
+            -webkit-appearance: none; appearance: none; border: 1px solid #98a9c2;
+        }
+        .wmp-volume::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 14px; height: 14px; background: #2b7cd3;
+            border-radius: 50%; border: 2px solid white; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        .wmp-volume-val { font-size: 12px; color: #2a4365; min-width: 35px; }
+
+        .wmp-list-container {
+            background: white; border: 1px solid #98a9c2; border-radius: 4px;
+            max-height: 320px; overflow-y: auto;
+        }
+        .wmp-list-header {
+            display: flex; padding: 8px 12px; background: linear-gradient(180deg, #d4e1f2, #b8cde8);
+            border-bottom: 1px solid #98a9c2; font-weight: 600; font-size: 12px; color: #1a365d;
+        }
+        .wmp-song-row {
+            display: flex; align-items: center; padding: 8px 12px; border-bottom: 1px solid #e6edf5;
+            cursor: pointer; transition: background 0.15s ease; font-size: 13px;
+        }
+        .wmp-song-row:hover { background: #e6f0fa; }
+        .wmp-song-row.active { background: #c9e0fc; border-left: 3px solid #2b7cd3; }
+        .wmp-tag {
+            font-size: 10px; padding: 2px 6px; border-radius: 3px; margin-right: 10px; font-weight: 600;
+        }
+        .tag-yt { background: #ffe5e5; color: #b30000; border: 1px solid #ffcccc; }
+        .tag-local { background: #e5f0ff; color: #003399; border: 1px solid #b3d1ff; }
+        .wmp-song-name { flex: 1; color: #1a365d; }
+        .wmp-song-del { color: #cc3333; cursor: pointer; padding: 0 6px; border: none; background: none; }
+
+        .wmp-actions { display: flex; gap: 8px; margin: 10px 0; }
+        .wmp-action-btn {
+            padding: 6px 14px; border-radius: 4px; border: 1px solid #7fa4cc;
+            background: linear-gradient(180deg, #e6f0fa, #c9d8eb);
+            color: #1a365d; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 5px;
+        }
+        .wmp-action-btn:hover { background: linear-gradient(180deg, #d4e8fc, #b8d0eb); }
+        .wmp-action-btn.danger { border-color: #cc6666; background: linear-gradient(180deg, #ffe5e5, #ffcccc); color: #990000; }
+        .wmp-action-btn.danger:hover { background: linear-gradient(180deg, #ffd4d4, #ffb3b3); }
+        .file-input { display: none; }
+
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+            display: flex; align-items: center; justify-content: center; z-index: 999;
+            opacity: 0; visibility: hidden; transition: all 0.2s ease; padding: 20px;
+        }
+        .modal-overlay.show { opacity: 1; visibility: visible; }
+        .modal-box {
+            background: #e6edf5; border: 2px solid #0f2b48; border-radius: 8px;
+            padding: 20px; width: 100%; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .modal-title { font-size: 15px; font-weight: 600; color: #1a365d; margin-bottom: 15px; }
+        .modal-input {
+            width: 100%; padding: 10px; border: 1px solid #98a9c2; border-radius: 4px;
+            background: white; margin-bottom: 10px; font-size: 13px; outline: none;
+        }
+        .modal-input:focus { border-color: #2b7cd3; box-shadow: 0 0 0 2px rgba(43,124,211,0.2); }
+        .modal-btn-bar { display: flex; gap: 10px; margin-top: 15px; }
+        .modal-btn {
+            flex: 1; padding: 10px; border-radius: 4px; border: 1px solid;
+            cursor: pointer; font-weight: 600; font-size: 13px;
+        }
+        .modal-btn.ok { background: linear-gradient(180deg, #4a9cff, #2b7cd3); border-color: #1f5cad; color: white; }
+        .modal-btn.cancel { background: #e6edf5; border-color: #98a9c2; color: #2a4365; }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div class="wmp-window">
+    <div class="wmp-title-bar">
+        <span>🎵 Windows Media Player — Nghe Nhạc & Xem Truyền Hình</span>
+        <div class="wmp-title-buttons">
+            <span class="wmp-title-btn">─</span>
+            <span class="wmp-title-btn">☐</span>
+            <span class="wmp-title-btn">✕</span>
+        </div>
+    </div>
+
+    <div class="wmp-tabs">
+        <button class="wmp-tab active" onclick="chuyenTab('nhac')">🎵 Thư Viện Nhạc</button>
+        <button class="wmp-tab" onclick="chuyenTab('iptv')">📺 Truyền Hình</button>
+    </div>
+
+    <div class="wmp-content">
+        <div id="tab-nhac" class="tab-content active">
+            <div class="wmp-display" id="displayNhac">
+                <div class="visualizer-container" id="vizContainer"></div>
+                
+                <video id="playerNhac" class="w-full h-full hidden" controls preload="metadata"></video>
+                <iframe id="ytPlayer" class="w-full h-full hidden" frameborder="0" allowfullscreen allow="autoplay; encrypted-media"></iframe>
+                
+                <div id="placeholderNhac" class="wmp-display-text">
+                    <span class="icon">🎵</span>
+                    <p>Chọn bài hát bên dưới để nghe</p>
+                    <p style="font-size:12px; margin-top:4px; color:#4a78a8;">hoặc bấm nút 📂 chọn nhạc trong máy</p>
+                </div>
+            </div>
+
+            <div class="wmp-info-bar">
+                <span id="titleNhac" class="wmp-track-name">Chưa chọn bài hát nào</span>
+                <span id="soBaiNhac">Tổng: 0 bài</span>
+            </div>
+
+            <div class="wmp-progress-row">
+                <span class="wmp-time" id="tgHienTai">00:00</span>
+                <div class="wmp-progress" onclick="tienDoNhac(event)">
+                    <div class="wmp-progress-fill" id="progressFillNhac"></div>
+                </div>
+                <span class="wmp-time" id="tgTong">00:00</span>
+            </div>
+
+            <div class="wmp-controls">
+                <button class="wmp-btn" onclick="baiTruocNhac()" title="Bài trước">⏮</button>
+                <button class="wmp-btn" onclick="toggleCheDo()" id="modeBtn" title="Chế độ phát">↻</button>
+                <button class="wmp-btn play-btn" id="playBtnNhac" onclick="togglePlayNhac()" title="Phát/Tạm dừng">▶</button>
+                <button class="wmp-btn" onclick="baiSauNhac()" title="Bài tiếp">⏭</button>
+                <span style="width:1px; height:24px; background:#98a9c2; margin:0 4px;"></span>
+                <span id="modeText" style="font-size:11px; color:#2a4365; min-width:70px;">Bình thường</span>
+            </div>
+
+            <div class="wmp-volume-row">
+                <span class="wmp-volume-icon">🔈</span>
+                <input type="range" id="volNhac" min="0" max="100" value="80" class="wmp-volume" oninput="capNhatAmLuongNhac(this.value)">
+                <span class="wmp-volume-icon">🔊</span>
+                <span class="wmp-volume-val" id="volPctNhac">80%</span>
+            </div>
+
+            <div class="wmp-actions">
+                <label class="wmp-action-btn" title="Chọn nhạc trong máy">
+                    📂 Tải nhạc
+                    <input type="file" id="chonFileNhac" accept=".flac,.mp3,.m4a,.wav,.ogg,.oga,.mp4,.webm" multiple class="file-input" onchange="chonNhacTrongMay(this.files)">
+                </label>
+                <button class="wmp-action-btn" onclick="moThemNhac()" title="Thêm link YouTube / nhạc">
+                    ➕ Thêm Link
+                </button>
+                <button class="wmp-action-btn danger" onclick="xoaHetNhac()" title="Xóa hết danh sách">
+                    🗑 Xóa Hết
+                </button>
+            </div>
+
+            <div class="wmp-list-container">
+                <div class="wmp-list-header">
+                    <span style="width:60px;">Loại</span>
+                    <span style="flex:1;">Tên Bài Hát</span>
+                    <span style="width:30px; text-align:center;">Xóa</span>
+                </div>
+                <div id="danhSachNhac"></div>
+            </div>
+        </div>
+
+        <div id="tab-iptv" class="tab-content">
+            <div class="wmp-display">
+                <video id="playerIptv" class="w-full h-full hidden" controls preload="metadata"></video>
+                <div id="placeholderIptv" class="wmp-display-text">
+                    <span class="icon">📺</span>
+                    <p>Dán link danh sách kênh .m3u / .m3u8 để xem</p>
+                </div>
+            </div>
+
+            <div class="wmp-info-bar">
+                <span id="titleIptv" class="wmp-track-name">Chưa chọn kênh nào</span>
+                <span id="soKenhIptv">Tổng: 0 kênh</span>
+            </div>
+
+            <div class="wmp-volume-row">
+                <span class="wmp-volume-icon">🔈</span>
+                <input type="range" id="volIptv" min="0" max="100" value="80" class="wmp-volume" oninput="capNhatAmLuongIptv(this.value)">
+                <span class="wmp-volume-icon">🔊</span>
+                <span class="wmp-volume-val" id="volPctIptv">80%</span>
+            </div>
+
+            <div class="wmp-actions">
+                <button class="wmp-action-btn" onclick="moThemIptv()">
+                    ➕ Nạp Kênh
+                </button>
+                <button class="wmp-action-btn danger" onclick="xoaHetIptv()">
+                    🗑 Xóa Hết
+                </button>
+            </div>
+
+            <div class="wmp-list-container">
+                <div class="wmp-list-header">
+                    <span style="flex:1;">Tên Kênh</span>
+                    <span style="width:30px; text-align:center;">Xóa</span>
+                </div>
+                <div id="danhSachIptv">
+                    <div style="padding:20px; text-align:center; color:#6a7c94; font-size:13px;">
+                        Bấm ➕ Nạp Kênh để thêm danh sách
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="modalThemNhac" class="modal-overlay" onclick="if(event.target===this) dongThemNhac()">
+    <div class="modal-box">
+        <h3 class="modal-title">➕ Thêm YouTube / Nhạc Online</h3>
+        <input type="text" id="linkNhacInput" placeholder="Dán link YouTube hoặc file nhạc..." class="modal-input">
+        <input type="text" id="tenNhacInput" placeholder="Tên bài (để trống tự đặt)" class="modal-input">
+        <div class="modal-btn-bar">
+            <button onclick="dongThemNhac()" class="modal-btn cancel">Hủy</button>
+            <button onclick="xacNhanThemNhac()" class="modal-btn ok">✅ Thêm</button>
+        </div>
+    </div>
+</div>
+
+<div id="modalThemIptv" class="modal-overlay" onclick="if(event.target===this) dongThemIptv()">
+    <div class="modal-box">
+        <h3 class="modal-title">📺 Nạp Danh Sách Kênh IPTV</h3>
+        <input type="text" id="linkIptvInput" placeholder="Dán link .m3u / .m3u8..." class="modal-input">
+        <p id="trangThaiIptv" style="font-size:12px; color:#4a78a8; margin-top:-6px; margin-bottom:10px;"></p>
+        <div class="modal-btn-bar">
+            <button onclick="dongThemIptv()" class="modal-btn cancel">Đóng</button>
+            <button onclick="napDanhSachIptv()" class="modal-btn ok">⬇️ Nạp</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// === HIỆU ỨNG SÓNG ===
+const vizContainer = document.getElementById('vizContainer');
+const SO_COT = 48;
+let vizRunning = false;
+let animationId = null;
+let duLieuTruoc = [];
+
+for(let i = 0; i < SO_COT; i++) {
+    const bar = document.createElement('div');
+    bar.className = 'viz-bar';
+    bar.style.height = '6px';
+    vizContainer.appendChild(bar);
+    duLieuTruoc.push(6);
+}
+const bars = vizContainer.querySelectorAll('.viz-bar');
+
+function capNhatViz() {
+    if(!vizRunning) return;
+    const maxChieuCao = vizContainer.clientHeight - 30;
+    const thoiGian = Date.now() / 180;
+    
+    for(let i = 0; i < bars.length; i++) {
+        const bienDo = 
+            0.45 * Math.sin(thoiGian * 1.2 + i * 0.25) +
+            0.25 * Math.sin(thoiGian * 2.1 + i * 0.45) +
+            0.15 * Math.sin(thoiGian * 0.7 + i * 0.15) +
+            0.15 * (Math.random() - 0.5);
+        
+        let chieuCao = (0.35 + bienDo * 0.65) * maxChieuCao;
+        chieuCao = Math.max(6, Math.min(chieuCao, maxChieuCao));
+        
+        const tocDoMuot = 0.12;
+        duLieuTruoc[i] = duLieuTruoc[i] * (1 - tocDoMuot) + chieuCao * tocDoMuot;
+        bars[i].style.height = duLieuTruoc[i] + 'px';
+    }
+    animationId = requestAnimationFrame(capNhatViz);
+}
+
+function batViz() {
+    if(vizRunning) return;
+    vizRunning = true;
+    vizContainer.classList.add('show');
+    capNhatViz();
+}
+
+function dungViz() {
+    vizRunning = false;
+    if(animationId) cancelAnimationFrame(animationId);
+    vizContainer.classList.remove('show');
+    duLieuTruoc.fill(6);
+    bars.forEach(bar => bar.style.height = '6px');
+}
+
+// === CHUYỂN TAB ===
+function chuyenTab(ten) {
+    document.querySelectorAll('.wmp-tab').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+    event.target.classList.add('active');
+    document.getElementById('tab-'+ten).classList.add('active');
+    if(ten !== 'nhac') dungViz();
+}
+
+// === CHẾ ĐỘ PHÁT ===
+const CHE_DO = { BINH_THUONG: 0, LAP_MOT: 1, LAP_TAT_CA: 2, NGAU_NHIEN: 3 };
+let cheDoPhat = CHE_DO.BINH_THUONG;
+let dsNgauNhien = [];
+
+function toggleCheDo() {
+    cheDoPhat = (cheDoPhat + 1) % 4;
+    const btn = document.getElementById('modeBtn');
+    const text = document.getElementById('modeText');
+    if (cheDoPhat === CHE_DO.NGAU_NHIEN) taoDsNgauNhien();
+    else dsNgauNhien = [];
+    switch(cheDoPhat) {
+        case CHE_DO.BINH_THUONG: btn.textContent='↻'; text.textContent='Bình thường'; break;
+        case CHE_DO.LAP_MOT: btn.textContent='🔁'; text.textContent='Lặp 1 bài'; break;
+        case CHE_DO.LAP_TAT_CA: btn.textContent='🔂'; text.textContent='Lặp tất cả'; break;
+        case CHE_DO.NGAU_NHIEN: btn.textContent='🎲'; text.textContent='Ngẫu nhiên'; break;
+    }
+}
+
+function taoDsNgauNhien() {
+    dsNgauNhien = [...Array(danhSachNhac.length).keys()];
+    for(let i = dsNgauNhien.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [dsNgauNhien[i], dsNgauNhien[j]] = [dsNgauNhien[j], dsNgauNhien[i]];
+    }
+}
+
+// === QUẢN LÝ NHẠC — LOẠI BỎ QUẢNG CÁO YOUTUBE ===
+const playerNhac = document.getElementById('playerNhac');
+const ytPlayer = document.getElementById('ytPlayer');
+const placeholderNhac = document.getElementById('placeholderNhac');
+
+function layDaLuuNhac() {
+    try { const d = localStorage.getItem('danhSachNhac'); return d ? JSON.parse(d) : []; }
+    catch { return []; }
+}
+function luuNhac() { localStorage.setItem('danhSachNhac', JSON.stringify(danhSachNhac)); }
+
+let danhSachNhac = layDaLuuNhac();
+// === GIỮ NGUYÊN 3 LINK CỦA BẠN ===
+if(danhSachNhac.length === 0) {
+    danhSachNhac = [
+        { link: "https://youtu.be/N1v7bZuvX9A", ten: "Cô Đơn Dành Cho Ai", loai: "youtube" },
+        { link: "https://youtu.be/quFHQe6TFs0", ten: "Hoa Bằng Lăng", loai: "youtube" },
+        { link: "https://youtu.be/B3Pl9nIu434", ten: "LK Bolero Trữ Tình", loai: "youtube" }
+    ];
+    luuNhac();
+}
+let chiSoNhac = -1;
+
+// === SỬA: Tham số loại bỏ quảng cáo ===
+function layIdYT(link) {
+    if(link.includes('youtu.be/')) return link.split('youtu.be/')[1].split('?')[0];
+    if(link.includes('youtube.com/watch')) return new URL(link).searchParams.get('v');
+    return null;
+}
+
+function layLinkEmbedYT(id) {
+    // 🆕 Thêm tham số loại quảng cáo: rel=0&modestbranding=1
+    return `https://www.youtube.com/embed/${id}?rel=0&modestbranding=1&autoplay=1`;
+}
+
+function phanLoaiFile(ten) {
+    const t = ten.toLowerCase();
+    if(t.endsWith('.flac')) return 'flac';
+    if(t.endsWith('.mp3')) return 'mp3';
+    if(t.endsWith('.m4a')) return 'm4a';
+    if(t.endsWith('.wav')) return 'wav';
+    if(t.endsWith('.ogg') || t.endsWith('.oga')) return 'ogg';
+    if(t.endsWith('.mp4') || t.endsWith('.webm')) return 'video';
+    return 'audio';
+}
+
+function chonNhacTrongMay(tapTin) {
+    for(let i=0; i<tapTin.length; i++) {
+        const f = tapTin[i];
+        danhSachNhac.push({
+            ten: f.name.replace(/\.(flac|mp3|m4a|wav|ogg|oga|mp4|webm)$/i, ''),
+            link: URL.createObjectURL(f),
+            loai: phanLoaiFile(f.name),
+            nguon: 'local'
+        });
+    }
+    luuNhac();
+    capNhatDsNhac();
+}
+
+function chonBaiNhac(idx) {
+    if(idx<0||idx>=danhSachNhac.length) return;
+    chiSoNhac = idx;
+    const b = danhSachNhac[idx];
+    dungViz();
+    
+    playerNhac.classList.add('hidden');
+    ytPlayer.classList.add('hidden');
+    placeholderNhac.classList.add('hidden');
+
+    if(b.loai === 'youtube') {
+        // 🆕 Dùng hàm mới có tham số chống quảng cáo
+        ytPlayer.src = layLinkEmbedYT(layIdYT(b.link));
+        ytPlayer.classList.remove('hidden');
+    } else {
+        playerNhac.src = b.link;
+        playerNhac.classList.remove('hidden');
+        playerNhac.volume = document.getElementById('volNhac').value/100;
+        playerNhac.play().catch(()=>{});
+        batViz();
+    }
+
+    document.getElementById('titleNhac').textContent = b.ten;
+    capNhatDsNhac();
+}
+
+function togglePlayNhac() {
+    if(chiSoNhac === -1 && danhSachNhac.length > 0) return chonBaiNhac(0);
+    if(chiSoNhac === -1) return;
+    const b = danhSachNhac[chiSoNhac];
+    if(b.loai === 'youtube') {
+        dungViz();
+        return;
+    }
+    if(playerNhac.paused) {
+        playerNhac.play();
+        batViz();
+        document.getElementById('playBtnNhac').textContent = '⏸';
+    } else {
+        playerNhac.pause();
+        dungViz();
+        document.getElementById('playBtnNhac').textContent = '▶';
+    }
+}
+
+function baiTruocNhac() {
+    if(!danhSachNhac.length) return;
+    let idx;
+    if(cheDoPhat === CHE_DO.NGAU_NHIEN) {
+        const viTri = dsNgauNhien.indexOf(chiSoNhac);
+        idx = viTri > 0 ? dsNgauNhien[viTri - 1] : dsNgauNhien[dsNgauNhien.length - 1];
+    } else {
+        idx = (chiSoNhac - 1 + danhSachNhac.length) % danhSachNhac.length;
+    }
+    chonBaiNhac(idx);
+}
+
+function baiSauNhac() {
+    if(!danhSachNhac.length) return;
+    if(cheDoPhat === CHE_DO.LAP_MOT && chiSoNhac >= 0) return chonBaiNhac(chiSoNhac);
+    let idx;
+    if(cheDoPhat === CHE_DO.NGAU_NHIEN) {
+        const viTri = dsNgauNhien.indexOf(chiSoNhac);
+        idx = viTri < dsNgauNhien.length - 1 ? dsNgauNhien[viTri + 1] : (taoDsNgauNhien(), dsNgauNhien[0]);
+    } else {
+        idx = (chiSoNhac + 1) % danhSachNhac.length;
+    }
+    chonBaiNhac(idx);
+}
+
+playerNhac.addEventListener('timeupdate', () => {
+    if(!playerNhac.paused && playerNhac.duration) {
+        document.getElementById('progressFillNhac').style.width = (playerNhac.currentTime/playerNhac.duration*100)+'%';
+        document.getElementById('tgHienTai').textContent = formatGio(playerNhac.currentTime);
+    }
+});
+playerNhac.addEventListener('loadedmetadata', () => {
+    document.getElementById('tgTong').textContent = formatGio(playerNhac.duration);
+});
+playerNhac.addEventListener('ended', baiSauNhac);
+playerNhac.addEventListener('pause', dungViz);
+playerNhac.addEventListener('play', batViz);
+
+function formatGio(s) {
+    if(!s) return '00:00';
+    const m=Math.floor(s/60), g=Math.floor(s%60);
+    return `${m.toString().padStart(2,'0')}:${g.toString().padStart(2,'0')}`;
+}
+function tienDoNhac(e) {
+    if(!playerNhac.duration) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    playerNhac.currentTime = (e.clientX - r.left)/r.width * playerNhac.duration;
+}
+function capNhatAmLuongNhac(v) {
+    document.getElementById('volPctNhac').textContent = v+'%';
+    if(danhSachNhac[chiSoNhac]?.loai !== 'youtube') playerNhac.volume = v/100;
+}
+
+function moThemNhac() { document.getElementById('modalThemNhac').classList.add('show'); }
+function dongThemNhac() {
+    document.getElementById('modalThemNhac').classList.remove('show');
+    document.getElementById('linkNhacInput').value = '';
+    document.getElementById('tenNhacInput').value = '';
+}
+function xacNhanThemNhac() {
+    const link = document.getElementById('linkNhacInput').value.trim();
+    const ten = document.getElementById('tenNhacInput').value.trim() || `Bài ${danhSachNhac.length+1}`;
+    if(!link) return alert('Chưa nhập link!');
+    const idYT = layIdYT(link);
+    if(idYT) {
+        danhSachNhac.push({ ten, link: link, loai: 'youtube' });
+    } else {
+        danhSachNhac.push({ ten, link, loai: phanLoaiFile(link) });
+    }
+    luuNhac();
+    capNhatDsNhac();
+    dongThemNhac();
+}
+
+function xoaMotNhac(i) {
+    if(!confirm('Xóa bài này?')) return;
+    if(danhSachNhac[i].nguon === 'local') URL.revokeObjectURL(danhSachNhac[i].link);
+    danhSachNhac.splice(i,1);
+    luuNhac();
+    if(chiSoNhac === i) {
+        chiSoNhac = -1; playerNhac.src = ''; ytPlayer.src = '';
+        dungViz();
+        document.getElementById('titleNhac').textContent = 'Chưa chọn bài hát nào';
+        placeholderNhac.classList.remove('hidden');
+    } else if(chiSoNhac > i) chiSoNhac--;
+    capNhatDsNhac();
+}
+
+function xoaHetNhac() {
+    if(!confirm('Xóa hết danh sách?')) return;
+    danhSachNhac.forEach(b => { if(b.nguon==='local') URL.revokeObjectURL(b.link); });
+    // === KHÔI PHỤC LẠI 3 LINK CỦA BẠN ===
+    danhSachNhac = [
+        { link: "https://youtu.be/N1v7bZuvX9A", ten: "Cô Đơn Dành Cho Ai", loai: "youtube" },
+        { link: "https://youtu.be/quFHQe6TFs0", ten: "Hoa Bằng Lăng", loai: "youtube" },
+        { link: "https://youtu.be/B3Pl9nIu434", ten: "LK Bolero Trữ Tình", loai: "youtube" }
+    ];
+    chiSoNhac = -1; dsNgauNhien = [];
+    luuNhac();
+    playerNhac.src = ''; ytPlayer.src = '';
+    dungViz();
+    document.getElementById('titleNhac').textContent = 'Chưa chọn bài hát nào';
+    placeholderNhac.classList.remove('hidden');
+    capNhatDsNhac();
+}
+
+function capNhatDsNhac() {
+    const ul = document.getElementById('danhSachNhac');
+    ul.innerHTML = '';
+    document.getElementById('soBaiNhac').textContent = `Tổng: ${danhSachNhac.length} bài`;
+    danhSachNhac.forEach((b,i) => {
+        const row = document.createElement('div');
+        row.className = `wmp-song-row ${i===chiSoNhac?'active':''}`;
+        let tagClass = 'tag-yt', tagText = 'YT';
+        if(b.loai === 'flac') { tagClass='tag-local'; tagText='🎧 FLAC'; }
+        else if(b.nguon === 'local') { tagClass='tag-local'; tagText='📂 Máy'; }
+        else if(b.loai !== 'youtube') { tagClass='tag-local'; tagText='🎵 File'; }
+        row.innerHTML = `
+            <span class="wmp-tag ${tagClass}">${tagText}</span>
+            <span class="wmp-song-name" onclick="chonBaiNhac(${i})">${b.ten.length>40?b.ten.substring(0,40)+'...':b.ten}</span>
+            <button class="wmp-song-del" onclick="event.stopPropagation();xoaMotNhac(${i})">✕</button>
+        `;
+        ul.appendChild(row);
+    });
+}
+
+// === QUẢN LÝ IPTV ===
+const playerIptv = document.getElementById('playerIptv');
+const placeholderIptv = document.getElementById('placeholderIptv');
+let danhSachIptv = [], chiSoIptv = -1;
+
+function phanTichM3u(noiDung, linkGoc) {
+    const kenh = [], dong = noiDung.split(/\r?\n/);
+    let ten = '', link = '';
+    for(let d of dong) {
+        d = d.trim(); if(!d) continue;
+        if(d.startsWith('#EXTINF')) {
+            const t = d.match(/,(.+)$/);
+            ten = t ? t[1].trim() : `Kênh ${kenh.length+1}`;
+        } else if(!d.startsWith('#') && d.startsWith('http')) {
+            kenh.push({ ten, link: d }); ten = '';
+        }
+    }
+    return kenh.length ? kenh : [{ ten: 'Danh sách kênh', link: linkGoc }];
+}
+
+async function napDanhSachIptv() {
+    const link = document.getElementById('linkIptvInput').value.trim();
+    if(!link) return alert('Chưa nhập link!');
+    const trangThai = document.getElementById('trangThaiIptv');
+    trangThai.textContent = '⏳ Đang nạp...';
+    try {
+        const doc = await fetch(link);
+        if(!doc.ok) throw new Error();
+        const ds = phanTichM3u(await doc.text(), link);
+        danhSachIptv = [...danhSachIptv, ...ds];
+        trangThai.textContent = `✅ Đã nạp ${ds.length} kênh!`;
+        capNhatDsIptv();
+        document.getElementById('linkIptvInput').value = '';
+        setTimeout(()=>{trangThai.textContent='';dongThemIptv();}, 2000);
+    } catch {
+        danhSachIptv.push({ ten: 'Kênh trực tiếp', link });
+        capNhatDsIptv();
+        trangThai.textContent = '⚠️ Đã thêm link';
+        setTimeout(()=>{trangThai.textContent='';dongThemIptv();}, 2000);
+    }
+}
+
+function chonKenhIptv(idx) {
+    if(idx<0||idx>=danhSachIptv.length) return;
+    chiSoIptv = idx;
+    const k = danhSachIptv[idx];
+    playerIptv.classList.add('hidden'); placeholderIptv.classList.add('hidden');
+    playerIptv.src = k.link; playerIptv.classList.remove('hidden');
+    playerIptv.volume = document.getElementById('volIptv').value/100;
+    playerIptv.play().catch(()=>{});
+    document.getElementById('titleIptv').textContent = k.ten;
+    capNhatDsIptv();
+}
+
+function capNhatAmLuongIptv(v) {
+    document.getElementById('volPctIptv').textContent = v+'%';
+    if(!playerIptv.classList.contains('hidden')) playerIptv.volume = v/100;
+}
+
+function moThemIptv() { document.getElementById('modalThemIptv').classList.add('show'); }
+function dongThemIptv() { document.getElementById('modalThemIptv').classList.remove('show'); }
+
+function xoaKenhIptv(i) {
+    if(!confirm('Xóa kênh này?')) return;
+    danhSachIptv.splice(i,1);
+    if(chiSoIptv===i) { chiSoIptv=-1; playerIptv.src=''; document.getElementById('titleIptv').textContent='Chưa chọn kênh'; placeholderIptv.classList.remove('hidden'); }
+    else if(chiSoIptv>i) chiSoIptv--;
+    capNhatDsIptv();
+}
+function xoaHetIptv() {
+    if(!confirm('Xóa hết danh sách kênh?')) return;
+    danhSachIptv=[]; chiSoIptv=-1; playerIptv.src='';
+    document.getElementById('titleIptv').textContent='Chưa chọn kênh';
+    placeholderIptv.classList.remove('hidden');
+    capNhatDsIptv();
+}
+
+function capNhatDsIptv() {
+    const ul = document.getElementById('danhSachIptv');
+    document.getElementById('soKenhIptv').textContent = `Tổng: ${danhSachIptv.length} kênh`;
+    if(!danhSachIptv.length) {
+        ul.innerHTML = '<div style="padding:20px; text-align:center; color:#6a7c94; font-size:13px;">Bấm ➕ Nạp Kênh để thêm danh sách</div>';
+        return;
+    }
+    ul.innerHTML = '';
+    danhSachIptv.forEach((k,i) => {
+        const row = document.createElement('div');
+        row.className = `wmp-song-row ${i===chiSoIptv?'active':''}`;
+        row.innerHTML = `
+            <span class="wmp-song-name" onclick="chonKenhIptv(${i})">📺 ${k.ten.length>45?k.ten.substring(0,45)+'...':k.ten}</span>
+            <button class="wmp-song-del" onclick="event.stopPropagation();xoaKenhIptv(${i})">✕</button>
+        `;
+        ul.appendChild(row);
+    });
+}
+
+// Khởi tạo
+capNhatDsNhac();
+</script>
+</body>
+</html>
