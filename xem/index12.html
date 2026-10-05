@@ -15,7 +15,7 @@
             min-height: 100vh; margin: 0; padding: 10px;
         }
 
-        /* === KHUNG CHÍNH — GIỐNG WMP === */
+        /* KHUNG CHÍNH */
         .wmp-window {
             background: linear-gradient(180deg, #e6edf5 0%, #c9d8eb 100%);
             border-radius: 8px;
@@ -24,7 +24,6 @@
             overflow: hidden; max-width: 900px; margin: 0 auto;
         }
 
-        /* Thanh tiêu đề WMP */
         .wmp-title-bar {
             background: linear-gradient(180deg, #2b578a 0%, #1e3f66 100%);
             padding: 6px 12px; display: flex; justify-content: space-between; align-items: center;
@@ -39,7 +38,6 @@
         }
         .wmp-title-btn:hover { background: #4a78ac; }
 
-        /* Tab chọn */
         .wmp-tabs {
             background: linear-gradient(180deg, #d4e1f2 0%, #b8cde8 100%);
             padding: 4px 10px 0; display: flex; gap: 4px; border-bottom: 1px solid #98a9c2;
@@ -54,15 +52,12 @@
             background: #e6edf5; border-bottom: 1px solid #e6edf5;
             color: #1a365d; font-weight: 600;
         }
-        .wmp-tab:hover:not(.active) { background: #c9d8eb; }
 
-        /* Nội dung chính */
         .wmp-content { background: #e6edf5; padding: 15px; }
         .tab-content { display: none; }
         .tab-content.active { display: block; animation: fadeIn 0.2s ease; }
         @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
 
-        /* Khu vực hiển thị */
         .wmp-display {
             background: linear-gradient(180deg, #000a12 0%, #051525 100%);
             border-radius: 6px; border: 2px solid #4a6b8c;
@@ -72,19 +67,16 @@
             position: relative;
         }
         
-        /* === HIỆU ỨNG SÓNG ÂM THANH — CHỈ HIỆN KHI PHÁT FILE NHẠC === */
+        /* VISUALIZER */
         .visualizer-container {
             position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: center;
             padding: 10px; gap: 3px; pointer-events: none; z-index: 3;
             opacity: 0; visibility: hidden; transition: opacity 0.3s ease;
         }
-        .visualizer-container.show {
-            opacity: 1; visibility: visible;
-        }
+        .visualizer-container.show { opacity: 1; visibility: visible; }
         .viz-bar {
             width: 12px; background: linear-gradient(to top, #00ff00, #ffff00, #ff0000);
-            border-radius: 2px 2px 0 0; transition: height 0.04s ease;
-            min-height: 4px; box-shadow: 0 0 6px rgba(0,255,0,0.4);
+            border-radius: 2px 2px 0 0; min-height: 4px; box-shadow: 0 0 6px rgba(0,255,0,0.4);
         }
         .viz-bar.small { width: 8px; }
         
@@ -94,7 +86,6 @@
         }
         .wmp-display-text .icon { font-size: 40px; margin-bottom: 8px; display: block; }
 
-        /* Thanh thông tin */
         .wmp-info-bar {
             display: flex; justify-content: space-between; align-items: center;
             padding: 6px 10px; background: #d4e1f2; border: 1px solid #98a9c2;
@@ -102,10 +93,7 @@
         }
         .wmp-track-name { font-weight: 600; color: #1a365d; }
 
-        /* Thanh tiến độ */
-        .wmp-progress-row {
-            display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
-        }
+        .wmp-progress-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
         .wmp-time { font-size: 12px; color: #2a4365; min-width: 45px; }
         .wmp-progress {
             flex: 1; height: 8px; background: #b8cde8; border-radius: 4px; cursor: pointer;
@@ -116,7 +104,6 @@
             border-radius: 3px; transition: width 0.1s linear;
         }
 
-        /* Nút điều khiển chính — GIỐNG WMP */
         .wmp-controls {
             display: flex; align-items: center; justify-content: center; gap: 8px;
             padding: 10px; background: linear-gradient(180deg, #d4e1f2, #b8cde8);
@@ -128,28 +115,14 @@
             color: #1a365d; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;
             transition: all 0.1s ease;
         }
-        .wmp-btn:hover {
-            background: linear-gradient(180deg, #d4e8fc, #b8d0eb); border-color: #5f88b3;
-        }
-        .wmp-btn:active {
-            background: linear-gradient(180deg, #b8d0eb, #d4e8fc); transform: scale(0.95);
-        }
+        .wmp-btn:hover { background: linear-gradient(180deg, #d4e8fc, #b8d0eb); border-color: #5f88b3; }
         .wmp-btn.play-btn {
             width: 48px; height: 48px; font-size: 20px;
             background: linear-gradient(180deg, #4a9cff, #2b7cd3);
             border-color: #1f5cad; color: white; box-shadow: inset 0 1px 0 rgba(255,255,255,0.3);
         }
-        .wmp-btn.play-btn:hover { background: linear-gradient(180deg, #5aacff, #3b8ce3); }
-        .wmp-btn.mode-btn { width: auto; padding: 0 10px; font-size: 11px; gap: 4px; }
-        .wmp-btn.mode-btn.active {
-            background: linear-gradient(180deg, #4a9cff, #2b7cd3);
-            border-color: #1f5cad; color: white;
-        }
 
-        /* Thanh âm lượng */
-        .wmp-volume-row {
-            display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-bottom: 12px;
-        }
+        .wmp-volume-row { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-bottom: 12px; }
         .wmp-volume-icon { font-size: 14px; color: #2a4365; }
         .wmp-volume {
             width: 100px; height: 6px; background: #b8cde8; border-radius: 3px;
@@ -157,11 +130,10 @@
         }
         .wmp-volume::-webkit-slider-thumb {
             -webkit-appearance: none; width: 14px; height: 14px; background: #2b7cd3;
-            border-radius: 50%; border: 2px solid white; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            border-radius: 50%; border: 2px solid white; cursor: pointer;
         }
         .wmp-volume-val { font-size: 12px; color: #2a4365; min-width: 35px; }
 
-        /* Danh sách bài hát */
         .wmp-list-container {
             background: white; border: 1px solid #98a9c2; border-radius: 4px;
             max-height: 320px; overflow-y: auto;
@@ -176,27 +148,21 @@
         }
         .wmp-song-row:hover { background: #e6f0fa; }
         .wmp-song-row.active { background: #c9e0fc; border-left: 3px solid #2b7cd3; }
-        .wmp-tag {
-            font-size: 10px; padding: 2px 6px; border-radius: 3px; margin-right: 10px; font-weight: 600;
-        }
+        .wmp-tag { font-size: 10px; padding: 2px 6px; border-radius: 3px; margin-right: 10px; font-weight: 600; }
         .tag-yt { background: #ffe5e5; color: #b30000; border: 1px solid #ffcccc; }
         .tag-local { background: #e5f0ff; color: #003399; border: 1px solid #b3d1ff; }
         .wmp-song-name { flex: 1; color: #1a365d; }
         .wmp-song-del { color: #cc3333; cursor: pointer; padding: 0 6px; border: none; background: none; }
 
-        /* Nút thêm/xóa */
         .wmp-actions { display: flex; gap: 8px; margin: 10px 0; }
         .wmp-action-btn {
             padding: 6px 14px; border-radius: 4px; border: 1px solid #7fa4cc;
             background: linear-gradient(180deg, #e6f0fa, #c9d8eb);
             color: #1a365d; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 5px;
         }
-        .wmp-action-btn:hover { background: linear-gradient(180deg, #d4e8fc, #b8d0eb); }
         .wmp-action-btn.danger { border-color: #cc6666; background: linear-gradient(180deg, #ffe5e5, #ffcccc); color: #990000; }
-        .wmp-action-btn.danger:hover { background: linear-gradient(180deg, #ffd4d4, #ffb3b3); }
         .file-input { display: none; }
 
-        /* Modal */
         .modal-overlay {
             position: fixed; inset: 0; background: rgba(0,0,0,0.7);
             display: flex; align-items: center; justify-content: center; z-index: 999;
@@ -212,23 +178,17 @@
             width: 100%; padding: 10px; border: 1px solid #98a9c2; border-radius: 4px;
             background: white; margin-bottom: 10px; font-size: 13px; outline: none;
         }
-        .modal-input:focus { border-color: #2b7cd3; box-shadow: 0 0 0 2px rgba(43,124,211,0.2); }
         .modal-btn-bar { display: flex; gap: 10px; margin-top: 15px; }
-        .modal-btn {
-            flex: 1; padding: 10px; border-radius: 4px; border: 1px solid;
-            cursor: pointer; font-weight: 600; font-size: 13px;
-        }
+        .modal-btn { flex: 1; padding: 10px; border-radius: 4px; border: 1px solid; cursor: pointer; font-weight: 600; font-size: 13px; }
         .modal-btn.ok { background: linear-gradient(180deg, #4a9cff, #2b7cd3); border-color: #1f5cad; color: white; }
         .modal-btn.cancel { background: #e6edf5; border-color: #98a9c2; color: #2a4365; }
 
-        /* Ẩn player gốc */
         .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
 <div class="wmp-window">
-    <!-- Thanh tiêu đề WMP -->
     <div class="wmp-title-bar">
         <span>🎵 Windows Media Player — Nghe Nhạc & Xem Truyền Hình</span>
         <div class="wmp-title-buttons">
@@ -238,7 +198,6 @@
         </div>
     </div>
 
-    <!-- Tab chức năng -->
     <div class="wmp-tabs">
         <button class="wmp-tab active" onclick="chuyenTab('nhac')">🎵 Thư Viện Nhạc</button>
         <button class="wmp-tab" onclick="chuyenTab('iptv')">📺 Truyền Hình</button>
@@ -247,9 +206,7 @@
     <div class="wmp-content">
         <!-- ========== THƯ VIỆN NHẠC ========== -->
         <div id="tab-nhac" class="tab-content active">
-            <!-- Khu vực hiển thị -->
             <div class="wmp-display" id="displayNhac">
-                <!-- HIỆU ỨNG SÓNG — CHỈ HIỆN KHI PHÁT FILE NHẠC -->
                 <div class="visualizer-container" id="vizContainer"></div>
                 
                 <video id="playerNhac" class="w-full h-full hidden" controls preload="metadata"></video>
@@ -262,13 +219,11 @@
                 </div>
             </div>
 
-            <!-- Thông tin bài hát -->
             <div class="wmp-info-bar">
                 <span id="titleNhac" class="wmp-track-name">Chưa chọn bài hát nào</span>
                 <span id="soBaiNhac">Tổng: 0 bài</span>
             </div>
 
-            <!-- Thanh tiến độ -->
             <div class="wmp-progress-row">
                 <span class="wmp-time" id="tgHienTai">00:00</span>
                 <div class="wmp-progress" onclick="tienDoNhac(event)">
@@ -277,7 +232,6 @@
                 <span class="wmp-time" id="tgTong">00:00</span>
             </div>
 
-            <!-- Nút điều khiển chính -->
             <div class="wmp-controls">
                 <button class="wmp-btn" onclick="baiTruocNhac()" title="Bài trước">⏮</button>
                 <button class="wmp-btn" onclick="toggleCheDo()" id="modeBtn" title="Chế độ phát">↻</button>
@@ -287,7 +241,6 @@
                 <span id="modeText" style="font-size:11px; color:#2a4365; min-width:70px;">Bình thường</span>
             </div>
 
-            <!-- Thanh âm lượng -->
             <div class="wmp-volume-row">
                 <span class="wmp-volume-icon">🔈</span>
                 <input type="range" id="volNhac" min="0" max="100" value="80" class="wmp-volume" oninput="capNhatAmLuongNhac(this.value)">
@@ -295,11 +248,10 @@
                 <span class="wmp-volume-val" id="volPctNhac">80%</span>
             </div>
 
-            <!-- Nút hành động -->
             <div class="wmp-actions">
                 <label class="wmp-action-btn" title="Chọn nhạc trong máy">
                     📂 Tải nhạc
-                    <input type="file" id="chonFileNhac" accept=".flac,.mp3,.m4a,.wav,.ogg,.oga,.mp4,.webm" multiple class="file-input" onchange="chonNhacTrongMay(this.files)">
+                    <input type="file" id="chonFileNhac" accept=".flac,.mp3,.m4a,.wav,.ogg,.oga,.aac,.mp4,.webm" multiple class="file-input" onchange="chonNhacTrongMay(this.files)">
                 </label>
                 <button class="wmp-action-btn" onclick="moThemNhac()" title="Thêm link YouTube / nhạc">
                     ➕ Thêm Link
@@ -309,7 +261,6 @@
                 </button>
             </div>
 
-            <!-- Danh sách bài hát -->
             <div class="wmp-list-container">
                 <div class="wmp-list-header">
                     <span style="width:60px;">Loại</span>
@@ -343,12 +294,8 @@
             </div>
 
             <div class="wmp-actions">
-                <button class="wmp-action-btn" onclick="moThemIptv()">
-                    ➕ Nạp Kênh
-                </button>
-                <button class="wmp-action-btn danger" onclick="xoaHetIptv()">
-                    🗑 Xóa Hết
-                </button>
+                <button class="wmp-action-btn" onclick="moThemIptv()">➕ Nạp Kênh</button>
+                <button class="wmp-action-btn danger" onclick="xoaHetIptv()">🗑 Xóa Hết</button>
             </div>
 
             <div class="wmp-list-container">
@@ -357,9 +304,7 @@
                     <span style="width:30px; text-align:center;">Xóa</span>
                 </div>
                 <div id="danhSachIptv">
-                    <div style="padding:20px; text-align:center; color:#6a7c94; font-size:13px;">
-                        Bấm ➕ Nạp Kênh để thêm danh sách
-                    </div>
+                    <div style="padding:20px; text-align:center; color:#6a7c94; font-size:13px;">Bấm ➕ Nạp Kênh để thêm danh sách</div>
                 </div>
             </div>
         </div>
@@ -393,13 +338,14 @@
 </div>
 
 <script>
-// ===================== HIỆU ỨNG SÓNG ÂM THANH ĐỘC LẬP =====================
+const PHAN_LOAI_TIENG = ['flac', 'mp3', 'm4a', 'wav', 'ogg', 'aac', 'audio'];
+
+// ===================== VISUALIZER =====================
 const vizContainer = document.getElementById('vizContainer');
 const SO_COT = 32;
 let vizRunning = false;
 let animationId = null;
 
-// Khởi tạo thuộc tính riêng biệt cho từng cột để nhảy hoàn toàn độc lập
 const barData = [];
 for(let i = 0; i < SO_COT; i++) {
     const bar = document.createElement('div');
@@ -409,14 +355,15 @@ for(let i = 0; i < SO_COT; i++) {
     
     barData.push({
         element: bar,
-        phase: Math.random() * Math.PI * 2,         // Pha xuất phát ngẫu nhiên
-        speed: 0.08 + Math.random() * 0.12,          // Tốc độ nhảy ngẫu nhiên từng cột
-        frequency: 0.5 + Math.random() * 1.5,       // Tần số dao động riêng
-        maxRatio: 0.4 + Math.random() * 0.55        // Biên độ chiều cao tối đa ngẫu nhiên
+        currentHeight: 4,
+        targetHeight: 4,
+        phase: Math.random() * Math.PI * 2,
+        speed: 0.02 + Math.random() * 0.03,
+        frequency: 0.3 + Math.random() * 0.7,
+        maxRatio: 0.35 + Math.random() * 0.5
     });
 }
 
-// Cập nhật từng cột độc lập theo khung hình
 function capNhatViz() {
     if(!vizRunning) return;
     
@@ -425,18 +372,18 @@ function capNhatViz() {
     
     for(let i = 0; i < barData.length; i++) {
         const item = barData[i];
+        const wave1 = Math.sin(now * item.speed * 8 + item.phase);
+        const wave2 = Math.cos(now * item.frequency * 5 + item.phase * 1.5);
+        const noise = Math.sin(now * 3 + i) * 0.15;
         
-        // Tạo biến độ nhấp nhô độc lập không trùng lặp
-        const wave1 = Math.sin(now * item.speed * 10 + item.phase);
-        const wave2 = Math.cos(now * item.frequency * 8 + item.phase * 2);
-        const noise = Math.random() * 0.35; // Thêm nhiễu ngẫu nhiên tạo độ giật nhẹ như âm thanh thực
-        
-        // Tính toán biên độ tổng hợp
-        let val = (wave1 * 0.4 + wave2 * 0.3 + noise + 0.3);
+        let val = (wave1 * 0.45 + wave2 * 0.35 + noise + 0.35);
         val = Math.max(0.05, Math.min(1, val));
         
-        const chieuCao = Math.max(4, val * maxChieuCao * item.maxRatio);
-        item.element.style.height = chieuCao + 'px';
+        item.targetHeight = Math.max(4, val * maxChieuCao * item.maxRatio);
+        const speedFactor = item.targetHeight > item.currentHeight ? 0.25 : 0.08;
+        item.currentHeight += (item.targetHeight - item.currentHeight) * speedFactor;
+        
+        item.element.style.height = item.currentHeight + 'px';
     }
     
     animationId = requestAnimationFrame(capNhatViz);
@@ -453,7 +400,11 @@ function dungViz() {
     vizRunning = false;
     if(animationId) cancelAnimationFrame(animationId);
     vizContainer.classList.remove('show');
-    barData.forEach(item => item.element.style.height = '4px');
+    barData.forEach(item => {
+        item.currentHeight = 4;
+        item.targetHeight = 4;
+        item.element.style.height = '4px';
+    });
 }
 
 // ===================== CHUYỂN TAB =====================
@@ -530,6 +481,7 @@ function phanLoaiFile(ten) {
     if(t.endsWith('.mp3')) return 'mp3';
     if(t.endsWith('.m4a')) return 'm4a';
     if(t.endsWith('.wav')) return 'wav';
+    if(t.endsWith('.aac')) return 'aac';
     if(t.endsWith('.ogg') || t.endsWith('.oga')) return 'ogg';
     if(t.endsWith('.mp4') || t.endsWith('.webm')) return 'video';
     return 'audio';
@@ -539,7 +491,7 @@ function chonNhacTrongMay(tapTin) {
     for(let i=0; i<tapTin.length; i++) {
         const f = tapTin[i];
         danhSachNhac.push({
-            ten: f.name.replace(/\.(flac|mp3|m4a|wav|ogg|oga|mp4|webm)$/i, ''),
+            ten: f.name.replace(/\.(flac|mp3|m4a|wav|ogg|oga|aac|mp4|webm)$/i, ''),
             link: URL.createObjectURL(f),
             loai: phanLoaiFile(f.name),
             nguon: 'local'
@@ -551,28 +503,44 @@ function chonNhacTrongMay(tapTin) {
     if(danhSachNhac.length === tapTin.length) chonBaiNhac(0);
 }
 
+// HÀM CHỌN BÀI HÁT XỬ LÝ DỪNG ÂM THANH XUNG ĐỘT
 function chonBaiNhac(idx) {
-    if(idx<0||idx>=danhSachNhac.length) return;
+    if(idx<0 || idx>=danhSachNhac.length) return;
     chiSoNhac = idx;
     const b = danhSachNhac[idx];
     
-    dungViz(); // Dừng/Ẩn sóng trước khi chuyển bài
+    // 1. Tắt Visualizer trước khi đổi bài
+    dungViz();
     
+    // 2. Dừng hoàn toàn nguồn phát cũ để tránh phát chồng âm thanh
+    playerNhac.pause();
+    playerNhac.currentTime = 0;
+    ytPlayer.src = ''; 
+
+    // 3. Ẩn tất cả các khung hiển thị
     playerNhac.classList.add('hidden');
     ytPlayer.classList.add('hidden');
     placeholderNhac.classList.add('hidden');
 
+    // 4. Bắt đầu phát theo từng loại nhạc
     if(b.loai === 'youtube') {
-        // === YOUTUBE: ẨN sóng, hiện video ===
+        // Nếu chọn bài YouTube: Nạp lại link YouTube
         ytPlayer.src = `https://www.youtube.com/embed/${layIdYT(b.link)}?autoplay=1`;
         ytPlayer.classList.remove('hidden');
+        document.getElementById('playBtnNhac').textContent = '⏸';
     } else {
-        // === FILE NHẠC: HIỆN sóng ===
+        // Nếu chọn bài trong máy (Hình hoặc Tiếng):
         playerNhac.src = b.link;
         playerNhac.classList.remove('hidden');
         playerNhac.volume = document.getElementById('volNhac').value/100;
-        playerNhac.play().catch(()=>{});
-        batViz(); // Chỉ hiện sóng khi phát file nhạc
+        
+        playerNhac.play().then(() => {
+            document.getElementById('playBtnNhac').textContent = '⏸';
+            // Chỉ bật hiệu ứng sóng nếu là file nhạc tiếng thuần túy
+            if (PHAN_LOAI_TIENG.includes(b.loai)) {
+                batViz();
+            }
+        }).catch(e => console.log(e));
     }
 
     document.getElementById('titleNhac').textContent = b.ten;
@@ -583,13 +551,17 @@ function togglePlayNhac() {
     if(chiSoNhac === -1 && danhSachNhac.length > 0) return chonBaiNhac(0);
     if(chiSoNhac === -1) return;
     const b = danhSachNhac[chiSoNhac];
+    
     if(b.loai === 'youtube') {
         dungViz();
-        return alert('YouTube: bấm trực tiếp trên màn hình');
+        return alert('Dùng phím Play/Pause trên màn hình YouTube');
     }
+    
     if(playerNhac.paused) {
         playerNhac.play();
-        batViz();
+        if (PHAN_LOAI_TIENG.includes(b.loai)) {
+            batViz();
+        }
         document.getElementById('playBtnNhac').textContent = '⏸';
     } else {
         playerNhac.pause();
@@ -634,8 +606,16 @@ playerNhac.addEventListener('loadedmetadata', () => {
     document.getElementById('tgTong').textContent = formatGio(playerNhac.duration);
 });
 playerNhac.addEventListener('ended', baiSauNhac);
-playerNhac.addEventListener('pause', dungViz);
-playerNhac.addEventListener('play', batViz);
+playerNhac.addEventListener('pause', () => {
+    dungViz();
+    document.getElementById('playBtnNhac').textContent = '▶';
+});
+playerNhac.addEventListener('play', () => {
+    document.getElementById('playBtnNhac').textContent = '⏸';
+    if(chiSoNhac >= 0 && PHAN_LOAI_TIENG.includes(danhSachNhac[chiSoNhac]?.loai)) {
+        batViz();
+    }
+});
 
 function formatGio(s) {
     if(!s) return '00:00';
@@ -718,6 +698,8 @@ function capNhatDsNhac() {
         row.className = `wmp-song-row ${i===chiSoNhac?'active':''}`;
         let tagClass = 'tag-yt', tagText = 'YT';
         if(b.loai === 'flac') { tagClass='tag-local'; tagText='🎧 FLAC'; }
+        else if(b.loai === 'aac') { tagClass='tag-local'; tagText='🎵 AAC'; }
+        else if(b.loai === 'video') { tagClass='tag-local'; tagText='🎬 Video'; }
         else if(b.nguon === 'local') { tagClass='tag-local'; tagText='📂 Máy'; }
         else if(b.loai !== 'youtube') { tagClass='tag-local'; tagText='🎵 File'; }
         
