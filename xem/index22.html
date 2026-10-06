@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facebook Video Embedded Player</title>
+    <!-- Tải Facebook SDK -->
+    <script async defer crossorigin="anonymous" src="https://connect.facebook.net/vi_VN/sdk.js#xfbml=1&version=v18.0"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #0d1117;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            width: 100%;
+            max-width: 650px;
+            background: #161b22;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            background: #0d1117;
+            color: #fff;
+            font-size: 14px;
+        }
+        button {
+            padding: 12px 20px;
+            background: #238636;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover { background: #2ea043; }
+        #player-wrapper {
+            width: 100%;
+            min-height: 350px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Xem Video Facebook Trực Tiếp</h2>
+    <div class="input-group">
+        <input type="text" id="fb-url" placeholder="Dán link Facebook (Watch, Share, Reel...) vào đây">
+        <button onclick="loadFacebookVideo()">Phát Video</button>
+    </div>
+
+    <!-- Khung chứa Video Facebook -->
+    <div id="player-wrapper">
+        <p style="color: #8b949e;">Nhập link Facebook và bấm Phát Video</p>
+    </div>
+</div>
+
+<script>
+    function loadFacebookVideo() {
+        const inputUrl = document.getElementById('fb-url').value.trim();
+        const wrapper = document.getElementById('player-wrapper');
+
+        if (!inputUrl) {
+            alert('Vui lòng dán link Facebook!');
+            return;
+        }
+
+        // Làm sạch khung phát và chèn thẻ SDK của Facebook
+        wrapper.innerHTML = `
+            <div class="fb-video" 
+                 data-href="${inputUrl}" 
+                 data-width="auto" 
+                 data-show-text="false" 
+                 data-autoplay="true"
+                 data-allowfullscreen="true">
+            </div>
+        `;
+
+        // Yêu cầu Facebook SDK quét và tải lại khung video
+        if (typeof FB !== 'undefined') {
+            FB.XFBML.parse(wrapper);
+        }
+    }
+</script>
+
+</body>
+</html>
