@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Máy Phát Đa Năng</title>
+    <title>Nghe Nhạc & Xem Truyền Hình</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
@@ -14,38 +14,81 @@
             min-height: 100vh;
         }
 
+        .tab-btn {
+            padding: 10px 20px; border-radius: 12px 12px 0 0;
+            background: #1e293b; color: #94a3b8;
+            font-weight: 500; transition: all 0.2s ease; border: none; cursor: pointer;
+        }
+        .tab-btn.active {
+            background: linear-gradient(145deg, #ef4444, #dc2626);
+            color: white; font-weight: 600;
+            box-shadow: 0 -2px 10px rgba(239,68,68,0.2);
+        }
+        .tab-btn:hover:not(.active) { background: #334155; color: #e2e8f0; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+
         .player-box {
             background: linear-gradient(145deg, #1e293b, #0f172a);
-            border-radius: 24px;
-            box-shadow: 0 25px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.3);
+            border-radius: 0 20px 20px 20px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.5);
         }
-
         .screen-box {
             background: linear-gradient(180deg, #0c1222, #1a2744);
-            border-radius: 20px;
-            box-shadow: inset 0 4px 15px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05);
+            border-radius: 16px;
+            box-shadow: inset 0 4px 15px rgba(0,0,0,0.6);
             padding: 16px;
         }
-
         .btn-circle {
-            width: 56px; height: 56px; border-radius: 50%;
+            width: 52px; height: 52px; border-radius: 50%;
             background: linear-gradient(145deg, #334155, #1e293b);
-            box-shadow: 6px 6px 12px rgba(0,0,0,0.4), -3px -3px 8px rgba(255,255,255,0.05);
+            box-shadow: 6px 6px 12px rgba(0,0,0,0.4);
             transition: all 0.15s ease;
+            border: none; color: white; cursor: pointer;
         }
-        .btn-circle:active {
-            transform: scale(0.92);
-            box-shadow: inset 4px 4px 8px rgba(0,0,0,0.5);
-        }
+        .btn-circle:active { transform: scale(0.92); }
         .btn-play {
-            width: 72px; height: 72px;
+            width: 68px; height: 68px;
             background: linear-gradient(145deg, #ef4444, #dc2626);
-            box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4);
+            box-shadow: 0 8px 20px rgba(239,68,68,0.4);
         }
-        .btn-play:active {
-            box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3);
+        .btn-add {
+            width: 44px; height: 44px; border-radius: 50%;
+            background: linear-gradient(145deg, #10b981, #059669);
+            box-shadow: 0 4px 12px rgba(16,185,129,0.35);
+            border: none; color: white; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; font-size: 18px;
         }
-
+        .btn-local {
+            background: linear-gradient(145deg, #8b5cf6, #7c3aed);
+            box-shadow: 0 4px 12px rgba(139,92,246,0.35);
+        }
+        .song-item, .channel-item {
+            background: rgba(30,41,59,0.5); border-radius: 10px;
+            border-left: 3px solid transparent; transition: all 0.2s ease;
+        }
+        .song-item:hover, .channel-item:hover { transform: translateX(3px); }
+        .song-item.active {
+            background: rgba(239,68,68,0.15); border-left-color: #ef4444;
+        }
+        .channel-item.active {
+            background: rgba(16,185,129,0.15); border-left-color: #10b981;
+        }
+        .tag { font-size: 10px; padding: 2px 6px; border-radius: 10px; }
+        .tag-yt { background: rgba(255,0,0,0.2); color: #ffb3b3; }
+        .tag-local { background: rgba(139,92,246,0.2); color: #d8b4fe; }
+        .tag-flac { background: rgba(34,197,94,0.2); color: #86efac; }
+        .tag-iptv { background: rgba(16,185,129,0.2); color: #86efac; }
+        .volume-slider {
+            -webkit-appearance: none; appearance: none;
+            height: 8px; border-radius: 4px; background: #334155;
+        }
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%;
+            background: #ef4444; border: 3px solid #fff;
+            cursor: pointer;
+        }
         .progress-bar {
             height: 6px; border-radius: 3px; background: #1e293b; cursor: pointer;
         }
@@ -54,286 +97,769 @@
             background: linear-gradient(90deg, #ef4444, #f97316);
             width: 0%; transition: width 0.1s linear;
         }
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 999; opacity: 0; visibility: hidden;
+            transition: all 0.25s ease;
+        }
+        .modal-overlay.show { opacity:1; visibility:visible; }
+        .modal-box {
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            border-radius: 20px; padding: 24px; width: 90%; max-width: 420px;
+        }
+        .btn-close {
+            width: 36px; height: 36px; border-radius: 50%;
+            background: rgba(239,68,68,0.2); color: #fca5a5;
+            display: flex; align-items: center; justify-content: center;
+            border: none; cursor: pointer; font-size: 16px;
+        }
+        .input-file { display: none; }
+        .loading { color: #facc15; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.5; } }
 
-        .song-item {
-            background: rgba(30, 41, 59, 0.5);
-            border-radius: 12px; transition: all 0.2s ease;
-            border-left: 3px solid transparent;
+        /* === NÚT CHẾ ĐỘ PHÁT === */
+        .mode-row {
+            display: flex; align-items: center; gap: 10px; margin: 12px 0; padding-top: 10px;
+            border-top: 1px solid rgba(255,255,255,0.08);
         }
-        .song-item:hover {
-            background: rgba(239, 68, 68, 0.15); transform: translateX(4px);
+        .mode-btn {
+            width: 34px; height: 34px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            border: none; cursor: pointer;
+            background: #334155; color: #d1d5db; font-size: 16px;
+            transition: all 0.2s ease;
         }
-        .song-item.active {
-            background: rgba(239, 68, 68, 0.25); border-left-color: #ef4444;
-        }
-
-        .tag { font-size: 10px; padding: 2px 6px; border-radius: 10px; }
-        .tag-yt { background: rgba(255,0,0,0.2); color: #ffb3b3; }
-        .tag-mp4 { background: rgba(59,130,246,0.2); color: #b3d4ff; }
-
-        /* === THANH TRƯỢT LUÔN KÉO ĐƯỢC === */
-        .volume-slider {
-            -webkit-appearance: none; appearance: none;
-            height: 8px; border-radius: 4px; 
-            background: #334155;
-            outline: none; cursor: pointer;
-        }
-        .volume-slider::-webkit-slider-thumb {
-            -webkit-appearance: none; 
-            width: 24px; height: 24px; border-radius: 50%;
-            background: #ef4444; 
-            cursor: pointer; 
-            border: 3px solid #fff;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-        }
-        .volume-slider::-moz-range-thumb {
-            width: 24px; height: 24px; border-radius: 50%;
-            background: #ef4444; 
-            cursor: pointer; 
-            border: 3px solid #fff;
-        }
+        .mode-btn.active { background: #ef4444; color: #fff; box-shadow: 0 2px 8px rgba(239,68,68,0.3); }
+        .mode-text { font-size: 14px; color: #fcd34d; }
     </style>
+    <!-- Tải API YouTube IFrame -->
+    <script src="https://www.youtube.com/iframe_api"></script>
 </head>
 <body class="text-white">
 
-<div class="max-w-4xl mx-auto px-3 py-5">
-    <div class="player-box p-5 mb-5">
-        <div class="screen-box mb-5">
-            <div id="videoContainer" class="w-full rounded-xl overflow-hidden bg-black aspect-video">
-                <video id="player" class="w-full h-full outline-none hidden" preload="metadata"></video>
-                <iframe id="ytPlayer" class="w-full h-full hidden" frameborder="0" allowfullscreen allow="autoplay; encrypted-media"></iframe>
-                <div id="placeholder" class="flex items-center justify-center h-full min-h-[300px] text-slate-400">
-                    <div class="text-center">
-                        <p class="text-5xl mb-3">🎬</p>
-                        <p class="text-lg">Chọn nội dung bên dưới</p>
+<div class="max-w-7xl mx-auto px-3 py-4">
+    <!-- 2 THẺ CHỌN -->
+    <div class="flex gap-2 mb-0">
+        <button class="tab-btn active" onclick="chuyenTab('nhac', event)">🎵 YouTube & Nhạc</button>
+        <button class="tab-btn" onclick="chuyenTab('iptv', event)">📺 Xem Truyền Hình</button>
+    </div>
+
+    <!-- === THẺ 1: YOUTUBE & NHẠC === -->
+    <div id="tab-nhac" class="tab-content active">
+        <div class="player-box p-4">
+            <div class="flex flex-col lg:flex-row gap-4">
+                <!-- BÊN TRÁI: MÀN HÌNH PHÁT -->
+                <div class="lg:w-3/5 space-y-4">
+                    <div class="screen-box mb-4">
+                        <div id="nhacContainer" class="w-full rounded-xl overflow-hidden bg-black aspect-video relative">
+                            <video id="playerNhac" class="w-full h-full hidden" controls preload="metadata"></video>
+                            <div id="ytPlayer" class="w-full h-full hidden"></div>
+                            <div id="placeholderNhac" class="flex items-center justify-center h-full min-h-[260px] text-slate-400">
+                                <div class="text-center">
+                                    <p class="text-4xl mb-2">🎵</p>
+                                    <p class="text-base">Chọn bài bên phải để nghe</p>
+                                    <p class="text-xs mt-2">Hoặc bấm 📂 chọn nhạc trong máy</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p id="titleNhac" class="text-center text-amber-300 font-medium mb-3 truncate">Chưa chọn bài nào</p>
+
+                    <div id="progressNhac" class="px-2 mb-3 hidden">
+                        <div class="progress-bar" onclick="tienDoNhac(event)">
+                            <div class="progress-fill" id="progressFillNhac"></div>
+                        </div>
+                        <div class="flex justify-between text-xs text-slate-400 mt-1">
+                            <span id="tgHienTai">00:00</span>
+                            <span id="tgTong">00:00</span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-center gap-3 mb-3">
+                        <button class="btn-circle flex items-center justify-center text-lg" onclick="baiTruocNhac()">⏮</button>
+                        <button class="btn-circle btn-play flex items-center justify-center text-xl" id="playBtnNhac" onclick="togglePlayNhac()">▶</button>
+                        <button class="btn-circle flex items-center justify-center text-lg" onclick="baiSauNhac()">⏭</button>
+                    </div>
+
+                    <div class="flex items-center justify-center gap-3 px-2">
+                        <span class="text-slate-400">🔈</span>
+                        <input type="range" id="volNhac" min="0" max="100" value="80" 
+                               class="volume-slider flex-1 max-w-xs" oninput="capNhatAmLuongNhac(this.value)">
+                        <span class="text-slate-400">🔊</span>
+                        <span id="volPctNhac" class="text-xs text-slate-300 w-8 text-right">80%</span>
+                    </div>
+                </div>
+
+                <!-- BÊN PHẢI: DANH SÁCH NHẠC -->
+                <div class="lg:w-2/5">
+                    <div class="bg-slate-800/50 rounded-xl p-4 border border-slate-700 h-full flex flex-col">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="font-semibold text-amber-300">📋 Danh Sách Nhạc</h3>
+                            <div class="flex gap-2">
+                                <label class="btn-local btn-add flex items-center justify-center cursor-pointer" title="Chọn nhạc trong máy">
+                                    📂
+                                    <input type="file" id="chonFileNhac" 
+                                           accept=".flac,.mp3,.m4a,.wav,.ogg,.oga,.mp4,.webm" 
+                                           multiple class="input-file" onchange="chonNhacTrongMay(this.files)">
+                                </label>
+                                <button onclick="moThemNhac()" class="btn-add" title="Thêm link nhạc">+</button>
+                                <button onclick="xoaHetNhac()" class="text-red-400 text-sm hover:text-red-300" title="Khôi phục mặc định">🗑</button>
+                            </div>
+                        </div>
+
+                        <div class="mode-row">
+                            <button id="modeBtn" onclick="chuyenCheDo()" class="mode-btn">↻</button>
+                            <span id="modeText" class="mode-text">Bình thường</span>
+                        </div>
+
+                        <ul id="danhSachNhac" class="space-y-2 flex-1 overflow-y-auto pr-1 max-h-[420px]"></ul>
                     </div>
                 </div>
             </div>
-            <p id="titleDisplay" class="text-center text-orange-300 font-medium mt-4 text-lg truncate">
-                🎵 Chưa chọn nội dung
-            </p>
         </div>
-
-        <div id="progressSection" class="px-2 mb-4 hidden">
-            <div class="progress-bar" id="progressBar" onclick="tuanHanh(event)">
-                <div class="progress-fill" id="progressFill"></div>
-            </div>
-            <div class="flex justify-between text-xs text-slate-400 mt-2">
-                <span id="timeCurrent">00:00</span>
-                <span id="timeTotal">00:00</span>
-            </div>
-        </div>
-
-        <div class="flex items-center justify-center gap-4 mb-5">
-            <button class="btn-circle flex items-center justify-center text-lg" onclick="baiTruoc()" title="Trước">⏮</button>
-            <button class="btn-circle btn-play flex items-center justify-center text-2xl" id="playBtn" onclick="togglePlay()">▶</button>
-            <button class="btn-circle flex items-center justify-center text-lg" onclick="baiSau()" title="Sau">⏭</button>
-        </div>
-
-        <!-- === THANH TRƯỢT LUÔN KÉO ĐƯỢC === -->
-        <div class="flex items-center justify-center gap-3 px-4">
-            <span class="text-slate-400 text-lg">🔈</span>
-            <input type="range" id="volumeSlider" min="0" max="100" value="80" 
-                   class="volume-slider flex-1 max-w-xs" oninput="capNhatAmLuong(this.value)">
-            <span class="text-slate-400 text-lg">🔊</span>
-            <span id="phamTramAmLuong" class="text-sm text-slate-300 w-10 text-right font-medium">80%</span>
-        </div>
-        <p id="hintText" class="text-center text-xs text-slate-500 mt-2">
-            💡 MP4: thanh trượt điều khiển | YouTube: điều chỉnh âm lượng trên màn hình video
-        </p>
     </div>
 
-    <div class="bg-slate-800/50 rounded-xl p-4 mb-4 border border-slate-700">
-        <h3 class="font-semibold text-emerald-300 mb-3">➕ Thêm Nội Dung Mới</h3>
-        <input type="text" id="linkInput" placeholder="Dán link MP4 / Google Drive / GitHub / YouTube..."
-            class="w-full bg-slate-900/60 border border-slate-600 rounded-lg px-4 py-3 mb-3 outline-none focus:border-orange-500">
-        <input type="text" id="nameInput" placeholder="Tên (tùy chọn)"
-            class="w-full bg-slate-900/60 border border-slate-600 rounded-lg px-4 py-3 mb-3 outline-none focus:border-orange-500">
-        <button onclick="themMoi()" class="w-full bg-red-600 hover:bg-red-500 py-3 rounded-lg font-semibold transition">
-            ➕ Thêm vào danh sách
+    <!-- === THẺ 2: IPTV TRUYỀN HÌNH === -->
+    <div id="tab-iptv" class="tab-content">
+        <div class="player-box p-4">
+            <div class="flex flex-col lg:flex-row gap-4">
+                <!-- BÊN TRÁI: MÀN HÌNH XEM -->
+                <div class="lg:w-3/5 space-y-4">
+                    <div class="screen-box mb-4">
+                        <div id="iptvContainer" class="w-full rounded-xl overflow-hidden bg-black aspect-video">
+                            <video id="playerIptv" class="w-full h-full hidden" controls preload="metadata"></video>
+                            <div id="placeholderIptv" class="flex items-center justify-center h-full min-h-[260px] text-slate-400">
+                                <div class="text-center px-4">
+                                    <p class="text-4xl mb-2">📺</p>
+                                    <p class="text-base mb-2">Dán link .m3u / .m3u8 → Bấm + nạp danh sách kênh</p>
+                                    <p class="text-xs text-slate-500">Tự tách kênh • Hỗ trợ link trực tiếp</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <p id="titleIptv" class="text-center text-emerald-300 font-medium mb-3 truncate">Chưa chọn kênh</p>
+                    <div class="flex items-center justify-center gap-3 px-2">
+                        <span class="text-slate-400">🔈</span>
+                        <input type="range" id="volIptv" min="0" max="100" value="80" 
+                               class="volume-slider flex-1 max-w-xs" oninput="capNhatAmLuongIptv(this.value)">
+                        <span class="text-slate-400">🔊</span>
+                        <span id="volPctIptv" class="text-xs text-slate-300 w-8 text-right">80%</span>
+                    </div>
+                </div>
+
+                <!-- BÊN PHẢI: DANH SÁCH KÊNH -->
+                <div class="lg:w-2/5">
+                    <div class="bg-slate-800/50 rounded-xl p-4 border border-slate-700 h-full flex flex-col">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="font-semibold text-emerald-300">📋 Danh Sách Kênh IPTV</h3>
+                            <div class="flex gap-2">
+                                <button onclick="moThemIptv()" class="btn-add" title="Nạp danh sách kênh">+</button>
+                                <button onclick="xoaHetIptv()" class="text-red-400 text-sm hover:text-red-300" title="Xóa hết">🗑</button>
+                            </div>
+                        </div>
+                        <div class="text-xs text-slate-400 mb-2">
+                            Tổng: <span id="soKenhIptv">0</span> kênh
+                        </div>
+                        <ul id="danhSachIptv" class="space-y-2 flex-1 overflow-y-auto pr-1 max-h-[480px]">
+                            <li class="text-slate-500 text-center py-6 text-sm">
+                                Bấm <span class="text-emerald-400 font-bold">+</span> dán link .m3u
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CỬA SỔ THÊM NHẠC/YOUTUBE -->
+<div id="modalThemNhac" class="modal-overlay" onclick="if(event.target===this) dongThemNhac()">
+    <div class="modal-box">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-semibold text-amber-300 text-lg">➕ Thêm YouTube / Nhạc</h3>
+            <button onclick="dongThemNhac()" class="btn-close">✕</button>
+        </div>
+        <input type="text" id="linkNhacInput" placeholder="Dán link YouTube / MP3 / Nhạc..."
+            class="w-full bg-slate-900/60 border border-slate-600 rounded-lg px-4 py-3 mb-3 outline-none focus:border-amber-500">
+        <input type="text" id="tenNhacInput" placeholder="Tên bài (để trống tự đặt)"
+            class="w-full bg-slate-900/60 border border-slate-600 rounded-lg px-4 py-3 mb-4 outline-none focus:border-amber-500">
+        <button onclick="xacNhanThemNhac()" class="w-full bg-amber-600 hover:bg-amber-500 py-3 rounded-lg font-semibold transition">
+            ✅ Thêm vào danh sách
         </button>
     </div>
+</div>
 
-    <div class="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
-        <div class="flex justify-between items-center mb-3">
-            <h3 class="font-semibold text-amber-300">📋 Danh Sách Phát</h3>
-            <button onclick="xoaHet()" class="text-red-400 text-sm hover:text-red-300">🗑 Xóa hết</button>
+<!-- CỬA SỔ NẠP IPTV -->
+<div id="modalThemIptv" class="modal-overlay" onclick="if(event.target===this) dongThemIptv()">
+    <div class="modal-box">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-semibold text-emerald-300 text-lg">📺 Nạp Danh Sách Kênh IPTV</h3>
+            <button onclick="dongThemIptv()" class="btn-close">✕</button>
         </div>
-        <ul id="danhSach" class="space-y-2">
-            <li class="song-item p-3 px-4 flex justify-between items-center" onclick="chonBai(0)">
-                <span class="cursor-pointer flex-1">
-                    <span class="tag tag-yt mr-2">YouTube</span>
-                    Cô Đơn Dành Cho Ai - Ngân Ngân Cover
-                </span>
-                <button class="text-red-400 hover:text-red-300 text-sm ml-2" onclick="event.stopPropagation(); xoaMot(0)">✕</button>
-            </li>
-            <li class="song-item p-3 px-4 flex justify-between items-center" onclick="chonBai(1)">
-                <span class="cursor-pointer flex-1">
-                    <span class="tag tag-yt mr-2">YouTube</span>
-                    Hoa Bằng Lăng - Ngân Ngân Cover
-                </span>
-                <button class="text-red-400 hover:text-red-300 text-sm ml-2" onclick="event.stopPropagation(); xoaMot(1)">✕</button>
-            </li>
-            <li class="song-item p-3 px-4 flex justify-between items-center" onclick="chonBai(2)">
-                <span class="cursor-pointer flex-1">
-                    <span class="tag tag-yt mr-2">YouTube</span>
-                    LK Bolero Trữ Tình Êm Tai
-                </span>
-                <button class="text-red-400 hover:text-red-300 text-sm ml-2" onclick="event.stopPropagation(); xoaMot(2)">✕</button>
-            </li>
-        </ul>
+        <input type="text" id="linkIptvInput" placeholder="Dán link .m3u / .m3u8 / link kênh..."
+            class="w-full bg-slate-900/60 border border-slate-600 rounded-lg px-4 py-3 mb-3 outline-none focus:border-emerald-500">
+        <button onclick="napDanhSachIptv()" class="w-full bg-emerald-600 hover:bg-emerald-500 py-3 rounded-lg font-semibold transition">
+            ⬇️ Nạp & Tách Danh Sách
+        </button>
+        <p id="trangThaiIptv" class="text-center text-sm mt-3 text-slate-400"></p>
     </div>
 </div>
 
 <script>
-const player = document.getElementById('player');
-const ytPlayer = document.getElementById('ytPlayer');
-const placeholder = document.getElementById('placeholder');
-const titleDisplay = document.getElementById('titleDisplay');
-const progressSection = document.getElementById('progressSection');
-const progressFill = document.getElementById('progressFill');
-const timeCurrent = document.getElementById('timeCurrent');
-const timeTotal = document.getElementById('timeTotal');
-const playBtn = document.getElementById('playBtn');
-const volumeSlider = document.getElementById('volumeSlider');
-const phamTramAmLuong = document.getElementById('phamTramAmLuong');
-
-// === ĐẦY ĐỦ 3 LINK BẠN GỬI ===
-let danhSachBai = [
-    { link: "https://youtu.be/N1v7bZuvX9A?si=rQF-Pxpr__-FaPNr", ten: "Cô Đơn Dành Cho Ai - Ngân Ngân Cover", loai: "youtube" },
-    { link: "https://youtu.be/quFHQe6TFs0?si=8Xpn23VtfeUhrp_E", ten: "Hoa Bằng Lăng - Ngân Ngân Cover", loai: "youtube" },
-    { link: "https://youtu.be/B3Pl9nIu434?si=5gJbEtChtFkL4qIm", ten: "LK Bolero Trữ Tình Êm Tai", loai: "youtube" }
-];
-
-let chiSoHienTai = -1;
-let dangLoai = null;
-
-function layIdYoutube(link) {
-    if (link.includes('youtu.be/')) return link.split('youtu.be/')[1].split('?')[0];
-    if (link.includes('youtube.com/watch')) {
-        const url = new URL(link);
-        return url.searchParams.get('v');
-    }
-    return null;
+// ===================== CHUYỂN TAB =====================
+function chuyenTab(ten, e) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    if(e && e.target) e.target.classList.add('active');
+    document.getElementById('tab-' + ten).classList.add('active');
 }
 
-function chonBai(chiSo) {
-    if (chiSo < 0 || chiSo >= danhSachBai.length) return;
-    chiSoHienTai = chiSo;
-    const bai = danhSachBai[chiSo];
-    dangLoai = bai.loai;
+// ===================== QUẢN LÝ CHẾ ĐỘ PHÁT =====================
+const CHE_DO = { BINH_THUONG: 0, LAP_MOT: 1, LAP_TAT_CA: 2, NGAU_NHIEN: 3 };
+let cheDoPhat = CHE_DO.BINH_THUONG;
+let dsNgauNhien = [];
 
-    player.classList.add('hidden');
-    ytPlayer.classList.add('hidden');
-    placeholder.classList.add('hidden');
-    progressSection.classList.add('hidden');
+function chuyenCheDo() {
+    cheDoPhat = (cheDoPhat + 1) % 4;
+    const btn = document.getElementById('modeBtn');
+    const text = document.getElementById('modeText');
+    btn.classList.remove('active');
+    
+    if (cheDoPhat === CHE_DO.NGAU_NHIEN) taoDsNgauNhien();
+    else dsNgauNhien = [];
 
-    if (bai.loai === 'youtube') {
-        ytPlayer.src = `https://www.youtube.com/embed/${layIdYoutube(bai.link)}`;
-        ytPlayer.classList.remove('hidden');
+    switch(cheDoPhat) {
+        case CHE_DO.BINH_THUONG:
+            btn.textContent = '↻';
+            text.textContent = 'Bình thường';
+            break;
+        case CHE_DO.LAP_MOT:
+            btn.textContent = '🔁';
+            btn.classList.add('active');
+            text.textContent = 'Lặp 1 bài';
+            break;
+        case CHE_DO.LAP_TAT_CA:
+            btn.textContent = '🔂';
+            btn.classList.add('active');
+            text.textContent = 'Lặp tất cả';
+            break;
+        case CHE_DO.NGAU_NHIEN:
+            btn.textContent = '🎲';
+            btn.classList.add('active');
+            text.textContent = 'Ngẫu nhiên';
+            break;
+    }
+}
+
+function taoDsNgauNhien() {
+    dsNgauNhien = [...Array(danhSachNhac.length).keys()];
+    for(let i = dsNgauNhien.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [dsNgauNhien[i], dsNgauNhien[j]] = [dsNgauNhien[j], dsNgauNhien[i]];
+    }
+}
+
+// ===================== KHỞI TẠO YOUTUBE IFRAME API =====================
+let ytPlayerObj = null;
+let ytReady = false;
+let ytProgressTimer = null;
+
+function onYouTubeIframeAPIReady() {
+    ytPlayerObj = new YT.Player('ytPlayer', {
+        height: '100%',
+        width: '100%',
+        playerVars: {
+            'autoplay': 1,
+            'controls': 1,
+            'rel': 0
+        },
+        events: {
+            'onReady': () => { ytReady = true; },
+            'onStateChange': onPlayerStateChange
+        }
+    });
+}
+
+function onPlayerStateChange(event) {
+    const playBtn = document.getElementById('playBtnNhac');
+    if (event.data === YT.PlayerState.PLAYING) {
+        playBtn.textContent = '⏸';
+        batDauTheoDoiTienDoYT();
+    } else if (event.data === YT.PlayerState.PAUSED) {
+        playBtn.textContent = '▶';
+        dungTheoDoiTienDoYT();
+    } else if (event.data === YT.PlayerState.ENDED) {
+        dungTheoDoiTienDoYT();
+        baiSauNhac(); // Tự động sang bài tiếp theo khi hát xong
+    }
+}
+
+function batDauTheoDoiTienDoYT() {
+    dungTheoDoiTienDoYT();
+    ytProgressTimer = setInterval(() => {
+        if (ytPlayerObj && ytPlayerObj.getCurrentTime && ytPlayerObj.getDuration) {
+            const cur = ytPlayerObj.getCurrentTime();
+            const dur = ytPlayerObj.getDuration();
+            if (dur > 0) {
+                document.getElementById('progressFillNhac').style.width = (cur / dur * 100) + '%';
+                document.getElementById('tgHienTai').textContent = formatGio(cur);
+                document.getElementById('tgTong').textContent = formatGio(dur);
+            }
+        }
+    }, 500);
+}
+
+function dungTheoDoiTienDoYT() {
+    if (ytProgressTimer) clearInterval(ytProgressTimer);
+}
+
+// ===================== QUẢN LÝ NHẠC & YOUTUBE =====================
+const playerNhac = document.getElementById('playerNhac');
+const placeholderNhac = document.getElementById('placeholderNhac');
+const modalThemNhac = document.getElementById('modalThemNhac');
+
+function layDaLuuNhac() {
+    try {
+        const d = localStorage.getItem('danhSachNhac');
+        return d ? JSON.parse(d) : [];
+    } catch(e) {
+        return [];
+    }
+}
+
+function luuNhac() {
+    const nhacLuu = danhSachNhac.filter(b => b.nguon !== 'local');
+    localStorage.setItem('danhSachNhac', JSON.stringify(nhacLuu));
+}
+
+let danhSachNhac = layDaLuuNhac();
+if(danhSachNhac.length === 0) {
+    danhSachNhac = [
+        { link: "https://youtu.be/N1v7bZuvX9A", ten: "Cô Đơn Dành Cho Ai", loai: "youtube" },
+        { link: "https://youtu.be/quFHQe6TFs0", ten: "Hoa Bằng Lăng", loai: "youtube" },
+        { link: "https://youtu.be/B3Pl9nIu434", ten: "LK Bolero Trữ Tình", loai: "youtube" }
+    ];
+    luuNhac();
+}
+let chiSoNhac = -1;
+
+function layIdYT(url) {
+    if (!url) return null;
+    if (/^[a-zA-Z0-9_-]{11}$/.test(url)) return url;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+}
+
+function phanLoaiFile(ten) {
+    const t = ten.toLowerCase();
+    if(t.endsWith('.flac')) return 'flac';
+    if(t.endsWith('.mp3')) return 'mp3';
+    if(t.endsWith('.m4a')) return 'm4a';
+    if(t.endsWith('.wav')) return 'wav';
+    if(t.endsWith('.ogg') || t.endsWith('.oga')) return 'ogg';
+    if(t.endsWith('.mp4') || t.endsWith('.webm')) return 'video';
+    return 'audio';
+}
+
+function chonNhacTrongMay(tapTin) {
+    for(let i = 0; i < tapTin.length; i++) {
+        const f = tapTin[i];
+        const linkTam = URL.createObjectURL(f);
+        danhSachNhac.push({
+            ten: f.name.replace(/\.(flac|mp3|m4a|wav|ogg|oga|mp4|webm)$/i, ''),
+            link: linkTam,
+            loai: phanLoaiFile(f.name),
+            nguon: 'local'
+        });
+    }
+    if(cheDoPhat === CHE_DO.NGAU_NHIEN) taoDsNgauNhien();
+    capNhatDsNhac();
+    if(chiSoNhac === -1) chonBaiNhac(danhSachNhac.length - tapTin.length);
+}
+
+function chonBaiNhac(idx) {
+    if(idx < 0 || idx >= danhSachNhac.length) return;
+    chiSoNhac = idx;
+    const b = danhSachNhac[idx];
+    
+    // Dừng các trình phát hiện tại
+    playerNhac.pause();
+    playerNhac.src = '';
+    dungTheoDoiTienDoYT();
+    if(ytReady && ytPlayerObj && ytPlayerObj.stopVideo) {
+        ytPlayerObj.stopVideo();
+    }
+
+    playerNhac.classList.add('hidden');
+    document.getElementById('ytPlayer').classList.add('hidden');
+    placeholderNhac.classList.add('hidden');
+
+    const idYT = layIdYT(b.link);
+    if(b.loai === 'youtube' || idYT) {
+        if(idYT) {
+            document.getElementById('ytPlayer').classList.remove('hidden');
+            document.getElementById('progressNhac').classList.remove('hidden');
+            const vol = document.getElementById('volNhac').value;
+            
+            if(ytReady && ytPlayerObj && ytPlayerObj.loadVideoById) {
+                ytPlayerObj.loadVideoById(idYT);
+                ytPlayerObj.setVolume(vol);
+            } else {
+                setTimeout(() => chonBaiNhac(idx), 500);
+            }
+        } else {
+            alert('Link YouTube không hợp lệ!');
+            placeholderNhac.classList.remove('hidden');
+        }
     } else {
-        player.src = bai.link;
-        player.classList.remove('hidden');
-        progressSection.classList.remove('hidden');
-        player.volume = volumeSlider.value / 100;
+        playerNhac.src = b.link;
+        playerNhac.classList.remove('hidden');
+        document.getElementById('progressNhac').classList.remove('hidden');
+        playerNhac.volume = document.getElementById('volNhac').value / 100;
+        playerNhac.play().catch(() => {});
+        document.getElementById('playBtnNhac').textContent = '⏸';
     }
 
-    titleDisplay.textContent = bai.ten;
-    playBtn.textContent = '▶';
-    // === KHÔNG KHÓA THANH TRƯỢT NỮA — LUÔN KÉO ĐƯỢC ===
-    volumeSlider.disabled = false;
-    volumeSlider.style.opacity = '1';
+    document.getElementById('titleNhac').textContent = b.ten;
+    capNhatDsNhac();
 }
 
-function togglePlay() {
-    if (chiSoHienTai === -1 && danhSachBai.length > 0) chonBai(0);
-    if (dangLoai === 'youtube') {
-        alert('ℹ️ YouTube: bấm TRỰC TIẾP trên màn hình video để phát/tạm dừng\nÂm lượng YouTube điều chỉnh trên màn hình video');
+function togglePlayNhac() {
+    if(chiSoNhac === -1 && danhSachNhac.length > 0) return chonBaiNhac(0);
+    const b = danhSachNhac[chiSoNhac];
+    const idYT = layIdYT(b.link);
+
+    if(b.loai === 'youtube' || idYT) {
+        if(ytReady && ytPlayerObj) {
+            const st = ytPlayerObj.getPlayerState();
+            if(st === YT.PlayerState.PLAYING) {
+                ytPlayerObj.pauseVideo();
+            } else {
+                ytPlayerObj.playVideo();
+            }
+        }
+    } else {
+        if (playerNhac.paused) {
+            playerNhac.play();
+            document.getElementById('playBtnNhac').textContent = '⏸';
+        } else {
+            playerNhac.pause();
+            document.getElementById('playBtnNhac').textContent = '▶';
+        }
+    }
+}
+
+function baiTruocNhac() {
+    if(!danhSachNhac.length) return;
+    let idx;
+    if(cheDoPhat === CHE_DO.NGAU_NHIEN) {
+        const viTri = dsNgauNhien.indexOf(chiSoNhac);
+        idx = viTri > 0 ? dsNgauNhien[viTri - 1] : dsNgauNhien[dsNgauNhien.length - 1];
+    } else {
+        idx = (chiSoNhac - 1 + danhSachNhac.length) % danhSachNhac.length;
+    }
+    chonBaiNhac(idx);
+}
+
+function baiSauNhac() {
+    if(!danhSachNhac.length) return;
+
+    // Lặp lại 1 bài
+    if(cheDoPhat === CHE_DO.LAP_MOT && chiSoNhac >= 0) {
+        chonBaiNhac(chiSoNhac);
         return;
     }
-    if (player.paused) { player.play(); playBtn.textContent = '⏸'; }
-    else { player.pause(); playBtn.textContent = '▶'; }
+
+    let idx;
+    if(cheDoPhat === CHE_DO.NGAU_NHIEN) {
+        const viTri = dsNgauNhien.indexOf(chiSoNhac);
+        idx = viTri < dsNgauNhien.length - 1 
+            ? dsNgauNhien[viTri + 1] 
+            : (taoDsNgauNhien(), dsNgauNhien[0]);
+    } else {
+        // Nếu phát bình thường và hết danh sách thì dừng
+        if (cheDoPhat === CHE_DO.BINH_THUONG && chiSoNhac === danhSachNhac.length - 1) {
+            document.getElementById('playBtnNhac').textContent = '▶';
+            return;
+        }
+        // Lặp tất cả hoặc tự động chuyển tiếp
+        idx = (chiSoNhac + 1) % danhSachNhac.length;
+    }
+    chonBaiNhac(idx);
 }
 
-function baiTruoc() {
-    if (danhSachBai.length === 0) return;
-    chonBai((chiSoHienTai - 1 + danhSachBai.length) % danhSachBai.length);
-}
-function baiSau() {
-    if (danhSachBai.length === 0) return;
-    chonBai((chiSoHienTai + 1) % danhSachBai.length);
-}
-
-player.addEventListener('timeupdate', () => {
-    if (!player.paused && player.duration) {
-        progressFill.style.width = (player.currentTime / player.duration * 100) + '%';
-        timeCurrent.textContent = formatThoiGian(player.currentTime);
+playerNhac.addEventListener('timeupdate', () => {
+    if(!playerNhac.paused && playerNhac.duration) {
+        document.getElementById('progressFillNhac').style.width = (playerNhac.currentTime / playerNhac.duration * 100) + '%';
+        document.getElementById('tgHienTai').textContent = formatGio(playerNhac.currentTime);
     }
 });
-player.addEventListener('loadedmetadata', () => {
-    timeTotal.textContent = formatThoiGian(player.duration);
+playerNhac.addEventListener('loadedmetadata', () => {
+    document.getElementById('tgTong').textContent = formatGio(playerNhac.duration);
 });
-player.addEventListener('ended', () => baiSau());
-player.addEventListener('play', () => playBtn.textContent = '⏸');
-player.addEventListener('pause', () => playBtn.textContent = '▶');
+playerNhac.addEventListener('ended', () => {
+    baiSauNhac(); // Tự động sang bài tiếp theo cho nhạc local
+});
 
-function formatThoiGian(soGiay) {
-    if (!soGiay) return '00:00';
-    const phut = Math.floor(soGiay / 60), giay = Math.floor(soGiay % 60);
-    return `${phut.toString().padStart(2,'0')}:${giay.toString().padStart(2,'0')}`;
+function formatGio(s) {
+    if(!s || isNaN(s)) return '00:00';
+    const m = Math.floor(s / 60), g = Math.floor(s % 60);
+    return `${m.toString().padStart(2,'0')}:${g.toString().padStart(2,'0')}`;
 }
 
-function tuanHanh(e) {
-    if (!player.duration) return;
-    const o = e.currentTarget.getBoundingClientRect();
-    player.currentTime = (e.clientX - o.left) / o.width * player.duration;
-}
+function tienDoNhac(e) {
+    const r = e.currentTarget.getBoundingClientRect();
+    const pct = (e.clientX - r.left) / r.width;
+    
+    if(chiSoNhac < 0) return;
+    const b = danhSachNhac[chiSoNhac];
+    const idYT = layIdYT(b.link);
 
-// === ✅ THANH TRƯỢT LUÔN KÉO ĐƯỢC ===
-function capNhatAmLuong(giaTri) {
-    phamTramAmLuong.textContent = giaTri + '%';
-    // Chỉ áp dụng cho MP4, nhưng thanh trượt vẫn kéo được mọi lúc
-    if (dangLoai !== 'youtube') {
-        player.volume = giaTri / 100;
+    if(b.loai === 'youtube' || idYT) {
+        if(ytReady && ytPlayerObj && ytPlayerObj.getDuration) {
+            ytPlayerObj.seekTo(pct * ytPlayerObj.getDuration(), true);
+        }
+    } else if(playerNhac.duration) {
+        playerNhac.currentTime = pct * playerNhac.duration;
     }
 }
 
-function themMoi() {
-    const link = document.getElementById('linkInput').value.trim();
-    const ten = document.getElementById('nameInput').value.trim() || `Nội dung ${danhSachBai.length + 1}`;
-    if (!link) return alert('Chưa dán link!');
+function capNhatAmLuongNhac(v) {
+    document.getElementById('volPctNhac').textContent = v + '%';
+    playerNhac.volume = v / 100;
+    if(ytReady && ytPlayerObj && ytPlayerObj.setVolume) {
+        ytPlayerObj.setVolume(v);
+    }
+}
+
+function moThemNhac() { modalThemNhac.classList.add('show'); }
+function dongThemNhac() {
+    modalThemNhac.classList.remove('show');
+    document.getElementById('linkNhacInput').value = '';
+    document.getElementById('tenNhacInput').value = '';
+}
+
+function xacNhanThemNhac() {
+    const link = document.getElementById('linkNhacInput').value.trim();
+    const ten = document.getElementById('tenNhacInput').value.trim() || `Bài ${danhSachNhac.length + 1}`;
+    if(!link) return alert('Chưa nhập link!');
     
-    const loai = (link.includes('youtube.com/') || link.includes('youtu.be/')) ? 'youtube' : 'mp4';
-    if (loai === 'youtube' && !layIdYoutube(link)) return alert('Link YouTube không hợp lệ!');
+    const idYT = layIdYT(link);
+    if(idYT) {
+        danhSachNhac.push({ ten, link: `https://www.youtube.com/watch?v=${idYT}`, loai: 'youtube' });
+    } else {
+        danhSachNhac.push({ ten, link, loai: phanLoaiFile(link) });
+    }
+    luuNhac();
+    if(cheDoPhat === CHE_DO.NGAU_NHIEN) taoDsNgauNhien();
+    dongThemNhac();
+    capNhatDsNhac();
+    if(chiSoNhac === -1) chonBaiNhac(danhSachNhac.length - 1);
+}
+
+function xoaMotNhac(i) {
+    if(!confirm('Xóa bài này?')) return;
+    if(danhSachNhac[i].nguon === 'local') URL.revokeObjectURL(danhSachNhac[i].link);
+    danhSachNhac.splice(i, 1);
+    if(cheDoPhat === CHE_DO.NGAU_NHIEN) taoDsNgauNhien();
+    luuNhac();
+    if(chiSoNhac === i) {
+        chiSoNhac = -1; 
+        playerNhac.pause(); playerNhac.src = '';
+        dungTheoDoiTienDoYT();
+        if(ytReady && ytPlayerObj && ytPlayerObj.stopVideo) ytPlayerObj.stopVideo();
+        document.getElementById('titleNhac').textContent = 'Chưa chọn bài nào';
+        playerNhac.classList.add('hidden');
+        document.getElementById('ytPlayer').classList.add('hidden');
+        placeholderNhac.classList.remove('hidden');
+    } else if(chiSoNhac > i) {
+        chiSoNhac--;
+    }
+    capNhatDsNhac();
+}
+
+function xoaHetNhac() {
+    if(!confirm('Khôi phục danh sách mặc định?')) return;
+    danhSachNhac.forEach(b => { if(b.nguon === 'local') URL.revokeObjectURL(b.link); });
+    danhSachNhac = [
+        { link: "https://youtu.be/N1v7bZuvX9A", ten: "Cô Đơn Dành Cho Ai", loai: "youtube" },
+        { link: "https://youtu.be/quFHQe6TFs0", ten: "Hoa Bằng Lăng", loai: "youtube" },
+        { link: "https://youtu.be/B3Pl9nIu434", ten: "LK Bolero Trữ Tình", loai: "youtube" }
+    ];
+    chiSoNhac = -1;
+    dsNgauNhien = [];
+    luuNhac();
+    playerNhac.pause(); playerNhac.src = '';
+    dungTheoDoiTienDoYT();
+    if(ytReady && ytPlayerObj && ytPlayerObj.stopVideo) ytPlayerObj.stopVideo();
+    document.getElementById('titleNhac').textContent = 'Chưa chọn bài nào';
+    playerNhac.classList.add('hidden');
+    document.getElementById('ytPlayer').classList.add('hidden');
+    placeholderNhac.classList.remove('hidden');
+    capNhatDsNhac();
+}
+
+function capNhatDsNhac() {
+    const ul = document.getElementById('danhSachNhac');
+    ul.innerHTML = '';
+    danhSachNhac.forEach((b, i) => {
+        const li = document.createElement('li');
+        li.className = `song-item p-3 flex justify-between items-center ${i === chiSoNhac ? 'active' : ''}`;
+        
+        let tagClass = 'tag-yt', tagText = 'YT';
+        const idYT = layIdYT(b.link);
+        if(b.loai === 'flac') { tagClass = 'tag-flac'; tagText = '🎧 FLAC'; }
+        else if(b.nguon === 'local') { tagClass = 'tag-local'; tagText = '📂 Máy'; }
+        else if(b.loai !== 'youtube' && !idYT) { tagClass = 'tag-local'; tagText = '🎵 Link'; }
+        
+        li.innerHTML = `
+            <span class="cursor-pointer flex-1 truncate" onclick="chonBaiNhac(${i})">
+                <span class="tag ${tagClass} mr-2">${tagText}</span>
+                ${b.ten}
+            </span>
+            <button class="text-red-400 hover:text-red-300 text-xs ml-2" onclick="event.stopPropagation();xoaMotNhac(${i})">✕</button>
+        `;
+        ul.appendChild(li);
+    });
+}
+
+// ===================== QUẢN LÝ IPTV =====================
+const playerIptv = document.getElementById('playerIptv');
+const placeholderIptv = document.getElementById('placeholderIptv');
+const modalThemIptv = document.getElementById('modalThemIptv');
+const trangThaiIptv = document.getElementById('trangThaiIptv');
+
+let danhSachIptv = [];
+let chiSoIptv = -1;
+
+function phanTichM3u(noiDung, linkGoc) {
+    const kenh = [];
+    const dong = noiDung.split(/\r?\n/);
+    let ten = '', link = '';
+    let coTach = false;
+
+    for(let d of dong) {
+        d = d.trim();
+        if(!d) continue;
+        if(d.startsWith('#EXTINF')) {
+            coTach = true;
+            const t = d.match(/,(.+)$/);
+            ten = t ? t[1].trim() : 'Kênh ' + (kenh.length + 1);
+        } else if(!d.startsWith('#') && d.startsWith('http')) {
+            link = d;
+            kenh.push({ ten, link });
+            ten = ''; link = '';
+        }
+    }
+    if(!coTach) kenh.push({ ten: 'Kênh trực tiếp', link: linkGoc });
+    return kenh;
+}
+
+async function napDanhSachIptv() {
+    const link = document.getElementById('linkIptvInput').value.trim();
+    if(!link) return alert('Chưa nhập link!');
+
+    trangThaiIptv.textContent = '⏳ Đang đọc danh sách...';
+    trangThaiIptv.className = 'text-center text-sm mt-3 loading';
+
+    try {
+        const doc = await fetch(link);
+        if(!doc.ok) throw new Error('Không đọc được');
+        const noiDung = await doc.text();
+        const dsMoi = phanTichM3u(noiDung, link);
+        
+        if(dsMoi.length === 0) {
+            danhSachIptv.push({ ten: 'Danh sách kênh', link });
+            trangThaiIptv.textContent = '⚠️ Thêm link thành công';
+        } else {
+            danhSachIptv = [...danhSachIptv, ...dsMoi];
+            trangThaiIptv.textContent = `✅ Đã nạp ${dsMoi.length} kênh!`;
+        }
+        capNhatDsIptv();
+        document.getElementById('linkIptvInput').value = '';
+        setTimeout(() => { trangThaiIptv.textContent = ''; dongThemIptv(); }, 1500);
+    } catch {
+        danhSachIptv.push({ ten: 'Danh sách kênh', link });
+        capNhatDsIptv();
+        trangThaiIptv.textContent = '⚠️ Thêm link thành công';
+        setTimeout(() => { trangThaiIptv.textContent = ''; dongThemIptv(); }, 1500);
+    }
+}
+
+function chonKenhIptv(idx) {
+    if(idx < 0 || idx >= danhSachIptv.length) return;
+    chiSoIptv = idx;
+    const k = danhSachIptv[idx];
     
-    danhSachBai.push({ link, ten, loai });
-    document.getElementById('linkInput').value = '';
-    document.getElementById('nameInput').value = '';
-    if (danhSachBai.length === 1) chonBai(0);
+    playerIptv.classList.add('hidden');
+    placeholderIptv.classList.add('hidden');
+    
+    if(k.link) {
+        playerIptv.src = k.link;
+        playerIptv.classList.remove('hidden');
+        playerIptv.volume = document.getElementById('volIptv').value / 100;
+        playerIptv.play().catch(() => {});
+    }
+    document.getElementById('titleIptv').textContent = k.ten;
+    capNhatDsIptv();
 }
 
-function xoaMot(idx) {
-    if (!confirm('Xóa bài này?')) return;
-    danhSachBai.splice(idx, 1);
-    if (chiSoHienTai === idx) {
-        chiSoHienTai = -1;
-        player.src = ''; ytPlayer.src = '';
-        titleDisplay.textContent = '🎵 Chưa chọn nội dung';
-        placeholder.classList.remove('hidden');
-    } else if (chiSoHienTai > idx) chiSoHienTai--;
+function capNhatAmLuongIptv(v) {
+    document.getElementById('volPctIptv').textContent = v + '%';
+    if(!playerIptv.classList.contains('hidden')) playerIptv.volume = v / 100;
 }
 
-function xoaHet() {
-    if (!confirm('Xóa toàn bộ?')) return;
-    danhSachBai = []; chiSoHienTai = -1;
-    player.src = ''; ytPlayer.src = '';
-    titleDisplay.textContent = '🎵 Chưa chọn nội dung';
-    placeholder.classList.remove('hidden');
+function moThemIptv() { modalThemIptv.classList.add('show'); }
+function dongThemIptv() { modalThemIptv.classList.remove('show'); trangThaiIptv.textContent = ''; }
+
+function xoaKenhIptv(i) {
+    if(!confirm('Xóa kênh này?')) return;
+    danhSachIptv.splice(i, 1);
+    if(chiSoIptv === i) {
+        chiSoIptv = -1; playerIptv.src = '';
+        document.getElementById('titleIptv').textContent = 'Chưa chọn kênh';
+        placeholderIptv.classList.remove('hidden');
+    } else if(chiSoIptv > i) chiSoIptv--;
+    capNhatDsIptv();
 }
 
-// Khởi tạo
-player.volume = 0.8;
-phamTramAmLuong.textContent = '80%';
+function xoaHetIptv() {
+    if(!confirm('Xóa hết danh sách kênh?')) return;
+    danhSachIptv = []; chiSoIptv = -1;
+    playerIptv.src = '';
+    document.getElementById('titleIptv').textContent = 'Chưa chọn kênh';
+    placeholderIptv.classList.remove('hidden');
+    capNhatDsIptv();
+}
+
+function capNhatDsIptv() {
+    const ul = document.getElementById('danhSachIptv');
+    document.getElementById('soKenhIptv').textContent = danhSachIptv.length;
+    
+    if(!danhSachIptv.length) {
+        ul.innerHTML = '<li class="text-slate-500 text-center py-6 text-sm">Bấm <span class="text-emerald-400 font-bold">+</span> dán link .m3u</li>';
+        return;
+    }
+    ul.innerHTML = '';
+    danhSachIptv.forEach((k, i) => {
+        const li = document.createElement('li');
+        li.className = `channel-item p-3 flex justify-between items-center ${i === chiSoIptv ? 'active' : ''}`;
+        li.innerHTML = `
+            <span class="cursor-pointer flex-1 truncate" onclick="chonKenhIptv(${i})">
+                <span class="tag tag-iptv mr-1">📺</span>
+                ${k.ten}
+            </span>
+            <button class="text-red-400 hover:text-red-300 text-xs ml-2" onclick="event.stopPropagation();xoaKenhIptv(${i})">✕</button>
+        `;
+        ul.appendChild(li);
+    });
+}
+
+// Khởi tạo trang ban đầu
+capNhatDsNhac();
 </script>
 
 </body>
