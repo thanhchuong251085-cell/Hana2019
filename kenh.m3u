@@ -1,87 +1,101 @@
 #EXTM3U
 # ══════════════════════════════════════════════════════════
-# SECTION 1: VTV 1 → 10 + Vietnam Today
+# PHẦN 1: VTV 1 → 10 + Vietnam Today — Nguồn FPT + VTVgo
 # ══════════════════════════════════════════════════════════
 #EXTINF:-1 tvg-id="vtv1hd" group-title="📺 VTV Quốc gia",VTV1 HD
-https://live.fptplay53.net/live/media/vtv1/live247-hls-avc/index.m3u8
+#EXTVLCOPT:http-user-agent=Mozilla/5.0
+https://vips-livecdn.fptplay.net/live/media/vtv1/live247-hls-avc/index.m3u8
 
 #EXTINF:-1 tvg-id="vtv2hd" group-title="📺 VTV Quốc gia",VTV2 HD
-https://live.fptplay53.net/live/media/vtv2/live247-hls-avc/index.m3u8
+#EXTVLCOPT:http-user-agent=Mozilla/5.0
+https://vips-livecdn.fptplay.net/live/media/vtv2/live247-hls-avc/index.m3u8
 
 #EXTINF:-1 tvg-id="vtv3hd" group-title="📺 VTV Quốc gia",VTV3 HD
-https://live.fptplay53.net/live/media/vtv3/live247-hls-avc/index.m3u8
+#EXTVLCOPT:http-user-agent=Mozilla/5.0
+https://vips-livecdn.fptplay.net/live/media/vtv3/live247-hls-avc/index.m3u8
 
 #EXTINF:-1 tvg-id="vtv4hd" group-title="📺 VTV Quốc gia",VTV4 HD
-https://live.fptplay53.net/live/media/vtv4/live247-hls-avc/index.m3u8
+#EXTVLCOPT:http-user-agent=Mozilla/5.0
+https://vips-livecdn.fptplay.net/live/media/vtv4/live247-hls-avc/index.m3u8
 
 #EXTINF:-1 tvg-id="vtv5hd" group-title="📺 VTV Quốc gia",VTV5 HD
-https://live.fptplay53.net/live/media/vtv5/live247-hls-avc/index.m3u8
+#EXTVLCOPT:http-user-agent=Mozilla/5.0
+https://vips-livecdn.fptplay.net/live/media/vtv5/live247-hls-avc/index.m3u8
 
 #EXTINF:-1 tvg-id="vtv6hd" group-title="📺 VTV Quốc gia",VTV6 HD
-https://live.fptplay53.net/live/media/vtv6/live247-hls-avc/index.m3u8
+#EXTVLCOPT:http-user-agent=Mozilla/5.0
+https://vips-livecdn.fptplay.net/live/media/vtv6/live247-hls-avc/index.m3u8
 
 #EXTINF:-1 tvg-id="vtv7hd" group-title="📺 VTV Quốc gia",VTV7 HD
-https://live.fptplay53.net/live/media/vtv7/live247-hls-avc/index.m3u8
+#EXTVLCOPT:http-user-agent=Mozilla/5.0
+https://vips-livecdn.fptplay.net/live/media/vtv7/live247-hls-avc/index.m3u8
 
 #EXTINF:-1 tvg-id="vtv8hd" group-title="📺 VTV Quốc gia",VTV8 HD
-https://live.fptplay53.net/live/media/vtv8/live247-hls-avc/index.m3u8
+#EXTVLCOPT:http-user-agent=Mozilla/5.0
+https://vips-livecdn.fptplay.net/live/media/vtv8/live247-hls-avc/index.m3u8
 
 #EXTINF:-1 tvg-id="vtv9hd" group-title="📺 VTV Quốc gia",VTV9 HD
-https://live.fptplay53.net/live/media/vtv9/live247-hls-avc/index.m3u8
+#EXTVLCOPT:http-user-agent=Mozilla/5.0
+https://vips-livecdn.fptplay.net/live/media/vtv9/live247-hls-avc/index.m3u8
 
 #EXTINF:-1 tvg-id="vtv10hd" group-title="📺 VTV Quốc gia",VTV10 HD
-https://live.fptplay53.net/live/media/vtv10/live247-hls-avc/index.m3u8
+#EXTVLCOPT:http-user-agent=Mozilla/5.0
+https://vips-livecdn.fptplay.net/live/media/vtv10/live247-hls-avc/index.m3u8
 
 #EXTINF:-1 tvg-id="vietnamtoday" group-title="📺 VTV Quốc gia",Vietnam Today
-https://live.fptplay53.net/live/media/vietnamtoday/live247-hls-avc/index.m3u8
+#EXTVLCOPT:http-user-agent=Mozilla/5.0
+https://vips-livecdn.fptplay.net/live/media/vietnamtoday/live247-hls-avc/index.m3u8
 
 # ══════════════════════════════════════════════════════════
-# SECTION 2: HTV 1 → 9
+# PHẦN 2: HTV 1 → 9 — Nguồn dethich.pw (cập nhật thường)
 # ══════════════════════════════════════════════════════════
-#EXTINF:-1 tvg-id="htv1hd" group-title="💛 HCM - HTV",HTV1 HD
+#EXTINF:-1 tvg-id="htv1" group-title="💛 HCM - HTV",HTV1 HD
 https://dethich.pw/htv1/index.m3u8
 
-#EXTINF:-1 tvg-id="htv2hd" group-title="💛 HCM - HTV",HTV2 HD
+#EXTINF:-1 tvg-id="htv2" group-title="💛 HCM - HTV",HTV2 HD
 https://dethich.pw/htv2/index.m3u8
 
-#EXTINF:-1 tvg-id="htv3hd" group-title="💛 HCM - HTV",HTV3 HD
+#EXTINF:-1 tvg-id="htv3" group-title="💛 HCM - HTV",HTV3 HD
 https://dethich.pw/htv3/index.m3u8
 
-#EXTINF:-1 tvg-id="htv4hd" group-title="💛 HCM - HTV",HTV4 HD
+#EXTINF:-1 tvg-id="htv4" group-title="💛 HCM - HTV",HTV4 HD
 https://dethich.pw/htv4/index.m3u8
 
-#EXTINF:-1 tvg-id="htv5hd" group-title="💛 HCM - HTV",HTV5 HD
+#EXTINF:-1 tvg-id="htv5" group-title="💛 HCM - HTV",HTV5 HD
 https://dethich.pw/htv5/index.m3u8
 
-#EXTINF:-1 tvg-id="htv6hd" group-title="💛 HCM - HTV",HTV6 HD
+#EXTINF:-1 tvg-id="htv6" group-title="💛 HCM - HTV",HTV6 HD
 https://dethich.pw/htv6/index.m3u8
 
-#EXTINF:-1 tvg-id="htv7hd" group-title="💛 HCM - HTV",HTV7 HD
+#EXTINF:-1 tvg-id="htv7" group-title="💛 HCM - HTV",HTV7 HD
 https://dethich.pw/htv7/index.m3u8
 
-#EXTINF:-1 tvg-id="htv8hd" group-title="💛 HCM - HTV",HTV8 HD
+#EXTINF:-1 tvg-id="htv8" group-title="💛 HCM - HTV",HTV8 HD
 https://dethich.pw/htv8/index.m3u8
 
-#EXTINF:-1 tvg-id="htv9hd" group-title="💛 HCM - HTV",HTV9 HD
-https://live.fptplay53.net/epzhd1/htv9hd_vhls.smil/chunklist.m3u8
+#EXTINF:-1 tvg-id="htv9" group-title="💛 HCM - HTV",HTV9 HD
+https://dethich.pw/htv9/index.m3u8
 
 # ══════════════════════════════════════════════════════════
-# SECTION 3: HTVC (Đài TP.HCM - Truyền hình Cáp)
+# PHẦN 3: HTVC — Truyền hình Cáp TP.HCM
 # ══════════════════════════════════════════════════════════
-#EXTINF:-1 tvg-id="htvcoop" group-title="🔶 HTVC",HTV CO.OP
-https://1011154949.vnns.net/CDN-FPT02/HTVCOOP-SD-ABR/playlist.m3u8
-
-#EXTINF:-1 tvg-id="htvkey" group-title="🔶 HTVC",HTV Key
-https://dethich.pw/htvkey/index.m3u8
-
-#EXTINF:-1 tvg-id="htvgiadinh" group-title="🔶 HTVC",HTVC Gia Đình
+#EXTINF:-1 tvg-id="htvcgiadinh" group-title="🔶 HTVC",HTVC Gia Đình
 https://dethich.pw/htvc-giadinh/index.m3u8
 
-#EXTINF:-1 tvg-id="htvthethao" group-title="🔶 HTVC",HTV Thể Thao
-https://dethich.pw/htv-thethao/index.m3u8
+#EXTINF:-1 tvg-id="htvcthethao" group-title="🔶 HTVC",HTVC Thể Thao
+https://dethich.pw/htvc-thethao/index.m3u8
+
+#EXTINF:-1 tvg-id="htvcthuanviet" group-title="🔶 HTVC",HTVC Thuần Việt
+https://dethich.pw/htvc-thuanviet/index.m3u8
+
+#EXTINF:-1 tvg-id="htvcphunu" group-title="🔶 HTVC",HTVC Phụ Nữ
+https://dethich.pw/htvc-phunu/index.m3u8
+
+#EXTINF:-1 tvg-id="htvctiecuong" group-title="🔶 HTVC",HTVC Tiếp Cường
+https://dethich.pw/htvc-tiecuong/index.m3u8
 
 # ══════════════════════════════════════════════════════════
-# SECTION 4: Truyền hình Vĩnh Long - THVL
+# PHẦN 4: Truyền hình Vĩnh Long — Nguồn CDN chính
 # ══════════════════════════════════════════════════════════
 #EXTINF:-1 tvg-id="vinhlong1hd" group-title="🟢 Địa phương - Vĩnh Long",THVL1 HD
 https://oipf0znpmnliv.vcdn.cloud/hls/thvl1/index.m3u8
@@ -96,16 +110,13 @@ https://oipf0znpmnliv.vcdn.cloud/hls/thvl3/index.m3u8
 https://oipf0znpmnliv.vcdn.cloud/hls/thvl4/index.m3u8
 
 # ══════════════════════════════════════════════════════════
-# SECTION 5: Một số kênh địa phương khác
+# PHẦN 5: Kênh địa phương khác
 # ══════════════════════════════════════════════════════════
-#EXTINF:-1 tvg-id="hanoitv1" group-title="🏙️ Địa phương - Hà Nội",Hà Nội TV1 HD
-https://cloudstreamhntv.tek4tv.vn/capture/smil:HN1.smil/chunklist.m3u8
-
-#EXTINF:-1 tvg-id="hanoitv2" group-title="🏙️ Địa phương - Hà Nội",Hà Nội TV2 HD
-https://cloudstreamhntv.tek4tv.vn/live/smil:HN2.smil/playlist.m3u8
-
 #EXTINF:-1 tvg-id="khanhhoa1" group-title="🌊 Địa phương - Khánh Hòa",KTV1 Khánh Hòa
 https://liveh12.vtvprime.vn/hls/KHANHHOA1TV/index.m3u8
+
+#EXTINF:-1 tvg-id="hanoitv1" group-title="🏙️ Địa phương - Hà Nội",Hà Nội TV1
+https://cloudstreamhntv.tek4tv.vn/capture/smil:HN1.smil/chunklist.m3u8
 
 #EXTINF:-1 tvg-id="angiang1" group-title="🌊 Địa phương - An Giang",An Giang TV1
 https://tv.angiangtv.vn/live/kgtv/kgtv.m3u8
