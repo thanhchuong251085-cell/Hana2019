@@ -1,1 +1,65 @@
+#EXTM3U
+# ==================================================
+# NGUỒN CDN-FPT02 — Thử trên mạng Viettel trước
+# ==================================================
+#EXTINF:-1 tvg-id="htvcphunu" group-title="🔶 HTVC-Viettel",HTVC Phụ Nữ
+https://1011154949.vnns.net/CDN-FPT02/HTVC-PHUNU-HD-1080p/playlist.m3u8
 
+#EXTINF:-1 tvg-id="htvcthuanviet" group-title="🔶 HTVC-Viettel",HTVC Thuần Việt
+https://1011154949.vnns.net/CDN-FPT02/HTVC-THUANVIET-HD-1080p/playlist.m3u8
+
+#EXTINF:-1 tvg-id="htvcplus" group-title="🔶 HTVC-Viettel",HTVC+
+https://1011154949.vnns.net/CDN-FPT02/HTVC-PLUS-HD-1080p/playlist.m3u8
+
+#EXTINF:-1 tvg-id="htvcoop" group-title="🔶 HTVC-Viettel",HTV CO.OP
+https://1011154949.vnns.net/CDN-FPT02/HTVCOOP-SD-ABR/playlist.m3u8
+
+#EXTINF:-1 tvg-id="htvcgiadinh" group-title="🔶 HTVC-Viettel",HTVC Gia Đình
+https://1011154949.vnns.net/CDN-FPT02/HTVC-GIADINH-HD-1080p/playlist.m3u8
+
+#EXTINF:-1 tvg-id="htvcthethao" group-title="🔶 HTVC-Viettel",HTVC Thể Thao
+https://1011154949.vnns.net/CDN-FPT02/HTVC-THE THAO-HD-1080p/playlist.m3u8
+
+#EXTINF:-1 tvg-id="htvcphim" group-title="🔶 HTVC-Viettel",HTVC Phim
+https://1011154949.vnns.net/CDN-FPT02/HTVC-PHIM-HD-1080p/playlist.m3u8
+
+#EXTINF:-1 tvg-id="htvccanhac" group-title="🔶 HTVC-Viettel",HTVC Ca Nhạc
+https://1011154949.vnns.net/CDN-FPT02/HTVC-CANHAC-HD-1080p/playlist.m3u8
+
+#EXTINF:-1 tvg-id="htvcdulich" group-title="🔶 HTVC-Viettel",HTVC Du Lịch & Cuộc Sống
+https://1011154949.vnns.net/CDN-FPT02/HTVC-DULICH-HD-1080p/playlist.m3u8
+
+# ==================================================
+# NGUỒN FPT — Ưu tiên chạy nếu mạng FPT
+# ==================================================
+#EXTINF:-1 tvg-id="htvcgiadinh" group-title="🔶 HTVC-FPT",HTVC Gia Đình (FPT)
+#EXTVLCOPT:http-user-agent=Mozilla/5.0
+https://live.fptplay53.net/epzhd1/htvcgiadinh_vhls.smil/chunklist.m3u8
+
+#EXTINF:-1 tvg-id="htvcphunu" group-title="🔶 HTVC-FPT",HTVC Phụ Nữ (FPT)
+#EXTVLCOPT:http-user-agent=Mozilla/5.0
+https://live.fptplay53.net/epzhd1/htvcphunu_vhls.smil/chunklist.m3u8
+
+#EXTINF:-1 tvg-id="htvcthuanviet" group-title="🔶 HTVC-FPT",HTVC Thuần Việt (FPT)
+#EXTVLCOPT:http-user-agent=Mozilla/5.0
+https://live.fptplay53.net/epzhd1/htvcthuanviet_vhls.smil/chunklist.m3u8
+
+#EXTINF:-1 tvg-id="htvcthethao" group-title="🔶 HTVC-FPT",HTVC Thể Thao (FPT)
+#EXTVLCOPT:http-user-agent=Mozilla/5.0
+https://live.fptplay53.net/epzhd1/htvcthethao_vhls.smil/chunklist.m3u8
+
+#EXTINF:-1 tvg-id="htvcphim" group-title="🔶 HTVC-FPT",HTVC Phim (FPT)
+#EXTVLCOPT:http-user-agent=Mozilla/5.0
+https://live.fptplay53.net/epzhd1/htvcmovieshd_vhls.smil/chunklist.m3u8
+
+#EXTINF:-1 tvg-id="htvccanhac" group-title="🔶 HTVC-FPT",HTVC Ca Nhạc (FPT)
+#EXTVLCOPT:http-user-agent=Mozilla/5.0
+https://live.fptplay53.net/epzhd1/htvcmusic_vhls.smil/chunklist.m3u8
+
+#EXTINF:-1 tvg-id="htvcdulich" group-title="🔶 HTVC-FPT",HTVC Du Lịch & Cuộc Sống (FPT)
+#EXTVLCOPT:http-user-agent=Mozilla/5.0
+https://live.fptplay53.net/epzhd1/htvcdulich_vhls.smil/chunklist.m3u8
+
+#EXTINF:-1 tvg-id="htvcplus" group-title="🔶 HTVC-FPT",HTVC+ (FPT)
+#EXTVLCOPT:http-user-agent=Mozilla/5.0
+https://live.fptplay53.net/epzhd1/htvcplus_vhls.smil/chunklist.m3u8
