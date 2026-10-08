@@ -1,0 +1,34 @@
+#EXTM3U
+
+#EXTINF:-1 group-title="VTV",VTV1
+https://vtvgolive-sctvdrm.vtvdigital.vn/manifest/vtv1/playlist_720p.m3u8
+
+#EXTINF:-1 group-title="VTV",VTV2
+https://vtvgolive-sctvdrm.vtvdigital.vn/manifest/vtv2/playlist_720p.m3u8
+
+#EXTINF:-1 group-title="VTV",VTV3
+https://vtvgolive-sctvdrm.vtvdigital.vn/manifest/vtv3/playlist_720p.m3u8
+
+#EXTINF:-1 group-title="VTV",VTV4
+https://vtvgolive-sctvdrm.vtvdigital.vn/manifest/vtv4/playlist_720p.m3u8
+
+#EXTINF:-1 group-title="VTV",VTV5
+https://vtvgolive-sctvdrm.vtvdigital.vn/manifest/vtv5/playlist_720p.m3u8
+
+#EXTINF:-1 group-title="VTV",VTV6
+https://vtvgolive-sctvdrm.vtvdigital.vn/manifest/vtv6/playlist_720p.m3u8
+
+#EXTINF:-1 group-title="VTV",VTV7
+https://vtvgolive-sctvdrm.vtvdigital.vn/manifest/vtv7/playlist_720p.m3u8
+
+#EXTINF:-1 group-title="VTV",VTV8
+https://vtvgolive-sctvdrm.vtvdigital.vn/manifest/vtv8/playlist_720p.m3u8
+
+#EXTINF:-1 group-title="VTV",VTV9
+https://vtvgolive-sctvdrm.vtvdigital.vn/manifest/vtv9/playlist_720p.m3u8
+
+#EXTINF:-1 group-title="VTV",VTV10
+https://vtvgolive-sctvdrm.vtvdigital.vn/manifest/vtv10/playlist_720p.m3u8
+
+#EXTINF:-1 group-title="VTV",Vietnam Today
+https://vtvgolive-sctvdrm.vtvdigital.vn/manifest/vietnamtoday/playlist_720p.m3u8
