@@ -1,0 +1,65 @@
+#EXTM3U
+
+#==================== 🇻🇳 KÊNH VTV ====================
+#EXTINF:-1 group-title="🇻🇳 VTV",VTV1
+https://dethich.pw/vtv1/index.m3u8
+#EXTINF:-1 group-title="🇻🇳 VTV",VTV2
+https://dethich.pw/vtv2/index.m3u8
+#EXTINF:-1 group-title="🇻🇳 VTV",VTV3
+https://dethich.pw/vtv3/index.m3u8
+#EXTINF:-1 group-title="🇻🇳 VTV",VTV4
+https://dethich.pw/vtv4/index.m3u8
+#EXTINF:-1 group-title="🇻🇳 VTV",VTV5
+https://dethich.pw/vtv5/index.m3u8
+#EXTINF:-1 group-title="🇻🇳 VTV",VTV5 Tây Nguyên
+https://dethich.pw/vtv5tn/index.m3u8
+#EXTINF:-1 group-title="🇻🇳 VTV",VTV5 Tây Nam Bộ
+https://dethich.pw/vtv5tnb/index.m3u8
+#EXTINF:-1 group-title="🇻🇳 VTV",VTV6
+https://dethich.pw/vtv6/index.m3u8
+#EXTINF:-1 group-title="🇻🇳 VTV",VTV7
+https://dethich.pw/vtv7/index.m3u8
+#EXTINF:-1 group-title="🇻🇳 VTV",VTV8
+https://dethich.pw/vtv8/index.m3u8
+#EXTINF:-1 group-title="🇻🇳 VTV",VTV9
+https://dethich.pw/vtv9/index.m3u8
+#EXTINF:-1 group-title="🇻🇳 VTV",VTV Cần Thơ
+https://dethich.pw/vtvcantho/index.m3u8
+#EXTINF:-1 group-title="🇻🇳 VTV",VTV10
+https://dethich.pw/vtv10/index.m3u8
+
+#==================== 📺 KÊNH HTV ====================
+#EXTINF:-1 group-title="📺 HTV",HTV1
+https://dethich.pw/htv1/index.m3u8
+#EXTINF:-1 group-title="📺 HTV",HTV2
+https://dethich.pw/htv2/index.m3u8
+#EXTINF:-1 group-title="📺 HTV",HTV3
+https://dethich.pw/htv3/index.m3u8
+#EXTINF:-1 group-title="📺 HTV",HTV4
+https://dethich.pw/htv4/index.m3u8
+#EXTINF:-1 group-title="📺 HTV",HTV7
+https://dethich.pw/htv7/index.m3u8
+#EXTINF:-1 group-title="📺 HTV",HTV9
+https://dethich.pw/htv9/index.m3u8
+#EXTINF:-1 group-title="📺 HTV",HTV Thể Thao
+https://dethich.pw/htvthethao/index.m3u8
+
+#==================== 🏠 KÊNH ĐỊA PHƯƠNG ====================
+#EXTINF:-1 group-title="🏠 Địa phương",THVL1 - Truyền hình Vĩnh Long 1
+https://dethich.pw/thvl1/index.m3u8
+#EXTINF:-1 group-title="🏠 Địa phương",THVL2 - Truyền hình Vĩnh Long 2
+https://dethich.pw/thvl2/index.m3u8
+#EXTINF:-1 group-title="🏠 Địa phương",THVL3 - Truyền hình Vĩnh Long 3
+https://dethich.pw/thvl3/index.m3u8
+#EXTINF:-1 group-title="🏠 Địa phương",THVL4 - Truyền hình Vĩnh Long 4
+https://dethich.pw/thvl4/index.m3u8
+#EXTINF:-1 group-title="🏠 Địa phương",Đồng Nai TV 1
+https://dethich.pw/dongnai1/index.m3u8
+#EXTINF:-1 group-title="🏠 Địa phương",Đồng Nai TV 2
+https://dethich.pw/dongnai2/index.m3u8
+#EXTINF:-1 group-title="🏠 Địa phương",Đồng Nai TV 3
+https://dethich.pw/dongnai3/index.m3u8
+#EXTINF:-1 group-title="🏠 Địa phương",Đồng Tháp TV
+https://dethich.pw/dongthap/index.m3u8
+#EXTINF:-1 group-title="🏠 Địa phương",ISTV - Tỉnh Bình Dương
+https://dethich.pw/istv/index.m3u8
