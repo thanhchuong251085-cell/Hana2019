@@ -200,7 +200,8 @@ https://1011154949.vnns.net/CDN-FPT02/HTVC-PHUNU-HD-1080p/playlist.m3u8
 https://1011154949.vnns.net/CDN-FPT02/HTVC-PLUS-HD-1080p/playlist.m3u8
 #EXTINF:-1 tvg-logo="https://vn.xemtv.net/image/thuanviet.png" group-title="HTV",HTV Thuần Việt
 https://1011154949.vnns.net/CDN-FPT02/HTVC-THUANVIET-HD-1080p/playlist.m3u8
-
+#EXTINF:-1 tvg-logo="https://vn.xemtv.net/image/htvthethao.png" group-title="XemTV",HTV Thể Thao
+https://dethich.pw/htvthethao/index.m3u8
 #EXTINF:-1 tvg-logo="https://vn.xemtv.net/image/viegiaitri.png" group-title="VTVcab",VTVCab Vie Giải trí
 https://freem3u.xyz/api/live/play.m3u8?vid=180
 #EXTINF:-1 tvg-logo="https://vn.xemtv.net/image/phimviet.png" group-title="VTVcab",VTVCab Phim Việt
