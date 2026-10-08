@@ -6,9 +6,9 @@ https://vips-livecdn.fptplay.net/live/media/vtv2/live247-hls-avc/index.m3u8
 #EXTINF:-1 tvg-logo="https://vn.xemtv.net/image/vtv3.png" group-title="XemTV",VTV3
 https://vips-livecdn.fptplay.net/live/media/vtv3/live247-hls-avc/index.m3u8
 #EXTINF:-1 tvg-logo="https://vn.xemtv.net/image/vtv4.png" group-title="XemTV",VTV4
-https://live.fptplay53.net/live/media/vtv4/live247-hls-avc/index.m3u8
+https://vips-livecdn.fptplay.net/live/media/vtv4/live247-hls-avc/index.m3u8
 #EXTINF:-1 tvg-logo="https://vn.xemtv.net/image/vtv5.png" group-title="XemTV",VTV5
-https://live.fptplay53.net/live/media/vtv5/live247-hls-avc/index.m3u8
+https://vips-livecdn.fptplay.net/live/media/vtv5/live247-hls-avc/index.m3u8
 #EXTINF:-1 tvg-logo="https://vn.xemtv.net/image/vtv5-taynambo.png" group-title="XemTV",VTV5 Tây Nam Bộ
 https://live.fptplay53.net/fnxhd1/vtv5tnb_vhls.smil/chunklist_b5000000.m3u8
 #EXTINF:-1 tvg-logo="https://vn.xemtv.net/image/vtv5-taynguyen.png" group-title="XemTV",VTV5 Tây Nguyên
