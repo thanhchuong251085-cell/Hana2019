@@ -1,0 +1,33 @@
+#EXTM3U
+#EXT-X-VERSION:3
+
+# HTV1
+#EXTINF:-1 group-title="HTV",HTV1
+https://dethich.pw/htv1/index.m3u8
+
+# HTV2
+#EXTINF:-1 group-title="HTV",HTV2
+https://dethich.pw/htv2/index.m3u8
+
+# HTV3
+#EXTINF:-1 group-title="HTV",HTV3
+https://dethich.pw/htv3/index.m3u8
+
+# HTV4
+#EXTINF:-1 group-title="HTV",HTV4
+https://dethich.pw/htv4/index.m3u8
+
+# HTV7
+#EXTINF:-1 group-title="HTV",HTV7
+https://dethich.pw/htv7/index.m3u8
+
+# HTV9
+#EXTINF:-1 group-title="HTV",HTV9
+https://dethich.pw/htv9/index.m3u8
+
+# Nguồn dự phòng thứ 2 — iptv-org (cập nhật thường xuyên)
+#EXTINF:-1 group-title="HTV-Dự phòng",HTV7 DP2
+https://iptv-org.github.io/iptv/channels/htv-7.m3u8
+
+#EXTINF:-1 group-title="HTV-Dự phòng",HTV9 DP2
+https://iptv-org.github.io/iptv/channels/htv-9.m3u8
