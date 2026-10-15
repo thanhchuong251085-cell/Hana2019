@@ -17,39 +17,66 @@ body {
   position: relative;
 }
 
-/* === HIỆU ỨNG 6 CON BƯỚM BAY LUNG TUNG === */
+/* === HIỆU ỨNG 6 CON BƯỚM BAY LUNG TUNG NHƯ THẬT === */
 .butterfly {
   position: fixed;
-  font-size: 28px;
+  top: -50px;
+  font-size: 26px;
   z-index: 1000;
   pointer-events: none;
-  animation: butterflyFly linear infinite, butterflyFlap ease-in-out infinite;
+  animation: butterflyFly linear infinite;
 }
 
+.wing {
+  display: inline-block;
+  animation: butterflyFlap ease-in-out infinite;
+}
+
+/* Đường bay từ trên xuống dưới và lượn qua lượn lại tự do */
 @keyframes butterflyFly {
   0% {
-    transform: translateY(-10vh) translateX(0);
+    top: -10vh;
+    transform: translateX(0vw);
+  }
+  25% {
+    transform: translateX(25vw);
   }
   50% {
-    transform: translateY(50vh) translateX(40px);
+    transform: translateX(-15vw);
+  }
+  75% {
+    transform: translateX(20vw);
   }
   100% {
-    transform: translateY(110vh) translateX(-30px);
+    top: 110vh;
+    transform: translateX(-10vw);
   }
 }
 
+/* Hiệu ứng vỗ cánh nhịp nhàng */
 @keyframes butterflyFlap {
   0%, 100% { transform: scaleX(1); }
-  50% { transform: scaleX(0.3); }
+  50% { transform: scaleX(0.2); }
 }
 
-/* Thiết lập riêng cho 6 con bướm với vị trí và tốc độ khác nhau */
-.butterfly:nth-child(1) { left: 5%; animation-duration: 9s, 0.4s; animation-delay: 0s, 0s; }
-.butterfly:nth-child(2) { left: 20%; animation-duration: 12s, 0.3s; animation-delay: 2s, 0.1s; }
-.butterfly:nth-child(3) { left: 40%; animation-duration: 10s, 0.5s; animation-delay: 4s, 0.2s; }
-.butterfly:nth-child(4) { left: 60%; animation-duration: 14s, 0.35s; animation-delay: 1s, 0.15s; }
-.butterfly:nth-child(5) { left: 80%; animation-duration: 11s, 0.45s; animation-delay: 3s, 0.25s; }
-.butterfly:nth-child(6) { left: 92%; animation-duration: 13s, 0.4s; animation-delay: 5s, 0.05s; }
+/* Thiết lập vị trí xuất phát, tốc độ bay và tốc độ vỗ cánh riêng cho từng con */
+.butterfly:nth-child(1) { left: 10%; animation-duration: 11s; }
+.butterfly:nth-child(1) .wing { animation-duration: 0.25s; }
+
+.butterfly:nth-child(2) { left: 30%; animation-duration: 14s; animation-delay: 3s; }
+.butterfly:nth-child(2) .wing { animation-duration: 0.3s; animation-delay: 0.5s; }
+
+.butterfly:nth-child(3) { left: 50%; animation-duration: 9s; animation-delay: 1.5s; }
+.butterfly:nth-child(3) .wing { animation-duration: 0.2s; animation-delay: 0.2s; }
+
+.butterfly:nth-child(4) { left: 70%; animation-duration: 12s; animation-delay: 4.5s; }
+.butterfly:nth-child(4) .wing { animation-duration: 0.35s; animation-delay: 1s; }
+
+.butterfly:nth-child(5) { left: 85%; animation-duration: 10s; animation-delay: 2s; }
+.butterfly:nth-child(5) .wing { animation-duration: 0.28s; animation-delay: 0.7s; }
+
+.butterfly:nth-child(6) { left: 20%; animation-duration: 13s; animation-delay: 6s; }
+.butterfly:nth-child(6) .wing { animation-duration: 0.22s; animation-delay: 0.4s; }
 
 .page-container {
   max-width:920px;
@@ -466,13 +493,13 @@ body {
 </head>
 <body>
 
-<!-- 6 chú bướm bay lượn trên màn hình -->
-<div class="butterfly">🦋</div>
-<div class="butterfly">🦋</div>
-<div class="butterfly">🦋</div>
-<div class="butterfly">🦋</div>
-<div class="butterfly">🦋</div>
-<div class="butterfly">🦋</div>
+<!-- 6 chú bướm bay lượn từ trên đỉnh xuống dưới đáy màn hình -->
+<div class="butterfly"><span class="wing">🦋</span></div>
+<div class="butterfly"><span class="wing">🦋</span></div>
+<div class="butterfly"><span class="wing">🦋</span></div>
+<div class="butterfly"><span class="wing">🦋</span></div>
+<div class="butterfly"><span class="wing">🦋</span></div>
+<div class="butterfly"><span class="wing">🦋</span></div>
 
 <div class="page-container">
   <div class="banner-top">Blog Hana</div>
@@ -757,7 +784,7 @@ function taoDsNgauNhien(){
   dsNgauNhien = [...Array(danhSachBai.length).keys()];
   for(let i=dsNgauNhien.length-1;i>0;i--){
     let j = Math.floor(Math.random()*(i+1));
-    [dsNgauNhien[i],dsNgauNhien[j]] = [dsNgauNhien[j],dsNgauNhien[i]];
+    [dsNgauNhion[i],dsNgauNhien[j]] = [dsNgauNhien[j],dsNgauNhien[i]];
   }
 }
 
