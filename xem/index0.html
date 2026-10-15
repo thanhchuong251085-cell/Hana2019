@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial‑scale=1.0">
+<title>Máy nghe nhạc Hana</title>
+<style>
+*{box-sizing:border-box; margin:0; padding:0;}
+body {
+  background: #1a1a2e;
+  background-image: radial-gradient(#16213e 0%, #0f0f23 100%);
+  font-family:Verdana, sans-serif;
+  color:#e0e0e0;
+  padding:12px;
+}
+.page-container {
+  max-width:920px;
+  margin:0 auto;
+  display:grid;
+  grid-template-columns: 1fr 2.7fr 1fr;
+  gap:14px;
+  grid-template-areas:
+    "header header header"
+    "welcome welcome welcome"
+    "menu main detail"
+    "run run run";
+}
+.banner-top{
+  grid-area:header;
+  width:100%;
+  background:rgba(70,160,130,0.70);
+  border:3px solid #38aa88;
+  box-shadow:0 0 12px #28bb88;
+  text-align:center;
+  padding:16px 20px;
+  font-size:36px;
+  font-weight:900;
+  color:#ffffff;
+  text-shadow:0 0 6px #fff, 0 0 12px #77ffdd, 2px 2px 4px #000;
+  border-radius:8px;
+  position:relative;
+  margin-bottom:0;
+}
+.banner-top::before{
+  content:"🌸";
+  position:absolute;
+  left:12px;
+  top:50%;
+  transform:translateY(-50%);
+  font-size:28px;
+}
+.banner-top::after{
+  content:"🌸";
+  position:absolute;
+  right:12px;
+  top:50%;
+  transform:translateY(-50%);
+  font-size:28px;
+}
+.banner-sub{
+  grid-area:welcome;
+  text-align:center;
+  font-size:16px;
+  font-weight:bold;
+  animation:colorRun 4s linear infinite;
+}
+@keyframes colorRun {
+  0% { color:#ffffff; text-shadow:0 0 8px #fff; }
+  20% { color:#ffdd22; text-shadow:0 0 8px #ffdd22; }
+  40% { color:#ff8833; text-shadow:0 0 8px #ff8833; }
+  60% { color:#ff4444; text-shadow:0 0 8px #ff4444; }
+  80% { color:#bb55dd; text-shadow:0 0 8px #bb55dd; }
+  100% { color:#44aaff; text-shadow:0 0 8px #44aaff; }
+}
+.marquee{
+  grid-area:run;
+  width:100%;
+  background:rgba(30,60,45,0.18);
+  padding:7px 0;
+  overflow:hidden;
+}
+.marquee span{
+  display:inline-block;
+  white-space:nowrap;
+  animation:slide 12s linear infinite;
+  font-size:17px;
+  color:#ffeebb;
+}
+@keyframes slide{
+  0%{transform:translateX(100%);}
+  100%{transform:translateX(-100%);}
+}
+.col-left{
+  grid-area:menu;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.col-right{
+  grid-area:detail;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.col-main{
+  grid-area:main;
+  background:rgba(210,240,230,0.60);
+  border:3px solid #38aa88;
+  box-shadow:0 0 10px #227755;
+  padding:16px;
+  border-radius:10px;
+  color:#112222;
+}
+.player-box{
+  background:#121830;
+  border-radius:12px;
+  padding:20px;
+  color:#fff;
+  position:relative;
+}
+.player-display{
+  background:#0b1022;
+  border-radius:10px;
+  padding:10px;
+  text-align:center;
+  margin-bottom:20px;
+}
+.player-yt-frame{
+  width:100%;
+  height:220px;
+  border-radius:8px;
+  border:none;
+}
+.player-icon{
+  font-size:60px;
+  color:#77aaff;
+}
+.player-text{
+  margin-top:12px;
+  font-size:18px;
+  color:#aaa;
+}
+.player-title{
+  font-size:22px;
+  color:#ffdd44;
+  text-align:center;
+  margin-bottom:20px;
+}
+.player-btns{
+  display:flex;
+  justify-content:center;
+  gap:15px;
+  margin-bottom:20px;
+}
+.btn-prev, .btn-next{
+  width:60px;
+  height:60px;
+  border-radius:50%;
+  background:#333a55;
+  color:#fff;
+  border:none;
+  font-size:20px;
+  cursor:pointer;
+}
+.btn-play{
+  width:80px;
+  height:80px;
+  border-radius:50%;
+  background:#dd2222;
+  color:#fff;
+  border:none;
+  font-size:24px;
+  cursor:pointer;
+}
+.volume-bar{
+  width:100%;
+  margin-bottom:20px;
+}
+.list-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:10px;
+}
+.list-title{
+  font-size:22px;
+  color:#ffdd44;
+  font-weight:bold;
+}
+.btn-add{
+  width:50px;
+  height:50px;
+  border-radius:50%;
+  background:#22bb66;
+  color:#fff;
+  border:none;
+  font-size:22px;
+  cursor:pointer;
+}
+.track-item{
+  background:#202844;
+  padding:12px 15px;
+  border-radius:8px;
+  margin-bottom:8px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.track-item:hover{
+  background:#2b3458;
+}
+.track-name{
+  cursor:pointer;
+}
+.track-del{
+  cursor:pointer;
+  color:#ff6666;
+  font-weight:bold;
+  padding:4px 8px;
+}
+.box-side{
+  background:rgba(170,220,200,0.60);
+  border:2px solid #ffaa33;
+  box-shadow:0 0 8px #dd8822;
+  padding:12px;
+  border-radius:8px;
+  color:#102010;
+}
+.box-side h4 {
+  font-size:20px;
+  margin:0 0 10px 0;
+}
+.box-side p {
+  font-size:18px;
+  font-weight:bold;
+  margin:8px 0;
+}
+.fire-icon {
+  display:inline-block;
+  font-size:16px;
+  margin-right:6px;
+  animation:smallFire 0.7s ease‑in‑out infinite alternate;
+}
+@keyframes smallFire {
+  0% { filter:brightness(1); }
+  100% { filter:brightness(1.3); }
+}
+/* === Cửa sổ thêm bài === */
+.modal-overlay{
+  display:none;
+  position:fixed;
+  top:0; left:0; right:0; bottom:0;
+  background:rgba(0,0,0,0.6);
+  z-index:99;
+  align-items:center;
+  justify-content:center;
+}
+.modal-box{
+  width:90%;
+  max-width:420px;
+  background:#243050;
+  padding:24px;
+  border-radius:16px;
+  position:relative;
+}
+.modal-close{
+  position:absolute;
+  top:16px;
+  right:16px;
+  width:36px;
+  height:36px;
+  border-radius:50%;
+  background:#702840;
+  color:#fff;
+  border:none;
+  font-size:18px;
+  cursor:pointer;
+}
+.modal-title{
+  font-size:24px;
+  color:#ffdd44;
+  margin-bottom:20px;
+}
+.modal-input{
+  width:100%;
+  padding:12px 14px;
+  font-size:16px;
+  border-radius:8px;
+  border:none;
+  margin-bottom:12px;
+  background:#344060;
+  color:#fff;
+}
+.modal-btn-add{
+  width:100%;
+  padding:14px;
+  background:#ff9900;
+  color:#000;
+  font-size:18px;
+  font-weight:bold;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+}
+</style>
+</head>
+<body>
+<div class="page-container">
+  <div class="banner-top">Blog Hana</div>
+  <div class="banner-sub">Chào mừng bạn đến với trang web cá nhân của Hana</div>
+  <div class="col-left">
+    <div class="box-side">
+      <h4>📖 Menu</h4>
+      <p><span class="fire-icon">🔥</span> Giới thiệu</p>
+      <p><span class="fire-icon">🔥</span> Music</p>
+      <p><span class="fire-icon">🔥</span> Xem ti vi</p>
+      <p><span class="fire-icon">🔥</span> Trang 4</p>
+      <p><span class="fire-icon">🔥</span> Trang 5</p>
+    </div>
+  </div>
+  <div class="col-main">
+    <h3 style="text-align:center;">✨ Nội dung chính ✨</h3>
+    <div class="player-box">
+      <div class="player-display">
+        <iframe id="khungPhat" class="player-yt-frame" src="" allowfullscreen></iframe>
+      </div>
+      <div class="player-title" id="tenBaiDangPhat">Chưa chọn bài nào</div>
+      <div class="player-btns">
+        <button class="btn-prev" onclick="baiTruoc()">⏮</button>
+        <button class="btn-play" onclick="batTatPhat()">▶</button>
+        <button class="btn-next" onclick="baiSau()">⏭</button>
+      </div>
+      <input type="range" class="volume-bar" value="80">
+      <div class="list-header">
+        <span class="list-title">📋 Danh Sách Nhạc</span>
+        <button class="btn-add" onclick="moCuaSoThem()">+</button>
+      </div>
+      <div id="khuVucDanhSach">
+        <!-- Bài hát sẽ hiển thị ở đây -->
+      </div>
+    </div>
+  </div>
+  <div class="col-right">
+    <div class="box-side"><h4>🔹 Thông tin</h4></div>
+    <div class="box-side"><h4>🔹 Giới thiệu</h4></div>
+    <div class="box-side"><h4>🔹 Lưu ý</h4></div>
+  </div>
+  <div class="marquee">
+    <span>Chào mừng bạn đến với trang web cá nhân của Hana</span>
+  </div>
+</div>
+
+<!-- Cửa sổ thêm bài -->
+<div class="modal-overlay" id="cuaSoThem">
+  <div class="modal-box">
+    <button class="modal-close" onclick="dongCuaSo()">✕</button>
+    <div class="modal-title">+ Thêm YouTube / Nhạc</div>
+    <input type="text" class="modal-input" id="linkNhap" placeholder="Dán link YouTube / MP3...">
+    <input type="text" class="modal-input" id="tenBaiNhap" placeholder="Tên bài (để trống tự đặt)">
+    <button class="modal-btn-add" onclick="themBaiMoi()">✅ Thêm vào danh sách</button>
+  </div>
+</div>
+
+<script>
+let danhSachBai = [];
+let viTriHienTai = -1;
+
+// Bài mẫu ban đầu (bạn có thể thay link mới vào đây)
+danhSachBai.push({link:"https://www.youtube.com/embed/dQw4w9WgXcQ", ten:"Cô Đơn Dành Cho Ai", loai:"yt"});
+danhSachBai.push({link:"https://www.youtube.com/embed/abc123", ten:"Hoa Bằng Lăng", loai:"yt"});
+danhSachBai.push({link:"https://www.youtube.com/embed/def456", ten:"LK Bolero Trữ Tình", loai:"yt"});
+
+function capNhatDanhSachGiaoDien(){
+  const khu = document.getElementById("khuVucDanhSach");
+  khu.innerHTML = "";
+  for(let i=0; i<danhSachBai.length; i++){
+    const bai = danhSachBai[i];
+    const item = document.createElement("div");
+    item.className = "track-item";
+    let tienTo = (bai.loai==="yt") ? "🔴YT" : "🎵MP3";
+    item.innerHTML = `
+      <span class="track-name" onclick="phatTaiViTri(${i})">${tienTo} ${bai.ten}</span>
+      <span class="track-del" onclick="xoaBai(${i})">✕</span>
+    `;
+    khu.appendChild(item);
+  }
+}
+
+function layMaVideo(linkYt){
+  // Chuyển link youtube thường thành link nhúng embed
+  let ma = "";
+  if(linkYt.includes("youtube.com/watch?v=")){
+    ma = linkYt.split("v=")[1];
+    if(ma.includes("&")) ma = ma.split("&")[0];
+    return "https://www.youtube.com/embed/"+ma;
+  }else if(linkYt.includes("youtu.be/")){
+    ma = linkYt.split("youtu.be/")[1];
+    if(ma.includes("?")) ma = ma.split("?")[0];
+    return "https://www.youtube.com/embed/"+ma;
+  }else if(linkYt.includes("embed/")){
+    return linkYt;
+  }else{
+    return linkYt;
+  }
+}
+
+function moCuaSoThem(){
+  document.getElementById('cuaSoThem').style.display = 'flex';
+}
+function dongCuaSo(){
+  document.getElementById('cuaSoThem').style.display = 'none';
+}
+function themBaiMoi(){
+  var link = document.getElementById('linkNhap').value.trim();
+  var tenBai = document.getElementById('tenBaiNhap').value.trim();
+  if(!link) return;
+  var linkThuong = link.toLowerCase();
+  var loai;
+  var linkXuLy = link;
+  if (linkThuong.indexOf("youtube") !== -1 || linkThuong.indexOf("youtu.be") !== -1) {
+    loai = "yt";
+    linkXuLy = layMaVideo(link);
+    if (tenBai === "") tenBai = "Bài YouTube mới";
+  } else {
+    loai = "mp3";
+    if (tenBai === "") tenBai = "Bài nhạc MP3 mới";
+  }
+  danhSachBai.push({link:linkXuLy, ten:tenBai, loai:loai});
+  capNhatDanhSachGiaoDien();
+  document.getElementById("linkNhap").value = "";
+  document.getElementById("tenBaiNhap").value = "";
+  dongCuaSo();
+}
+
+function phatTaiViTri(i){
+  if(i<0 || i>=danhSachBai.length) return;
+  viTriHienTai = i;
+  const bai = danhSachBai[i];
+  document.getElementById("tenBaiDangPhat").innerText = bai.ten;
+  if(bai.loai === "yt"){
+    document.getElementById("khungPhat").src = bai.link;
+  }else{
+    // MP3 chưa có trình phát chi tiết (có thể bổ sung sau)
+    alert("Phát MP3: "+bai.link);
+  }
+}
+
+function xoaBai(i){
+  danhSachBai.splice(i,1);
+  if(viTriHienTai === i){
+    viTriHienTai = -1;
+    document.getElementById("khungPhat").src = "";
+    document.getElementById("tenBaiDangPhat").innerText = "Chưa chọn bài nào";
+  }else if(viTriHienTai > i){
+    viTriHienTai--;
+  }
+  capNhatDanhSachGiaoDien();
+}
+
+function baiTruoc(){
+  if(danhSachBai.length===0) return;
+  viTriHienTai = (viTriHienTai <= 0) ? danhSachBai.length-1 : viTriHienTai-1;
+  phatTaiViTri(viTriHienTai);
+}
+function baiSau(){
+  if(danhSachBai.length===0) return;
+  viTriHienTai = (viTriHienTai >= danhSachBai.length-1) ? 0 : viTriHienTai+1;
+  phatTaiViTri(viTriHienTai);
+}
+function batTatPhat(){
+  // Lưu ý: Trình phát nhúng YouTube không cho điều khiển phát/tạm dừng trực tiếp bằng JS do giới hạn API
+  alert("Để tạm dừng/phát vui lòng dùng nút trên khung video YouTube");
+}
+
+// Khởi tạo lần đầu
+capNhatDanhSachGiaoDien();
+</script>
+</body>
+</html>
