@@ -181,13 +181,13 @@ body {
   justify-content: center;
 }
 
-/* === NÚT PHÓNG TO MỜ MỜ, TINH TẾ, TỰ ẨN HIỆN Y HỆT MENU YOUTUBE === */
+/* === NÚT PHÓNG TO MỜ MỜ, CHUẨN ĐỒNG BỘ CÙNG MENU YOUTUBE === */
 #nutPhongToCustom {
   position: absolute;
   bottom: 16px;
   right: 16px;
   background: rgba(0, 0, 0, 0.45);
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(255, 255, 255, 0.75);
   border: none;
   border-radius: 50%;
   width: 36px;
@@ -198,20 +198,19 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0; /* Mặc định ẩn đi */
+  opacity: 0; /* Mặc định ẩn */
   pointer-events: none;
-  transition: opacity 0.3s ease, background 0.2s, color 0.2s;
+  transition: opacity 0.25s ease, background 0.2s;
 }
 
-/* Khi có class .hien-nut (được kích hoạt khi rê chuột hoặc chạm màn hình), nút hiện mờ mờ */
+/* Khi khung màn hình nhận được tín hiệu chạm/click, nút hiện lên ngay lập tức */
 .player-display.hien-nut #nutPhongToCustom {
   opacity: 1;
   pointer-events: auto;
 }
 
-/* Khi rê trực tiếp vào nút thì sáng hơn một chút để dễ nhìn */
 #nutPhongToCustom:hover {
-  background: rgba(0, 0, 0, 0.75);
+  background: rgba(0, 0, 0, 0.8);
   color: #fff;
 }
 
@@ -523,12 +522,12 @@ body {
   <div class="col-main">
     <h3 style="text-align:center;">✨ Nội dung chính ✨</h3>
     <div class="player-box">
-      <!-- Bắt sự kiện chuột và chạm màn hình để đồng bộ ẩn/hiện nút mờ -->
-      <div class="player-display" id="playerDisplay" onmousemove="hienNutPhongTo()" onmouseleave="anNutPhongTo()" ontouchstart="hienNutPhongTo()">
+      <!-- Chỉ cần chạm/rê chuột bất cứ đâu trên màn hình phát, nút mờ sẽ hiện ngay lập tức cùng menu YouTube -->
+      <div class="player-display" id="playerDisplay" onmousemove="hienNutPhongTo()" ontouchstart="hienNutPhongTo()" onclick="hienNutPhongTo()">
         <div id="ytContainer"></div>
         <video id="localVideo" controls></video>
         
-        <!-- NÚT PHÓNG TO MỜ MỜ, TINH TẾ, TỰ ẨN HIỆN -->
+        <!-- NÚT PHÓNG TO MỜ MỜ, TINH TẾ, HIỆN NGAY LẬP TỨC KHI CHẠM MÀN HÌNH -->
         <button id="nutPhongToCustom" onclick="phongToManHinh()" title="Phóng to toàn màn hình">⛶</button>
         
         <div class="player-icon" id="defaultIcon">🎵</div>
@@ -933,22 +932,15 @@ function batTatPhat(){
   }
 }
 
-// === QUẢN LÝ HIỂN THỊ NÚT PHÓNG TỰ ĐỘNG ẨN/HIỆN THÔNG MINH ===
+// === TỰ ĐỘNG HIỆN NGAY LẬP TỨC KHI CHẠM/CLICK VÀ TỰ ẨN SAU VÀI GIÂY ===
 function hienNutPhongTo(){
   const display = document.getElementById("playerDisplay");
   display.classList.add("hien-nut");
   
   if(boDemAnNut) clearTimeout(boDemAnNut);
-  // Sau 2.5 giây không chạm/rê chuột nữa, nút mờ sẽ tự động ẩn đi hoàn toàn
   boDemAnNut = setTimeout(()=>{
     display.classList.remove("hien-nut");
-  }, 2500);
-}
-
-function anNutPhongTo(){
-  const display = document.getElementById("playerDisplay");
-  display.classList.remove("hien-nut");
-  if(boDemAnNut) clearTimeout(boDemAnNut);
+  }, 3000);
 }
 
 // === HÀM PHÓNG TO TOÀN MÀN HÌNH CHUẨN XÁC ===
