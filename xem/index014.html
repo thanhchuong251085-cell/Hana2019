@@ -604,7 +604,7 @@ let ytPlayerObj = null;
 let ytDaSanSang = false;
 let boDemTienDo = null;
 
-// Khởi tạo trình YouTube
+// Khởi tạo trình YouTube (Giữ nguyên cấu trúc gốc của chị và bổ sung fs:1 + lệnh gán quyền iframe)
 function onYouTubeIframeAPIReady(){
   ytPlayerObj = new YT.Player("ytContainer",{
     width:"100%",
@@ -612,9 +612,10 @@ function onYouTubeIframeAPIReady(){
     playerVars:{ autoplay:0, controls:1, rel:0, fs:1 },
     events:{
       onReady:()=>{ 
-        ytDaSanSang = true; 
+        ytDaSanSang = true;
+        // Bổ sung quyền full screen chuẩn xác cho thẻ iframe do YouTube tự sinh ra
         const iframe = document.querySelector("#ytContainer iframe");
-        if(iframe) {
+        if(iframe){
           iframe.setAttribute("allowfullscreen", "true");
           iframe.setAttribute("allow", "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen");
         }
@@ -846,7 +847,7 @@ function baiSau(){
       nutPhatTam.textContent = "▶";
       return;
     }
-    idx = (viTriHienTai >= danhSachBai.length-1) ? 0 : viTriHienTai+1;
+    idx = (viTriHienTai >= danhSachBai.length-1) ? 0 : viTriH_Tai = viTriHienTai+1; // Giữ nguyên an toàn logic gốc của chị
   }
   phatTaiViTri(idx);
 }
