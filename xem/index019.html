@@ -181,7 +181,7 @@ body {
   justify-content: center;
 }
 
-/* === PHÓNG TO TOÀN MÀN HÌNH CHUẨN XÁC TUYỆT ĐỐI (TRÀN TRỌN 100% MÀN HÌNH KHÔNG BỊ LỆCH) === */
+/* === PHÓNG TO TRÀN 100% MÀN HÌNH KHÔNG BỊ LỆCH GÓC === */
 .player-display.full-man-hinh {
   position: fixed !important;
   top: 0 !important;
@@ -204,7 +204,7 @@ body {
   height: 100% !important;
 }
 
-/* === NÚT THU NHỎ KHI ĐANG Ở CHẾ ĐỘ TOÀN MÀN HÌNH === */
+/* === NÚT THU NHỎ KHI ĐANG PHÓNG TO === */
 #nutThuNhoCustom {
   position: absolute;
   bottom: 20px;
@@ -218,7 +218,7 @@ body {
   font-size: 20px;
   cursor: pointer;
   z-index: 1000000;
-  display: none; /* Mặc định ẩn, chỉ hiện khi đang phóng to */
+  display: none;
   align-items: center;
   justify-content: center;
 }
@@ -696,6 +696,14 @@ function animateButterflies() {
 }
 requestAnimationFrame(animateButterflies);
 
+// Xử lý tự động gom/kéo bướm về lại màn hình khi xoay ngang/dọc điện thoại
+window.addEventListener("resize", () => {
+  butterflies.forEach(b => {
+    if (b.x > window.innerWidth - 50) b.x = window.innerWidth - 60;
+    if (b.y > window.innerHeight - 50) b.y = window.innerHeight - 60;
+  });
+});
+
 
 // Chế độ phát
 const CHE_DO = { BINH_THUONG:0, LAP_MOT:1, LAP_TAT_CA:2, NGAU_NHIEN:3 };
@@ -991,7 +999,7 @@ function tatHienNutGoc(){
   }, 1500);
 }
 
-// === PHÓNG TO / THU NHỎ GIẢ LẬP TRÀN 100% MÀN HÌNH ===
+// === PHÓNG TO / THU NHỎ TRÀN 100% TUYỆT ĐỐI KHÔNG BỊ LỆCH ===
 function phongToManHinh() {
   const display = document.getElementById("playerDisplay");
   display.classList.toggle("full-man-hinh");
