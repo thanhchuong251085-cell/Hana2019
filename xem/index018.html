@@ -181,33 +181,40 @@ body {
   justify-content: center;
 }
 
-/* === NÚT PHÓNG TO CHUẨN XÁC, MỜ MỜ TINH TẾ, DỄ BẤM TRÊN MỌI THIẾT BỊ === */
+/* === NÚT PHÓNG TO TỰ ĐỘNG ẨN/HIỆN ĐỒNG BỘ Y HỆT MENU YOUTUBE === */
 #nutPhongToCustom {
   position: absolute;
-  bottom: 15px;
-  right: 15px;
-  background: rgba(0, 0, 0, 0.5); /* Nền mờ tinh tế */
-  color: rgba(255, 255, 255, 0.85); /* Chữ sáng vừa đủ để thấy rõ */
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 50%; /* Bo tròn kiểu máy nghe nhạc Bluetooth */
-  width: 40px;
-  height: 40px;
-  font-size: 18px;
+  bottom: 16px;
+  right: 16px;
+  background: rgba(0, 0, 0, 0.45); /* Nền mờ tinh tế */
+  color: rgba(255, 255, 255, 0.85); /* Chữ rõ nét vừa đủ */
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 50%; /* Bo tròn mềm mại */
+  width: 38px;
+  height: 38px;
+  font-size: 16px;
   cursor: pointer;
   z-index: 9999;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.5);
-  transition: background 0.2s, transform 0.2s, color 0.2s;
+  opacity: 0; /* Mặc định ẩn hoàn toàn */
+  pointer-events: none; /* Không cho bấm khi đang ẩn */
+  transition: opacity 0.3s ease, background 0.2s, transform 0.2s;
 }
 
-/* Hỗ trợ focus bằng remote TV / Android Box (D-pad) */
+/* Khi có class .hien-nut (khi chạm/rê chuột), nút mờ hiện lên mượt mà */
+.player-display.hien-nut #nutPhongToCustom {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Khi rê chuột hoặc focus vào nút */
 #nutPhongToCustom:hover, #nutPhongToCustom:focus {
   background: rgba(221, 34, 34, 0.85);
   color: #fff;
-  transform: scale(1.08);
-  outline: 2px solid #ffdd44;
+  transform: scale(1.05);
+  outline: none;
 }
 
 /* Khi phóng to toàn màn hình */
@@ -518,11 +525,12 @@ body {
   <div class="col-main">
     <h3 style="text-align:center;">✨ Nội dung chính ✨</h3>
     <div class="player-box">
-      <div class="player-display" id="playerDisplay">
+      <!-- LẮNG NGHE THAO TÁC CHẠM/CLICK/RÊ CHUỘT TRÊN KHUNG PHÁT ĐỂ TỰ ĐỘNG ẨN HIỆN NÚT MỜ ĐỒNG BỘ -->
+      <div class="player-display" id="playerDisplay" onmousemove="hienNutPhongTo()" onclick="hienNutPhongTo()" ontouchstart="hienNutPhongTo()">
         <div id="ytContainer"></div>
         <video id="localVideo" controls></video>
         
-        <!-- NÚT PHÓNG TO LUÔN SẴN SÀNG, MỜ MỜ TINH TẾ Ở GÓC PHẢI, HỖ TRỢ REMOTE TV & CẢM ỨNG -->
+        <!-- NÚT PHÓNG TO MỜ MỜ, TINH TẾ, TỰ ẨN/HIỆN THEO THAO TÁC NGƯỜI DÙNG -->
         <button id="nutPhongToCustom" onclick="phongToManHinh()" tabindex="0" title="Phóng to toàn màn hình">⛶</button>
         
         <div class="player-icon" id="defaultIcon">🎵</div>
@@ -656,6 +664,7 @@ let dsNgauNhien = [];
 let ytPlayerObj = null;
 let ytDaSanSang = false;
 let boDemTienDo = null;
+let boDemAnNut = null;
 
 function onYouTubeIframeAPIReady(){
   ytPlayerObj = new YT.Player("ytContainer",{
@@ -926,7 +935,19 @@ function batTatPhat(){
   }
 }
 
-// === HÀM PHÓNG TO TOÀN MÀN HÌNH CHUẨN XÁC CHO MỌI THIẾT BỊ ===
+// === QUẢN LÝ ẨN HIỆN NÚT PHÓNG TO THÔNG MINH (ĐỒNG BỘ CÙNG MỌI THAO TÁC) ===
+function hienNutPhongTo(){
+  const display = document.getElementById("playerDisplay");
+  display.classList.add("hien-nut");
+  
+  if(boDemAnNut) clearTimeout(boDemAnNut);
+  // Sau 3 giây khi dừng mọi thao tác (rê chuột / chạm màn hình), nút sẽ tự động mờ và ẩn đi gọn gàng
+  boDemAnNut = setTimeout(()=>{
+    display.classList.remove("hien-nut");
+  }, 3000);
+}
+
+// === HÀM PHÓNG TO TOÀN MÀN HÌNH CHUẨN XÁC ===
 function phongToManHinh() {
   const display = document.getElementById("playerDisplay");
   if (!document.fullscreenElement) {
