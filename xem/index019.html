@@ -181,14 +181,18 @@ body {
   justify-content: center;
 }
 
-/* === PHÓNG TO TOÀN MÀN HÌNH GIẢ LẬP SIÊU MƯỢT (LOẠI BỎ HOÀN TOÀN THÔNG BÁO XẤU XÍ CỦA TRÌNH DUYỆT) === */
+/* === PHÓNG TO TOÀN MÀN HÌNH CHUẨN XÁC TUYỆT ĐỐI (TRÀN TRỌN 100% MÀN HÌNH KHÔNG BỊ LỆCH) === */
 .player-display.full-man-hinh {
   position: fixed !important;
   top: 0 !important;
   left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
   width: 100vw !important;
   height: 100vh !important;
-  z-index: 99999 !important;
+  max-width: none !important;
+  max-height: none !important;
+  z-index: 999999 !important;
   background: #000 !important;
   border-radius: 0 !important;
   padding: 0 !important;
@@ -200,21 +204,21 @@ body {
   height: 100% !important;
 }
 
-/* === NÚT THU NHỎ (HIỆN LÊN KHI ĐANG TOÀN MÀN HÌNH ĐỂ THOÁT RA DỄ DÀNG) === */
+/* === NÚT THU NHỎ KHI ĐANG Ở CHẾ ĐỘ TOÀN MÀN HÌNH === */
 #nutThuNhoCustom {
   position: absolute;
-  bottom: 16px;
-  right: 16px;
-  background: rgba(0, 0, 0, 0.6);
+  bottom: 20px;
+  right: 20px;
+  background: rgba(0, 0, 0, 0.65);
   color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 50%;
-  width: 44px;
-  height: 44px;
+  width: 46px;
+  height: 46px;
   font-size: 20px;
   cursor: pointer;
-  z-index: 100000;
-  display: none; /* Mặc định ẩn, chỉ hiện khi phóng to */
+  z-index: 1000000;
+  display: none; /* Mặc định ẩn, chỉ hiện khi đang phóng to */
   align-items: center;
   justify-content: center;
 }
@@ -987,7 +991,7 @@ function tatHienNutGoc(){
   }, 1500);
 }
 
-// === PHÓNG TO / THU NHỎ GIẢ LẬP SIÊU MƯỢT (KHÔNG CÒN THÔNG BÁO CỦA TRÌNH DUYỆT) ===
+// === PHÓNG TO / THU NHỎ GIẢ LẬP TRÀN 100% MÀN HÌNH ===
 function phongToManHinh() {
   const display = document.getElementById("playerDisplay");
   display.classList.toggle("full-man-hinh");
