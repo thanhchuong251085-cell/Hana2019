@@ -181,52 +181,26 @@ body {
   justify-content: center;
 }
 
-/* === PHÓNG TO TRÀN 100% MÀN HÌNH KHÔNG BỊ LỆCH GÓC === */
-.player-display.full-man-hinh {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  max-width: none !important;
-  max-height: none !important;
-  z-index: 999999 !important;
-  background: #000 !important;
-  border-radius: 0 !important;
-  padding: 0 !important;
-  margin: 0 !important;
-}
-.player-display.full-man-hinh #ytContainer,
-.player-display.full-man-hinh #localVideo {
-  width: 100% !important;
-  height: 100% !important;
-}
-
-/* === NÚT THU NHỎ KHI ĐANG PHÓNG TO === */
-#nutThuNhoCustom {
+/* === THÔNG BÁO HƯỚNG DẪN KHI PHÓNG TO MÀN HÌNH === */
+#thongBaoPhongTo {
   position: absolute;
-  bottom: 20px;
-  right: 20px;
-  background: rgba(0, 0, 0, 0.65);
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: 50%;
-  width: 46px;
-  height: 46px;
-  font-size: 20px;
-  cursor: pointer;
-  z-index: 1000000;
-  display: none;
-  align-items: center;
-  justify-content: center;
-}
-.player-display.full-man-hinh #nutThuNhoCustom {
-  display: flex;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: #ffdd44;
+  border: 1px solid rgba(255, 221, 68, 0.3);
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
 }
 
-/* === VÙNG GÓC PHẢI GỌI NÚT PHÓNG TO === */
+/* === VÙNG GÓC PHẢI SIÊU NHỎ (CHỈ BAO QUANH NÚT PHÓNG TO) === */
 .vung-goi-nut-goc {
   position: absolute;
   bottom: 10px;
@@ -237,6 +211,7 @@ body {
   pointer-events: auto;
 }
 
+/* === NÚT PHÓNG TO MỜ MỜ, TINH TẾ, TỰ ĐỘNG ẨN/HIỆN KHI CHẠM VÀO GÓC PHẢI === */
 #nutPhongToCustom {
   position: absolute;
   bottom: 16px;
@@ -253,6 +228,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.3s ease, background 0.2s, transform 0.2s;
@@ -270,6 +246,25 @@ body {
   color: #fff;
   transform: scale(1.08);
   outline: none;
+}
+
+/* Khi phóng to toàn màn hình */
+.player-display:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  padding: 0;
+  background: #000;
+}
+.player-display:-webkit-full-screen {
+  width: 100vw;
+  height: 100vh;
+  padding: 0;
+  background: #000;
+}
+.player-display:fullscreen iframe,
+.player-display:fullscreen video {
+  width: 100% !important;
+  height: 100% !important;
 }
 
 #ytContainer, #localVideo{
@@ -564,16 +559,16 @@ body {
     <h3 style="text-align:center;">✨ Nội dung chính ✨</h3>
     <div class="player-box">
       <div class="player-display" id="playerDisplay">
+        <!-- Thông báo hướng dẫn thu nhỏ xuất hiện khi phóng to -->
+        <div id="thongBaoPhongTo">💡 Chạm vào góc dưới bên phải để thu nhỏ màn hình</div>
+
         <div id="ytContainer"></div>
         <video id="localVideo" controls></video>
         
-        <!-- VÙNG GÓC PHẢI GỌI NÚT PHÓNG TO -->
+        <!-- VÙNG GÓC PHẢI SIÊU NHỎ -->
         <div class="vung-goi-nut-goc" ontouchstart="batHienNutGoc()" onmouseenter="batHienNutGoc()" onmouseleave="tatHienNutGoc()">
           <button id="nutPhongToCustom" onclick="phongToManHinh()" tabindex="0" title="Phóng to toàn màn hình">⛶</button>
         </div>
-
-        <!-- NÚT THU NHỎ KHI ĐANG Ở CHẾ ĐỘ TOÀN MÀN HÌNH -->
-        <button id="nutThuNhoCustom" onclick="phongToManHinh()" title="Thu nhỏ lại">🗗</button>
         
         <div class="player-icon" id="defaultIcon">🎵</div>
         <div class="player-text" id="defaultText">Chọn bài bên dưới để nghe</div>
@@ -654,13 +649,20 @@ class Butterfly {
   }
   
   reset() {
-    this.x = Math.random() * (window.innerWidth - 50);
-    this.y = Math.random() * (window.innerHeight - 100);
+    this.x = Math.random() * Math.max(100, window.innerWidth - 50);
+    this.y = Math.random() * Math.max(100, window.innerHeight - 100);
     this.vx = (Math.random() - 0.5) * 1.8;
     this.vy = (Math.random() - 0.5) * 1.8;
     this.speed = Math.random() * 1.2 + 0.8;
   }
   
+  checkBounds() {
+    if (this.x > window.innerWidth || this.y > window.innerHeight) {
+      this.x = Math.random() * (window.innerWidth - 50);
+      this.y = Math.random() * (window.innerHeight - 50);
+    }
+  }
+
   update() {
     this.x += this.vx * this.speed;
     this.y += this.vy * this.speed;
@@ -690,19 +692,15 @@ for (let i = 0; i < 6; i++) {
   butterflies.push(new Butterfly());
 }
 
+window.addEventListener("resize", () => {
+  butterflies.forEach(b => b.checkBounds());
+});
+
 function animateButterflies() {
   butterflies.forEach(b => b.update());
   requestAnimationFrame(animateButterflies);
 }
 requestAnimationFrame(animateButterflies);
-
-// Xử lý tự động gom/kéo bướm về lại màn hình khi xoay ngang/dọc điện thoại
-window.addEventListener("resize", () => {
-  butterflies.forEach(b => {
-    if (b.x > window.innerWidth - 50) b.x = window.innerWidth - 60;
-    if (b.y > window.innerHeight - 50) b.y = window.innerHeight - 60;
-  });
-});
 
 
 // Chế độ phát
@@ -715,6 +713,7 @@ let ytPlayerObj = null;
 let ytDaSanSang = false;
 let boDemTienDo = null;
 let boDemAnNutGoc = null;
+let boDemThongBao = null;
 
 function onYouTubeIframeAPIReady(){
   ytPlayerObj = new YT.Player("ytContainer",{
@@ -985,7 +984,7 @@ function batTatPhat(){
   }
 }
 
-// === QUẢN LÝ GÓC GỌI NÚT SIÊU NHỎ ===
+// === QUẢN LÝ GÓC GỌI NÚT SIÊU NHỎ VÀ TINH TẾ ===
 function batHienNutGoc(){
   const vung = document.querySelector(".vung-goi-nut-goc");
   vung.classList.add("hien-nut");
@@ -999,10 +998,35 @@ function tatHienNutGoc(){
   }, 1500);
 }
 
-// === PHÓNG TO / THU NHỎ TRÀN 100% TUYỆT ĐỐI KHÔNG BỊ LỆCH ===
+// === HÀM PHÓNG TO TOÀN MÀN HÌNH VÀ HIỂN THỊ THÔNG BÁO HƯỚNG DẪN ===
 function phongToManHinh() {
   const display = document.getElementById("playerDisplay");
-  display.classList.toggle("full-man-hinh");
+  const thongBao = document.getElementById("thongBaoPhongTo");
+
+  if (!document.fullscreenElement) {
+    if (display.requestFullscreen) {
+      display.requestFullscreen();
+    } else if (display.webkitRequestFullscreen) {
+      display.webkitRequestFullscreen();
+    } else if (display.msRequestFullscreen) {
+      display.msRequestFullscreen();
+    }
+
+    if (thongBao) {
+      thongBao.style.opacity = "1";
+      if (boDemThongBao) clearTimeout(boDemThongBao);
+      boDemThongBao = setTimeout(() => {
+        thongBao.style.opacity = "0";
+      }, 3500);
+    }
+  } else {
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    } else if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+    }
+    if (thongBao) thongBao.style.opacity = "0";
+  }
 }
 
 document.getElementById("thanhAmLuong").addEventListener("input",function(){
