@@ -181,15 +181,15 @@ body {
   justify-content: center;
 }
 
-/* === NÚT PHÓNG TO MỜ MỜ, TINH TẾ, TỰ ẨN HIỆN ĐỒNG BỘ Y HỆT MENU YOUTUBE === */
+/* === NÚT PHÓNG TO MỜ MỜ, TINH TẾ, TỰ ẨN HIỆN Y HỆT MENU YOUTUBE === */
 #nutPhongToCustom {
   position: absolute;
   bottom: 16px;
   right: 16px;
-  background: rgba(0, 0, 0, 0.4); /* Nền tối mờ nhẹ */
-  color: rgba(255, 255, 255, 0.65); /* Màu chữ hơi mờ tinh tế */
-  border: none; /* Không viền vuông thô */
-  border-radius: 50%; /* Bo tròn mềm mại */
+  background: rgba(0, 0, 0, 0.45);
+  color: rgba(255, 255, 255, 0.7);
+  border: none;
+  border-radius: 50%;
   width: 36px;
   height: 36px;
   font-size: 16px;
@@ -198,18 +198,18 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0; /* Mặc định hoàn toàn ẩn đi */
-  pointer-events: none; /* Không bấm được khi ẩn */
-  transition: opacity 0.4s ease, background 0.2s, color 0.2s;
+  opacity: 0; /* Mặc định ẩn đi */
+  pointer-events: none;
+  transition: opacity 0.3s ease, background 0.2s, color 0.2s;
 }
 
-/* Khi có hành động chạm/rê chuột vào khung phát, nút hiện lên mờ mờ */
+/* Khi có class .hien-nut (được kích hoạt khi rê chuột hoặc chạm màn hình), nút hiện mờ mờ */
 .player-display.hien-nut #nutPhongToCustom {
   opacity: 1;
   pointer-events: auto;
 }
 
-/* Khi rê trực tiếp trỏ chuột vào nút mờ này thì nó sáng lên nhẹ để dễ thấy */
+/* Khi rê trực tiếp vào nút thì sáng hơn một chút để dễ nhìn */
 #nutPhongToCustom:hover {
   background: rgba(0, 0, 0, 0.75);
   color: #fff;
@@ -523,7 +523,7 @@ body {
   <div class="col-main">
     <h3 style="text-align:center;">✨ Nội dung chính ✨</h3>
     <div class="player-box">
-      <!-- Lắng nghe thao tác chạm / rê chuột để đồng bộ ẩn hiện chuẩn xác -->
+      <!-- Bắt sự kiện chuột và chạm màn hình để đồng bộ ẩn/hiện nút mờ -->
       <div class="player-display" id="playerDisplay" onmousemove="hienNutPhongTo()" onmouseleave="anNutPhongTo()" ontouchstart="hienNutPhongTo()">
         <div id="ytContainer"></div>
         <video id="localVideo" controls></video>
@@ -933,13 +933,13 @@ function batTatPhat(){
   }
 }
 
-// === QUẢN LÝ ẨN HIỆN NÚT PHÓNG TO THÔNG MINH Y HỆT YOUTUBE ===
+// === QUẢN LÝ HIỂN THỊ NÚT PHÓNG TỰ ĐỘNG ẨN/HIỆN THÔNG MINH ===
 function hienNutPhongTo(){
   const display = document.getElementById("playerDisplay");
   display.classList.add("hien-nut");
   
   if(boDemAnNut) clearTimeout(boDemAnNut);
-  // Sau 2.5 giây khi không chạm/rê chuột nữa, nút sẽ tự động ẩn đi hoàn toàn
+  // Sau 2.5 giây không chạm/rê chuột nữa, nút mờ sẽ tự động ẩn đi hoàn toàn
   boDemAnNut = setTimeout(()=>{
     display.classList.remove("hien-nut");
   }, 2500);
