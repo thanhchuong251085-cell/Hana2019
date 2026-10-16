@@ -181,52 +181,7 @@ body {
   justify-content: center;
 }
 
-/* === PHÓNG TO TRÀN 100% MÀN HÌNH KHÔNG BỊ LỆCH GÓC === */
-.player-display.full-man-hinh {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  max-width: none !important;
-  max-height: none !important;
-  z-index: 999999 !important;
-  background: #000 !important;
-  border-radius: 0 !important;
-  padding: 0 !important;
-  margin: 0 !important;
-}
-.player-display.full-man-hinh #ytContainer,
-.player-display.full-man-hinh #localVideo {
-  width: 100% !important;
-  height: 100% !important;
-}
-
-/* === NÚT THU NHỎ KHI ĐANG PHÓNG TO === */
-#nutThuNhoCustom {
-  position: absolute;
-  bottom: 20px;
-  right: 20px;
-  background: rgba(0, 0, 0, 0.65);
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: 50%;
-  width: 46px;
-  height: 46px;
-  font-size: 20px;
-  cursor: pointer;
-  z-index: 1000000;
-  display: none;
-  align-items: center;
-  justify-content: center;
-}
-.player-display.full-man-hinh #nutThuNhoCustom {
-  display: flex;
-}
-
-/* === VÙNG GÓC PHẢI GỌI NÚT PHÓNG TO === */
+/* === VÙNG GÓC PHẢI SIÊU NHỎ (CHỈ BAO QUANH NÚT PHÓNG TO, GIÚP KHÔNG ẢNH HƯỞNG GÌ ĐẾN MENU CÀI ĐẶT YOUTUBE) === */
 .vung-goi-nut-goc {
   position: absolute;
   bottom: 10px;
@@ -237,6 +192,7 @@ body {
   pointer-events: auto;
 }
 
+/* === NÚT PHÓNG TO MỜ MỜ, TINH TẾ, TỰ ĐỘNG ẨN/HIỆN KHI CHẠM VÀO GÓC PHẢI === */
 #nutPhongToCustom {
   position: absolute;
   bottom: 16px;
@@ -253,11 +209,14 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  
+  /* Mặc định mờ nhẹ / ẩn đi tinh tế */
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.3s ease, background 0.2s, transform 0.2s;
 }
 
+/* Khi chạm hoặc rê chuột vào góc phải đó, nút hiện sáng lên rõ nét */
 .vung-goi-nut-goc:hover #nutPhongToCustom,
 .vung-goi-nut-goc.hien-nut #nutPhongToCustom,
 #nutPhongToCustom:hover {
@@ -272,6 +231,25 @@ body {
   outline: none;
 }
 
+/* Khi phóng to toàn màn hình */
+.player-display:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  padding: 0;
+  background: #000;
+}
+.player-display:-webkit-full-screen {
+  width: 100vw;
+  height: 100vh;
+  padding: 0;
+  background: #000;
+}
+.player-display:fullscreen iframe,
+.player-display:fullscreen video {
+  width: 100% !important;
+  height: 100% !important;
+}
+
 #ytContainer, #localVideo{
   width:100%;
   height:220px;
@@ -279,7 +257,7 @@ body {
   border:none;
   display:none;
   position: relative;
-  z-index: 10;
+  z-index: 10; /* YouTube nằm dưới, mọi nút cài đặt, tua, chỉnh độ phân giải hoạt động 100% bình thường */
 }
 .player-icon{
   font-size:60px;
@@ -567,13 +545,11 @@ body {
         <div id="ytContainer"></div>
         <video id="localVideo" controls></video>
         
-        <!-- VÙNG GÓC PHẢI GỌI NÚT PHÓNG TO -->
+        <!-- VÙNG GÓC PHẢI SIÊU NHỎ: CHỈ BAO QUANH NÚT PHÓNG TO, GIÚP MENU YOUTUBE BÊN TRONG BẤM ĐƯỢC 100% -->
         <div class="vung-goi-nut-goc" ontouchstart="batHienNutGoc()" onmouseenter="batHienNutGoc()" onmouseleave="tatHienNutGoc()">
+          <!-- NÚT PHÓNG TO MỜ MỜ, CHỈ HIỆN KHI CHẠM/RÊ VÀO GÓC PHẢI -->
           <button id="nutPhongToCustom" onclick="phongToManHinh()" tabindex="0" title="Phóng to toàn màn hình">⛶</button>
         </div>
-
-        <!-- NÚT THU NHỎ KHI ĐANG Ở CHẾ ĐỘ TOÀN MÀN HÌNH -->
-        <button id="nutThuNhoCustom" onclick="phongToManHinh()" title="Thu nhỏ lại">🗗</button>
         
         <div class="player-icon" id="defaultIcon">🎵</div>
         <div class="player-text" id="defaultText">Chọn bài bên dưới để nghe</div>
@@ -654,13 +630,21 @@ class Butterfly {
   }
   
   reset() {
-    this.x = Math.random() * (window.innerWidth - 50);
-    this.y = Math.random() * (window.innerHeight - 100);
+    this.x = Math.random() * Math.max(100, window.innerWidth - 50);
+    this.y = Math.random() * Math.max(100, window.innerHeight - 100);
     this.vx = (Math.random() - 0.5) * 1.8;
     this.vy = (Math.random() - 0.5) * 1.8;
     this.speed = Math.random() * 1.2 + 0.8;
   }
   
+  // Đảm bảo bướm tự kéo về lại khung màn hình mới khi xoay ngang/dọc thiết bị
+  checkBounds() {
+    if (this.x > window.innerWidth || this.y > window.innerHeight) {
+      this.x = Math.random() * (window.innerWidth - 50);
+      this.y = Math.random() * (window.innerHeight - 50);
+    }
+  }
+
   update() {
     this.x += this.vx * this.speed;
     this.y += this.vy * this.speed;
@@ -690,19 +674,16 @@ for (let i = 0; i < 6; i++) {
   butterflies.push(new Butterfly());
 }
 
+// Bổ sung sự kiện bắt khi người dùng xoay màn hình (thay đổi kích thước cửa sổ)
+window.addEventListener("resize", () => {
+  butterflies.forEach(b => b.checkBounds());
+});
+
 function animateButterflies() {
   butterflies.forEach(b => b.update());
   requestAnimationFrame(animateButterflies);
 }
 requestAnimationFrame(animateButterflies);
-
-// Xử lý tự động gom/kéo bướm về lại màn hình khi xoay ngang/dọc điện thoại
-window.addEventListener("resize", () => {
-  butterflies.forEach(b => {
-    if (b.x > window.innerWidth - 50) b.x = window.innerWidth - 60;
-    if (b.y > window.innerHeight - 50) b.y = window.innerHeight - 60;
-  });
-});
 
 
 // Chế độ phát
@@ -985,11 +966,11 @@ function batTatPhat(){
   }
 }
 
-// === QUẢN LÝ GÓC GỌI NÚT SIÊU NHỎ ===
+// === QUẢN LÝ GÓC GỌI NÚT SIÊU NHỎ VÀ TINH TẾ ===
 function batHienNutGoc(){
   const vung = document.querySelector(".vung-goi-nut-goc");
   vung.classList.add("hien-nut");
-  if(boDemAnNutGoc) clearTimeout(boDemAnNutGoc);
+  if(boDemAnNutGoc) clearTimeout(boDemAnNut);
 }
 
 function tatHienNutGoc(){
@@ -999,10 +980,24 @@ function tatHienNutGoc(){
   }, 1500);
 }
 
-// === PHÓNG TO / THU NHỎ TRÀN 100% TUYỆT ĐỐI KHÔNG BỊ LỆCH ===
+// === HÀM PHÓNG TO TOÀN MÀN HÌNH CHUẨN XÁC ===
 function phongToManHinh() {
   const display = document.getElementById("playerDisplay");
-  display.classList.toggle("full-man-hinh");
+  if (!document.fullscreenElement) {
+    if (display.requestFullscreen) {
+      display.requestFullscreen();
+    } else if (display.webkitRequestFullscreen) {
+      display.webkitRequestFullscreen();
+    } else if (display.msRequestFullscreen) {
+      display.msRequestFullscreen();
+    }
+  } else {
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    } else if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+    }
+  }
 }
 
 document.getElementById("thanhAmLuong").addEventListener("input",function(){
