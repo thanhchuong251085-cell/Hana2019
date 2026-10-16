@@ -181,37 +181,37 @@ body {
   justify-content: center;
 }
 
-/* === NÚT PHÓNG TO ẨN HIỆN ĐỒNG ĐIỆU CÙNG MENU YOUTUBE === */
+/* === NÚT PHÓNG TO MỜ MỜ, TỰ ĐỘNG ẨN HIỆN CHUẨN XÁC THEO HÀNH VI CHUỘT === */
 #nutPhongToCustom {
   position: absolute;
-  bottom: 22px;
-  right: 22px;
+  bottom: 18px;
+  right: 18px;
   background: rgba(0, 0, 0, 0.4);
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.7);
   border: none;
   border-radius: 50%;
   width: 36px;
   height: 36px;
   font-size: 16px;
   cursor: pointer;
-  z-index: 50;
+  z-index: 999;
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0; /* Mặc định ẩn đi khi không rê chuột */
+  opacity: 0; /* Mặc định ẩn */
   transition: opacity 0.3s ease, background 0.2s, color 0.2s;
-  pointer-events: none; /* Khi ẩn thì không bấm nhầm */
+  pointer-events: none;
 }
 
-/* Khi rê chuột vào khung màn hình, nút phóng to hiện ra mờ mờ y hệt menu YouTube */
-.player-display:hover #nutPhongToCustom {
+/* Khi có class .hien-nut (được điều khiển bằng JS khi rê chuột), nút sẽ hiện mờ mờ */
+.player-display.hien-nut #nutPhongToCustom {
   opacity: 1;
   pointer-events: auto;
 }
 
-/* Khi rê trực tiếp trỏ chuột vào nút phóng to, nó sẽ sáng rõ lên */
+/* Khi rê trực tiếp vào nút phóng to thì sáng rõ lên */
 #nutPhongToCustom:hover {
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(0, 0, 0, 0.85);
   color: #fff;
 }
 
@@ -504,11 +504,12 @@ body {
   <div class="col-main">
     <h3 style="text-align:center;">✨ Nội dung chính ✨</h3>
     <div class="player-box">
-      <div class="player-display" id="playerDisplay">
+      <!-- Thêm sự kiện chuột để điều khiển ẩn hiện tự động mượt mà -->
+      <div class="player-display" id="playerDisplay" onmousemove="hienNutPhongTo()" onmouseleave="anNutPhongTo()">
         <div id="ytContainer"></div>
         <video id="localVideo" controls></video>
         
-        <!-- NÚT PHÓNG TO MỜ MỜ, ẨN HIỆN ĐỒNG BỘ CÙNG MENU YOUTUBE -->
+        <!-- NÚT PHÓNG TO MỜ MỜ, TỰ ĐỘNG ẨN SAU KHI RỜI CHUỘT -->
         <button id="nutPhongToCustom" onclick="phongToManHinh()" title="Phóng to toàn màn hình">⛶</button>
         
         <div class="player-icon" id="defaultIcon">🎵</div>
@@ -642,6 +643,7 @@ let dsNgauNhien = [];
 let ytPlayerObj = null;
 let ytDaSanSang = false;
 let boDemTienDo = null;
+let boDemAnNut = null;
 
 function onYouTubeIframeAPIReady(){
   ytPlayerObj = new YT.Player("ytContainer",{
@@ -912,33 +914,40 @@ function batTatPhat(){
   }
 }
 
-// === HÀM PHÓNG TO TRỰC TIẾP VÀO TRÌNH PHÁT ĐANG CHẠY ===
+// === QUẢN LÝ ẨN HIỆN NÚT PHÓNG TO THEO THAO TÁC CHUỘT ===
+function hienNutPhongTo(){
+  const display = document.getElementById("playerDisplay");
+  display.classList.add("hien-nut");
+  
+  if(boDemAnNut) clearTimeout(boDemAnNut);
+  // Sau 2.5 giây nếu không di chuyển chuột, tự động ẩn nút đi
+  boDemAnNut = setTimeout(()=>{
+    display.classList.remove("hien-nut");
+  }, 2500);
+}
+
+function anNutPhongTo(){
+  const display = document.getElementById("playerDisplay");
+  display.classList.remove("hien-nut");
+  if(boDemAnNut) clearTimeout(boDemAnNut);
+}
+
+// === HÀM PHÓNG TO TOÀN MÀN HÌNH CHUẨN XÁC ===
 function phongToManHinh() {
-  if(viTriHienTai < 0) return;
-  const bai = danhSachBai[viTriHienTai];
-  let elem = null;
-
-  if (bai.loai === "yt") {
-    elem = document.querySelector("#ytContainer iframe");
+  const display = document.getElementById("playerDisplay");
+  if (!document.fullscreenElement) {
+    if (display.requestFullscreen) {
+      display.requestFullscreen();
+    } else if (display.webkitRequestFullscreen) {
+      display.webkitRequestFullscreen();
+    } else if (display.msRequestFullscreen) {
+      display.msRequestFullscreen();
+    }
   } else {
-    elem = localVideo;
-  }
-
-  if (elem) {
-    if (!document.fullscreenElement) {
-      if (elem.requestFullscreen) {
-        elem.requestFullscreen();
-      } else if (elem.webkitRequestFullscreen) {
-        elem.webkitRequestFullscreen();
-      } else if (elem.msRequestFullscreen) {
-        elem.msRequestFullscreen();
-      }
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      } else if (document.webkitExitFullscreen) {
-        document.webkitExitFullscreen();
-      }
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    } else if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
     }
   }
 }
