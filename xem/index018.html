@@ -181,39 +181,47 @@ body {
   justify-content: center;
 }
 
-/* === NÚT PHÓNG TO TỰ ĐỘNG ẨN/HIỆN ĐỒNG BỘ Y HỆT MENU YOUTUBE === */
+/* === VÙNG NHẠY CẢM GÓC PHẢI (KHI CHẠM VÀO SẼ KÍCH HOẠT NÚT HIỆN SÁNG) === */
+.vung-goi-nut {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 140px;
+  height: 100px;
+  z-index: 90;
+  pointer-events: auto;
+}
+
+/* === NÚT PHÓNG TO MỜ MỜ, TINH TẾ, HIỆN LÊN RÕ NÉT KHI CHẠM/RÊ CHUỘT === */
 #nutPhongToCustom {
   position: absolute;
   bottom: 16px;
   right: 16px;
-  background: rgba(0, 0, 0, 0.45); /* Nền mờ tinh tế */
-  color: rgba(255, 255, 255, 0.85); /* Chữ rõ nét vừa đủ */
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.5); /* Nền mờ tinh tế */
+  color: rgba(255, 255, 255, 0.85); /* Chữ sáng vừa đủ để thấy rõ */
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 50%; /* Bo tròn mềm mại */
-  width: 38px;
-  height: 38px;
-  font-size: 16px;
+  width: 40px;
+  height: 40px;
+  font-size: 18px;
   cursor: pointer;
-  z-index: 9999;
+  z-index: 100;
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0; /* Mặc định ẩn hoàn toàn */
-  pointer-events: none; /* Không cho bấm khi đang ẩn */
+  opacity: 0.4; /* Mặc định mờ nhẹ nhàng, người dùng vẫn nhìn thấy vị trí để bấm */
+  box-shadow: 0 2px 6px rgba(0,0,0,0.5);
   transition: opacity 0.3s ease, background 0.2s, transform 0.2s;
 }
 
-/* Khi có class .hien-nut (khi chạm/rê chuột), nút mờ hiện lên mượt mà */
-.player-display.hien-nut #nutPhongToCustom {
+/* Khi chạm hoặc rê chuột vào vùng góc phải, nút lập tức hiện sáng rõ nét chuyên nghiệp */
+.vung-goi-nut:hover ~ #nutPhongToCustom,
+#nutPhongToCustom:hover,
+#nutPhongToCustom:focus {
   opacity: 1;
-  pointer-events: auto;
-}
-
-/* Khi rê chuột hoặc focus vào nút */
-#nutPhongToCustom:hover, #nutPhongToCustom:focus {
-  background: rgba(221, 34, 34, 0.85);
+  background: rgba(221, 34, 34, 0.9);
   color: #fff;
-  transform: scale(1.05);
+  transform: scale(1.08);
   outline: none;
 }
 
@@ -242,6 +250,8 @@ body {
   border-radius:8px;
   border:none;
   display:none;
+  position: relative;
+  z-index: 10; /* Nằm dưới để các nút điều khiển YouTube hoạt động 100% bình thường */
 }
 .player-icon{
   font-size:60px;
@@ -525,12 +535,14 @@ body {
   <div class="col-main">
     <h3 style="text-align:center;">✨ Nội dung chính ✨</h3>
     <div class="player-box">
-      <!-- LẮNG NGHE THAO TÁC CHẠM/CLICK/RÊ CHUỘT TRÊN KHUNG PHÁT ĐỂ TỰ ĐỘNG ẨN HIỆN NÚT MỜ ĐỒNG BỘ -->
-      <div class="player-display" id="playerDisplay" onmousemove="hienNutPhongTo()" onclick="hienNutPhongTo()" ontouchstart="hienNutPhongTo()">
+      <div class="player-display" id="playerDisplay">
         <div id="ytContainer"></div>
         <video id="localVideo" controls></video>
         
-        <!-- NÚT PHÓNG TO MỜ MỜ, TINH TẾ, TỰ ẨN/HIỆN THEO THAO TÁC NGƯỜI DÙNG -->
+        <!-- Vùng nhạy cảm góc phải: Chạm nhẹ vào góc này là nút sáng rực lên chuyên nghiệp -->
+        <div class="vung-goi-nut"></div>
+
+        <!-- NÚT PHÓNG TO MỜ MỜ, LUÔN HIỆN TINH TẾ ĐỂ NHẬN DIỆN, CHẠM VÀO LÀ SÁNG LÊN -->
         <button id="nutPhongToCustom" onclick="phongToManHinh()" tabindex="0" title="Phóng to toàn màn hình">⛶</button>
         
         <div class="player-icon" id="defaultIcon">🎵</div>
@@ -664,7 +676,6 @@ let dsNgauNhien = [];
 let ytPlayerObj = null;
 let ytDaSanSang = false;
 let boDemTienDo = null;
-let boDemAnNut = null;
 
 function onYouTubeIframeAPIReady(){
   ytPlayerObj = new YT.Player("ytContainer",{
@@ -933,18 +944,6 @@ function batTatPhat(){
       localVideo.pause();
     }
   }
-}
-
-// === QUẢN LÝ ẨN HIỆN NÚT PHÓNG TO THÔNG MINH (ĐỒNG BỘ CÙNG MỌI THAO TÁC) ===
-function hienNutPhongTo(){
-  const display = document.getElementById("playerDisplay");
-  display.classList.add("hien-nut");
-  
-  if(boDemAnNut) clearTimeout(boDemAnNut);
-  // Sau 3 giây khi dừng mọi thao tác (rê chuột / chạm màn hình), nút sẽ tự động mờ và ẩn đi gọn gàng
-  boDemAnNut = setTimeout(()=>{
-    display.classList.remove("hien-nut");
-  }, 3000);
 }
 
 // === HÀM PHÓNG TO TOÀN MÀN HÌNH CHUẨN XÁC ===
