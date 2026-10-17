@@ -21,7 +21,7 @@ https://dethich.pw/vtv7/index.m3u8
 https://dethich.pw/vtv8/index.m3u8
 #EXTINF:-1 tvg-logo="https://vn.xemtv.net/image/vtv9.png" group-title="VTV",VTV9
 https://dethich.pw/vtv9/index.m3u8
-EXTINF:-1 tvg-id="vtv10hd" group-title="VTV" tvg-logo="https://r2.epg.io.vn/2026-09-17/12.png", VTV10  
+#EXTINF:-1 tvg-id="vtv10hd" group-title="VTV" tvg-logo="https://r2.epg.io.vn/2026-09-17/12.png", VTV10  
 https://dethich.pw/vtv10/index.m3u8
 #EXTINF:-1 tvg-logo="https://vn.xemtv.net/image/vietnamtoday.png" group-title="VTV",Vietnam Today
 https://dethich.pw/vietnamtoday/index.m3u8
