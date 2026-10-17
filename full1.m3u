@@ -1,6 +1,6 @@
 #EXTM3U url-tvg="https://epg.io.vn/epgu.xml"
 #EXTINF:-1 tvg-logo="https://vn.xemtv.net/image/vtv1.png" group-title="VTV", (VTV1) This file is come from thành chương. Please do not reup. - VTV1
-https://vips-livecdn.fptplay.net/live/media/vtv1/live247-hls-avc/index.m3u8
+https://dethich.pw/vtv1/index.m3u8
 #EXTINF:-1 tvg-logo="https://vn.xemtv.net/image/vtv2.png" group-title="VTV",VTV2
 https://vips-livecdn.fptplay.net/live/media/vtv2/live247-hls-avc/index.m3u8
 #EXTINF:-1 tvg-logo="https://vn.xemtv.net/image/vtv3.png" group-title="VTV",VTV3
