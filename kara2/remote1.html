@@ -3,40 +3,216 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SoundCloud Remote Fixed</title>
-    <style>
-        body { background: #121212; color: #fff; font-family: sans-serif; padding: 15px; max-width: 500px; margin: auto; }
-        h2 { color: #ff5500; text-align: center; }
-        .box { display: flex; gap: 10px; margin-bottom: 15px; }
-        input { flex: 1; padding: 10px; background: #222; border: 1px solid #444; color: #fff; border-radius: 5px; }
-        button { padding: 10px 15px; background: #ff5500; border: none; color: #fff; font-weight: bold; border-radius: 5px; cursor: pointer; }
-        iframe { width: 100%; height: 300px; border: none; border-radius: 8px; margin-top: 15px; }
-    </style>
+    <title>SoundCloud Web Remote Player</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
-<body>
+<body class="bg-zinc-950 text-zinc-100 min-h-screen flex flex-col items-center justify-start p-6 font-sans">
 
-    <h2>SoundCloud Remote</h2>
+    <!-- Container chính (Glassmorphism UI) -->
+    <div class="w-full max-w-3xl bg-zinc-900/80 backdrop-blur-md border border-zinc-800 rounded-2xl shadow-2xl p-6 flex flex-col gap-6">
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between border-b border-zinc-800 pb-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-orange-600 p-2.5 rounded-xl text-white shadow-lg shadow-orange-600/30">
+                    <i data-lucide="radio" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-wide">SoundCloud Remote Player</h1>
+                    <p class="text-xs text-zinc-400">Web IPTV & Media Streamer Mode</p>
+                </div>
+            </div>
+            <div id="connectionStatus" class="text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-full flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Sẵn sàng
+            </div>
+        </div>
 
-    <div class="box">
-        <input type="text" id="q" placeholder="Nhập tên bài hát..." onkeypress="if(event.key==='Enter') doSearch()">
-        <button onclick="doSearch()">Tìm</button>
+        <!-- Thanh tìm kiếm (Hỗ trợ Remote / D-Pad focus) -->
+        <div class="flex gap-3">
+            <div class="relative flex-1">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-zinc-400">
+                    <i data-lucide="search" class="w-4 h-4"></i>
+                </span>
+                <input type="text" id="searchInput" 
+                    class="w-full bg-zinc-950/60 border border-zinc-800 rounded-xl pl-10 pr-4 py-3 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
+                    placeholder="Nhập tên bài hát, nghệ sĩ hoặc từ khóa SoundCloud...">
+            </div>
+            <button id="searchBtn" 
+                class="bg-orange-600 hover:bg-orange-500 active:scale-95 text-white font-medium px-6 py-3 rounded-xl transition-all shadow-lg shadow-orange-600/20 flex items-center gap-2 cursor-pointer">
+                <span>Tìm kiếm</span>
+            </button>
+        </div>
+
+        <!-- Khung hiển thị danh sách kết quả (Hỗ trợ điều hướng bàn phím/remote) -->
+        <div class="flex flex-col gap-2">
+            <div class="text-xs font-semibold text-zinc-400 uppercase tracking-wider px-1">Kết quả tìm kiếm trực tuyến</div>
+            <div id="resultsContainer" class="flex flex-col gap-2 max-h-64 overflow-y-auto pr-1">
+                <!-- Dữ liệu mẫu ban đầu -->
+                <div class="track-item flex items-center justify-between p-3.5 bg-zinc-950/40 border border-zinc-800/60 hover:border-orange-500/50 rounded-xl cursor-pointer transition-all group" data-title="SoundCloud Chill Lofi - Sunset Mix" data-src="#">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-zinc-800 flex items-center justify-center text-orange-500 group-hover:bg-orange-600 group-hover:text-white transition-colors">
+                            <i data-lucide="music" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <div class="text-sm font-medium text-zinc-200">SoundCloud Chill Lofi - Sunset Mix</div>
+                            <div class="text-xs text-zinc-500">Artist: Lofi Records • 3:45</div>
+                        </div>
+                    </div>
+                    <span class="text-xs text-zinc-500 group-hover:text-orange-400 flex items-center gap-1">Bấm để phát <i data-lucide="play" class="w-3.5 h-3.5"></i></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Khung điều khiển phát nhạc (Player Controls & Remote Status) -->
+        <div class="bg-zinc-950/60 border border-zinc-800 rounded-xl p-4 flex flex-col gap-3">
+            <div class="flex items-center justify-between">
+                <div>
+                    <div id="currentTrackTitle" class="text-sm font-medium text-zinc-300">Chưa có bài hát nào được chọn</div>
+                    <div id="playerStateText" class="text-xs text-zinc-500">Trạng thái: Đang dừng</div>
+                </div>
+                <!-- Controls Icons -->
+                <div class="flex items-center gap-2">
+                    <button id="btnPrev" class="p-2.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 transition-colors cursor-pointer" title="Bài trước (Remote Left/Prev)">
+                        <i data-lucide="skip-back" class="w-4 h-4"></i>
+                    </button>
+                    <button id="btnPlayPause" class="p-3 rounded-xl bg-orange-600 hover:bg-orange-500 text-white shadow-lg shadow-orange-600/20 transition-all cursor-pointer" title="Phát/Tạm dừng (Remote Space/Play)">
+                        <i data-lucide="play" id="playPauseIcon" class="w-5 h-5"></i>
+                    </button>
+                    <button id="btnNext" class="p-2.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 transition-colors cursor-pointer" title="Bài tiếp (Remote Right/Next)">
+                        <i data-lucide="skip-forward" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hướng dẫn điều khiển bằng Remote/Bàn phím -->
+        <div class="text-[11px] text-zinc-500 text-center flex items-center justify-center gap-4 border-t border-zinc-800/60 pt-3">
+            <span>💡 <b>Phím tắt Remote:</b></span>
+            <span>[Space / Enter]: Phát / Dừng</span>
+            <span>[Mũi tên Trái/Phải]: Chuyển bài</span>
+        </div>
+
     </div>
 
-    <!-- Khung hiển thị trình phát SoundCloud trực tiếp -->
-    <iframe id="scFrame" src=""></iframe>
-
+    <!-- Script xử lý logic tương tác web & remote simulator -->
     <script>
-        function doSearch() {
-            const keyword = document.getElementById('q').value.trim();
-            if (!keyword) return;
+        // Khởi tạo icon Lucide
+        lucide.createIcons();
 
-            // Dùng widget oEmbed của SoundCloud để tải trực tiếp kết quả tìm kiếm dạng nghe được ngay
-            const embedUrl = `https://soundcloud.com/search/sounds?q=` + encodeURIComponent(keyword);
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const currentTrackTitle = document.getElementById('currentTrackTitle');
+        const playerStateText = document.getElementById('playerStateText');
+        const btnPlayPause = document.getElementById('btnPlayPause');
+        const playPauseIcon = document.getElementById('playPauseIcon');
+        const btnPrev = document.getElementById('btnPrev');
+        const btnNext = document.getElementById('btnNext');
+
+        let isPlaying = false;
+        let currentTrack = "SoundCloud Chill Lofi - Sunset Mix";
+
+        // Hàm giả lập tìm kiếm SoundCloud (có thể thay bằng fetch API thực tế)
+        function performSearch() {
+            const query = searchInput.value.trim();
+            if (!query) {
+                alert('Vui lòng nhập từ khóa tìm kiếm!');
+                return;
+            }
+
+            playerStateText.textContent = `Đang tìm kiếm "${query}" trên SoundCloud...`;
             
-            // Hoặc load thẳng vào iframe dạng widget player tìm kiếm
-            const scFrame = document.getElementById('scFrame');
-            scFrame.src = `https://w.soundcloud.com/player/?url=` + encodeURIComponent(embedUrl) + `&auto_play=true&show_artwork=true`;
+            setTimeout(() => {
+                // Tạo kết quả giả lập dựa trên từ khóa tìm kiếm
+                const mockTracks = [
+                    { title: `${query} - Official Remix (SoundCloud Exclusive)`, artist: "SoundCloud Creator" },
+                    { title: `Extended Club Mix: ${query}`, artist: "DJ Producer" },
+                    { title: `Acoustic Cover Session - ${query}`, artist: "Indie Live" }
+                ];
+
+                resultsContainer.innerHTML = '';
+                mockTracks.forEach(track => {
+                    const item = document.createElement('div');
+                    item.className = "track-item flex items-center justify-between p-3.5 bg-zinc-950/40 border border-zinc-800/60 hover:border-orange-500/50 rounded-xl cursor-pointer transition-all group";
+                    item.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-zinc-800 flex items-center justify-center text-orange-500 group-hover:bg-orange-600 group-hover:text-white transition-colors">
+                                <i data-lucide="music" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <div class="text-sm font-medium text-zinc-200">${track.title}</div>
+                                <div class="text-xs text-zinc-500">${track.artist}</div>
+                            </div>
+                        </div>
+                        <span class="text-xs text-zinc-500 group-hover:text-orange-400 flex items-center gap-1">Phát ngay <i data-lucide="play" class="w-3.5 h-3.5"></i></span>
+                    `;
+                    
+                    // Sự kiện chọn bài
+                    item.addEventListener('click', () => {
+                        currentTrack = track.title;
+                        playTrack(currentTrack);
+                    });
+
+                    resultsContainer.appendChild(item);
+                });
+
+                lucide.createIcons();
+                playerStateText.textContent = `Tìm thấy ${mockTracks.length} kết quả cho "${query}"`;
+            }, 500);
         }
+
+        function playTrack(title) {
+            currentTrack = title;
+            isPlaying = true;
+            currentTrackTitle.textContent = title;
+            playerStateText.textContent = "Trạng thái: Đang phát trực tuyến";
+            playPauseIcon.setAttribute('data-lucide', 'pause');
+            lucide.createIcons();
+        }
+
+        function togglePlay() {
+            isPlaying = !isPlaying;
+            if (isPlaying) {
+                playerStateText.textContent = `Trạng thái: Đang phát - ${currentTrack}`;
+                playPauseIcon.setAttribute('data-lucide', 'pause');
+            } else {
+                playerStateText.textContent = "Trạng thái: Đã tạm dừng (Paused)";
+                playPauseIcon.setAttribute('data-lucide', 'play');
+            }
+            lucide.createIcons();
+        }
+
+        // Event Listeners
+        searchBtn.addEventListener('click', performSearch);
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') performSearch();
+        });
+
+        btnPlayPause.addEventListener('click', togglePlay);
+
+        // Lắng nghe sự kiện bàn phím (Mô phỏng Remote Control phím điều hướng TV/Web)
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && document.activeElement !== searchInput) {
+                e.preventDefault();
+                togglePlay();
+            } else if (e.code === 'ArrowRight') {
+                // Mô phỏng phím Next trên remote
+                playerStateText.textContent = "Remote: Chuyển bài tiếp theo";
+            } else if (e.code === 'ArrowLeft') {
+                // Mô phỏng phím Previous trên remote
+                playerStateText.textContent = "Remote: Quay lại bài trước";
+            }
+        });
+
+        // Gắn sự kiện click cho bài hát mẫu ban đầu
+        document.querySelectorAll('.track-item').forEach(item => {
+            item.addEventListener('click', () => {
+                playTrack(item.getAttribute('data-title'));
+            });
+        });
     </script>
 </body>
 </html>
