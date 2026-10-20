@@ -1,22 +1,22 @@
-<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
-    <base target="_top">
-    <title>Karaoke Player</title>
-      <link rel="manifest" href="./manifest_tv.json">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+<!DOCTYPE html>
+<html><head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<base target="_top">
+<title>Karaoke Player</title>
+<link rel="manifest" href="./manifest_tv.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 
-    <script async="" src="https://www.googletagmanager.com/gtag/js?id=G-JCB7VEJF1Y"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-JCB7VEJF1Y"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
-
   gtag('config', 'G-JCB7VEJF1Y');
 </script>
-    <style>
-      /* === STYLE GỮ NGUYÊN HOÀN TOÀN BẢN GỐC === */
+<style>
+      /* === GIAO DIỆN GỐC === */
       #currentTitle {
         position: relative;
         width: 200px;
@@ -54,14 +54,14 @@
         left: 0;
         width: 100vw;
         height: 100vh;
-        z-index: 0; /* Đổi thành 0 để UI nằm trên */
+        z-index: 0;
       }
 
       #uiContainer {
         position: absolute;
         top: 20px;
         right: 10px;
-        background: rgba(0, 0, 0, 0.2); /* Tăng độ đậm nền cho dễ nhìn */
+        background: rgba(0, 0, 0, 0.2);
         padding: 12px;
         border-radius: 12px;
         max-width: 270px;
@@ -72,7 +72,7 @@
         position: absolute;
         top: 10px;
         left: 10px;
-        background: rgba(0, 0, 0, 0.5); /* Tăng độ đậm nền cho dễ nhìn */
+        background: rgba(0, 0, 0, 0.5);
         padding: 12px;
         border-radius: 12px;
         max-width: 220px;
@@ -95,14 +95,13 @@
       #playlistDisplay {
         margin: 0;
         padding-left: 14px;
-        font-size: 14px; 
-        font-weight: normal; 
+        font-size: 14px;
+        font-weight: normal;
         color: rgba(255, 255, 255, 0.95);
         margin-bottom: 8px;
-        list-style: disc; /* Thêm kiểu list */
+        list-style: disc;
       }
       
-      /* Bổ sung CSS cho 1 dòng và cắt bằng ... (từ yêu cầu trước) */
       #playlistDisplay li {
         white-space: nowrap; 
         overflow: hidden;    
@@ -112,7 +111,7 @@
       #nextSongs h4 {
         font-size: 14px;
         color: #00ffff;
-        font-weight: bold; /* Đậm hơn cho tiêu đề */
+        font-weight: bold;
         margin-bottom: 6px;
         margin-top: 0;
       }
@@ -124,9 +123,8 @@
       #playPauseBtn:hover {
         background-color: #00aa88;
       }
-      /* === CHỈ THÊM STYLE CHO NÚT THƯ MỤC MỚI === */
       #btnFolder {
-        background-color:#27ae60;
+        background-color:#333;
       }
 
       button {
@@ -156,7 +154,7 @@
         opacity: 0;
         transition: opacity 0.5s ease;
         z-index: 9999;
-        visibility: hidden; /* Dùng visibility để ẩn hẳn khi opacity = 0 */
+        visibility: hidden;
       }
 
       #toast.show {
@@ -164,7 +162,6 @@
         opacity: 1;
       }
       
-      /* Cập nhật style cho Mã kết nối */
       #roomCodeDisplay {
           font-size:18px;
           color:yellow;
@@ -176,97 +173,30 @@
           font-size: 24px;
           color: #f1c40f;
       }
-/* --- CSS mới cho QR code và chữ --- */
- .qr-cafe {
-  position: fixed;
-  top: 15px;
-  left: 15px;
-  z-index: 10;
-  display: flex;
-  flex-direction: column; /* Sắp xếp chữ và ảnh theo chiều dọc */
-  align-items: left;    /* Căn giữa nội dung ngang */
-  text-align: left;     /* Căn giữa chữ */
-}
-
-.qr-info {
-  display: flex;
-  flex-direction: column;
-  align-items: left; /* Căn giữa cụm chữ */
-  margin: 0;           /* Bỏ margin bên trái/phải */
-  padding-left: 1px;
-}
-
-    .qr-cafe-text-main {
-      color: #ffdd00; /* Màu chữ vàng tươi */
-      font-size: 1rem;
-      font-weight: bold;
-      text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
-      animation: bounce 1.5s infinite; /* Hiệu ứng động */
-      opacity: 95.2;
-      margin-bottom: 5px; /* Khoảng cách giữa 2 dòng chữ */
-    }
-
-    .qr-cafe-text-sub {
-      color: #add8e6; /* Màu xanh nhạt cho dòng tải về */
-      font-size: 0.75rem;
-      text-decoration: underline;
-      cursor: pointer;
-      opacity: 95.2;
-      transition: opacity 0.3s;
-    }
-    
-    .qr-cafe-text-sub:hover {
-        opacity: 1;
-    }
-    
-    .qr-cafe-image-container {
-        margin-top: 5px; /* Khoảng cách giữa chữ và QR code */
-    }
-
-    .qr-cafe img {
-      width: 80px;
-      height: 80px;
-      opacity: 80.2; /* Mờ 80% */
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
-      transition: opacity 0.3s, transform 0.3s;
-      display: block;
-    }
-
-    .qr-cafe:hover img {
-      opacity: 1; /* Rõ 100% khi di chuột */
-      transform: scale(1.1); /* Phóng to nhẹ khi di chuột */
-    }
-
-    /* Hiệu ứng động vui vẻ cho chữ chính */
-    @keyframes bounce {
-      0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
-      40% {transform: translateY(-5px) rotate(1deg);}
-      60% {transform: translateY(-2px) rotate(-1deg);}
-    }
-    /* --- END CSS mới cho QR code và chữ --- */
-
-      
+      .welcome-text {
+        position: fixed;
+        top:15px;
+        left:15px;
+        z-index:10;
+        color:#ffdd00;
+        font-size:1rem;
+        font-weight:bold;
+        text-shadow:1px 1px 3px rgba(0,0,0,0.7);
+        animation: bounce 1.5s infinite;
+      }
+      @keyframes bounce {
+        0%,20%,50%,80%,100% {transform:translateY(0);}
+        40% {transform:translateY(-5px) rotate(1deg);}
+        60% {transform:translateY(-2px) rotate(-1deg);}
+      }
     </style>
   </head>
   <body>
     <div id="player"></div>
 
-<div class="qr-cafe" title="Quét mã để mời tôi ly cafe (Chuyển khoản)">
-    <div class="qr-info">
-      <span class="qr-cafe-text-main"> Chào Mừng Bạn Đến Karaoke Hana ☕️😊</span>
-      <a href="images/remote.png" download="QR_chuyen_khoan_cafe.png" class="qr-cafe-text-sub">
-        
-      </a>
-    </div>
-    
-    <div class="qr-cafe-image-container">
-        <a href="images/image_19ec01.png" download="QR_chuyen_khoan_cafe.png">
-            <img src="images/remote.png" alt="QR Code Mời Cafe (Chuyển khoản)">
-        </a>
-    </div>
-  </div>
-  <div class="overlay"></div>
+    <div class="welcome-text">Chào Mừng Bạn Đến Karaoke Hana ☕️😊</div>
+
+    <div class="overlay"></div>
 
     <div id="uiContainer">
        <div id="roomCodeDisplay">
@@ -274,7 +204,6 @@
           <button onclick="resetRoomCode()" style="margin-left: 10px;">🔄Đổi mã</button>
        </div>
       <div id="controls">
-        <!-- === CHỈ THÊM NÚT THƯ MỤC Ở ĐÂY, TRƯỚC NÚT PLAY === -->
         <button id="btnFolder" onclick="openFileSelect()">📂</button>
         <button id="playPauseBtn" onclick="togglePlayPause()">⏯</button>
         <button onclick="removeCurrentSong()">⏭</button>
@@ -288,7 +217,6 @@
     </div>
     <div id="toast"></div>
 
-    <!-- Input chọn file ẩn hoàn toàn trên giao diện -->
     <input type="file" id="fileInput" accept="video/*,audio/*" multiple style="display:none">
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -296,7 +224,6 @@
     <script src="https://www.youtube.com/iframe_api"></script>
 
     <script>
-      // --- CẤU HÌNH FIREBASE GỮ NGUYÊN ---
       const firebaseConfig = {
         apiKey: "AIzaSyAIwBqg8EYLU7TQXfOO697C4D5p5_GeghQ",
         authDomain: "karaoke-home.firebaseapp.com",
@@ -314,7 +241,7 @@
       let player;
       let currentVideoId = null;
       let playlist = [];
-      let localFileList = []; // Lưu danh sách offline chỉ ở máy TV, không hiển thị ra màn hình
+      let localFileList = JSON.parse(localStorage.getItem("savedLocalSongs") || "[]");
       let isPlayerReady = false;
       let isPlaying = false;
       let roomCode = localStorage.getItem('roomCode');
@@ -327,17 +254,29 @@
       }
       codeDisplayEl.innerText = roomCode;
 
-      // --- FIX QUAN TRỌNG: KIỂM TRA MÔI TRƯỜNG ---
       if (window.location.protocol === 'file:') {
-          console.error("LỖI: Bạn đang mở file trực tiếp (file://). YouTube API sẽ không hoạt động.");
+          console.error("LỖI: Bạn đang mở file trực tiếp, YouTube không chạy được");
       }
 
-      // === HÀM MỚI: MỞ CỬA SỔ CHỌN FILE ===
       function openFileSelect(){
         fileInput.click();
       }
-      // Khi chọn file xong → gửi thông tin lên Firebase cho Remote, không hiển thị gì trên TV
-      fileInput.onchange = function(){
+
+      // Hàm gửi danh sách nhạc offline lên Firebase (đã sửa)
+      async function pushLocalSongList() {
+        const sendData = {};
+        localFileList.forEach(item=>{
+          sendData[item.localKey] = {
+            localKey: item.localKey,
+            title: item.title,
+            type: "local"
+          }
+        });
+        await db.ref(`rooms/${roomCode}/localSongs`).set(sendData);
+      }
+
+      // Khi chọn file mới → lưu + gửi ngay
+      fileInput.onchange = async function(){
         const files = Array.from(fileInput.files);
         files.forEach(f=>{
           const localKey = "local_"+Date.now()+"_"+Math.random().toString(36);
@@ -347,17 +286,9 @@
             fileObj: f
           });
         });
-        // Gửi danh sách tên bài offline lên Firebase (chỉ gửi thông tin, không gửi file)
-        const sendData = {};
-        localFileList.forEach(item=>{
-          sendData[item.localKey] = {
-            localKey: item.localKey,
-            title: item.title,
-            type: "local"
-          }
-        });
-        db.ref(`rooms/${roomCode}/localSongs`).set(sendData);
-        showToast("✅ Đã thêm bài offline (quản lý trên điện thoại)");
+        localStorage.setItem("savedLocalSongs", JSON.stringify(localFileList));
+        await pushLocalSongList();
+        showToast("✅ Đã thêm nhạc & gửi danh sách sang điện thoại");
       }
 
       function onYouTubeIframeAPIReady() {
@@ -378,11 +309,12 @@
           },
           events: {
             'onStateChange': onPlayerStateChange,
-            'onReady': (event) => {
-                 console.log("Player Ready");
+            'onReady': async (event) => {
+                 console.log("Player đã sẵn sàng");
                  isPlayerReady = true;
                  event.target.playVideo(); 
                  isPlaying = true;
+                 await pushLocalSongList(); // Gửi ngay khi sẵn sàng
                  listenToData(); 
             },
             'onError': onPlayerError 
@@ -391,7 +323,6 @@
       }
 
 function listenToData() {
-    // 1. Lắng nghe danh sách bài hát YouTube (giữ nguyên cũ)
     db.ref(`rooms/${roomCode}/playlist`).orderByChild('timestamp').on('value', snapshot => {
       playlist = [];
       snapshot.forEach(child => {
@@ -404,7 +335,6 @@ function listenToData() {
       }
     });
 
-    // 2. Lắng nghe lệnh điều khiển
     db.ref(`rooms/${roomCode}/command`).on('value', snapshot => {
       const cmdData = snapshot.val();
       if (cmdData) {
@@ -414,7 +344,6 @@ function listenToData() {
     });
   }
       function updateUI() {
-        // === HÀM CẬP NHẬT GIAO DIỆN GIỮ NGUYÊN HOÀN TOÀN BẢN GỐC ===
         const listEl = document.getElementById('playlistDisplay');
         const titleEl = document.getElementById('scrollingTitle');
         listEl.innerHTML = "";
@@ -436,10 +365,13 @@ function listenToData() {
 function checkAndPlay() {
     if (!isPlayerReady || playlist.length === 0) return;
     const topSong = playlist[0];
+    if(topSong.type === "local"){
+      showToast("⚠️ Chưa hỗ trợ phát file nhạc nội bộ");
+      return;
+    }
     currentVideoId = topSong.videoId;
     player.loadVideoById(currentVideoId);
   }
-
 
         function onPlayerStateChange(event) {
         if (event.data === YT.PlayerState.ENDED) {
@@ -447,7 +379,7 @@ function checkAndPlay() {
             if (playlist.length > 0) {
                 removeCurrentSong();
             } else {
-                player.playVideo(); // Loop bài chờ nếu không có nhạc
+                player.playVideo();
             }
         } else if (event.data === YT.PlayerState.PLAYING) {
             isPlaying = true;
@@ -457,7 +389,7 @@ function checkAndPlay() {
       }
 
       function onPlayerError(event) {
-        console.error("YouTube Error Code:", event.data);
+        console.error("Lỗi YouTube:", event.data);
         setTimeout(() => {
             if(playlist.length > 0) removeCurrentSong();
         }, 2000);
@@ -475,7 +407,6 @@ function removeCurrentSong() {
     db.ref(`rooms/${roomCode}/playlist/${currentKey}`).remove().then(() => {
       
       if (nextSongToPlay) {
-        console.log("Next: Đang ép Play Now bài:", nextSongToPlay.title);
         currentVideoId = nextSongToPlay.videoId;
         player.loadVideoById(currentVideoId);
         showToast("⏭ Đang phát: " + nextSongToPlay.title);
@@ -512,6 +443,10 @@ function removeCurrentSong() {
   try {
     switch (type) {
       case 'PLAY_NOW': 
+        if(cmdData.typeSource === "local"){
+          showToast("⚠️ Chưa hỗ trợ phát file nhạc nội bộ");
+          break;
+        }
         currentVideoId = cmdData.videoId; 
         player.loadVideoById(cmdData.videoId);
         showToast("⚡ Phát ngay lập tức!");
@@ -544,12 +479,12 @@ function removeCurrentSong() {
 case 'SET_HD':
   if (player && player.setPlaybackQuality) {
     player.setPlaybackQuality('medium');
-    showToast("📺 Đã yêu cầu chất lượng 720p");
+    showToast("📺 Đã đặt chất lượng 720p");
   }
   break;
     }
   } catch (e) { 
-    console.error("Lỗi thực thi lệnh:", e); 
+    console.error("Lỗi lệnh:", e); 
   }
 }
 
@@ -561,4 +496,5 @@ case 'SET_HD':
       }
     </script>
   
-</body></html>
+</body>
+</html>
