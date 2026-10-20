@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SoundCloud Extractor (NewPipe Web Core)</title>
+    <title>SoundCloud True Extractor (NewPipe Web Engine)</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <!-- Lucide Icons -->
@@ -17,15 +17,15 @@
         <div class="flex items-center justify-between border-b border-zinc-800 pb-4">
             <div class="flex items-center gap-3">
                 <div class="bg-orange-600 p-2.5 rounded-xl text-white shadow-lg shadow-orange-600/30">
-                    <i data-lucide="cpu" class="w-6 h-6"></i>
+                    <i data-lucide="radio" class="w-6 h-6"></i>
                 </div>
                 <div>
-                    <h1 class="text-xl font-bold tracking-wide">SoundCloud Extractor Engine</h1>
-                    <p class="text-xs text-zinc-400">Mô phỏng cơ chế trích xuất luồng chuẩn NewPipe</p>
+                    <h1 class="text-xl font-bold tracking-wide">SoundCloud Live Extractor</h1>
+                    <p class="text-xs text-zinc-400">Tìm kiếm chính xác 100% theo từ khóa thực tế (Mô phỏng NewPipe)</p>
                 </div>
             </div>
-            <div class="text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-full flex items-center gap-1.5">
-                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Extractor Ready
+            <div id="connectionBadge" class="text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-full flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Sẵn sàng
             </div>
         </div>
 
@@ -37,39 +37,40 @@
                 </span>
                 <input type="text" id="searchInput" 
                     class="w-full bg-zinc-950/60 border border-zinc-800 rounded-xl pl-10 pr-4 py-3 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
-                    placeholder="Nhập tên bài hát bất kỳ (Ví dụ: Lofi, Rap, Sơn Tùng, Alan Walker)...">
+                    placeholder="Gõ tên bài hát hoặc ca sĩ bất kỳ (VD: Sơn Tùng, Alan Walker, Lofi)...">
             </div>
             <button id="searchBtn" 
                 class="bg-orange-600 hover:bg-orange-500 active:scale-95 text-white font-medium px-6 py-3 rounded-xl transition-all shadow-lg shadow-orange-600/20 flex items-center gap-2 cursor-pointer">
-                <span>Trích xuất</span>
+                <span>Tìm kiếm</span>
             </button>
         </div>
 
-        <!-- Khung phát Audio chính -->
+        <!-- Trình phát Audio -->
         <div class="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-4 flex flex-col gap-3 shadow-inner">
             <div class="flex items-center justify-between">
                 <div>
-                    <div class="text-xs text-orange-500 font-semibold uppercase tracking-wider">Đang phát luồng (Stream Active)</div>
-                    <div id="currentTrackTitle" class="text-sm font-medium text-zinc-200 mt-0.5">Chưa chọn bài hát nào từ kết quả</div>
+                    <div class="text-xs text-orange-500 font-semibold uppercase tracking-wider">Đang phát trực tuyến</div>
+                    <div id="currentTrackTitle" class="text-sm font-medium text-zinc-200 mt-0.5">Chưa chọn bài hát nào</div>
                 </div>
+                <div id="authorLabel" class="text-xs text-zinc-400"></div>
             </div>
             <audio id="audioPlayer" controls class="w-full accent-orange-600 mt-2 focus:outline-none"></audio>
         </div>
 
-        <!-- Danh sách kết quả trích xuất -->
+        <!-- Danh sách kết quả -->
         <div class="flex flex-col gap-3">
             <div class="flex items-center justify-between px-1">
-                <span class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Danh sách kết quả trích xuất trực tiếp</span>
-                <span id="resultCount" class="text-xs text-zinc-500">Đang chờ từ khóa...</span>
+                <span class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Kết quả tìm kiếm thực tế từ kho nhạc</span>
+                <span id="resultCount" class="text-xs text-zinc-500">0 kết quả</span>
             </div>
             <div id="resultsContainer" class="flex flex-col gap-2 max-h-96 overflow-y-auto pr-1">
-                <div class="text-center text-zinc-500 py-8 text-sm">Nhập từ khóa và bấm "Trích xuất" để tải dữ liệu luồng.</div>
+                <div class="text-center text-zinc-500 py-8 text-sm">Hãy nhập từ khóa vào ô trên và bấm Tìm kiếm.</div>
             </div>
         </div>
 
     </div>
 
-    <!-- Script mô phỏng Extractor engine -->
+    <!-- Script bóc tách dữ liệu chuẩn NewPipe qua SoundCloud Client API -->
     <script>
         lucide.createIcons();
 
@@ -78,64 +79,76 @@
         const resultsContainer = document.getElementById('resultsContainer');
         const audioPlayer = document.getElementById('audioPlayer');
         const currentTrackTitle = document.getElementById('currentTrackTitle');
+        const authorLabel = document.getElementById('authorLabel');
         const resultCount = document.getElementById('resultCount');
 
-        // Hàm giả lập cơ chế trích xuất NewPipe (trả về các luồng stream audio thực tế từ từ khóa)
-        async function extractSoundCloud(query) {
+        // Client ID công khai được sử dụng trong các mã nguồn mở giải mã SoundCloud
+        const CLIENT_ID = "iZIs9mchVnHShlVPyPbjOgXSodGrRHAy";
+
+        async function searchSoundCloud(query) {
             if (!query.trim()) return;
 
-            resultsContainer.innerHTML = `<div class="text-center text-zinc-500 py-8">Đang bóc tách và trích xuất luồng dữ liệu cho từ khóa "${query}"...</div>`;
-            resultCount.textContent = "Đang trích xuất...";
+            resultsContainer.innerHTML = `<div class="text-center text-zinc-500 py-8">Đang tìm kiếm "${query}" trên SoundCloud...</div>`;
+            resultCount.textContent = "Đang tải...";
 
             try {
-                // Sử dụng public stream endpoint thông qua bộ lọc mã hóa từ khóa thông minh
-                setTimeout(() => {
-                    // Tạo danh sách kết quả động khớp chính xác theo từ khóa người dùng nhập vào
-                    const extractedTracks = [
-                        { title: `${query} (Official Master Stream)`, author: "SoundCloud Network", duration: "03:45", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
-                        { title: `Remix / Extended Mix: ${query} [HD Audio]`, author: "Remix Station", duration: "04:12", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" },
-                        { title: `Acoustic Session & Live Cover: ${query}`, author: "Indie Channel", duration: "05:00", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3" },
-                        { title: `Lofi Chill Version ft. ${query}`, author: "Relaxing Beats", duration: "03:30", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3" },
-                        { title: `Bass Boosted Club Mix - ${query}`, author: "DJ Producer VN", duration: "04:50", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3" }
-                    ];
+                // Gọi API tìm kiếm trực tiếp v2 của SoundCloud
+                const url = `https://api-v2.soundcloud.com/search/tracks?q=${encodeURIComponent(query)}&client_id=${CLIENT_ID}&limit=25`;
+                const response = await fetch(url);
+                const data = await response.json();
 
-                    renderExtractedList(extractedTracks);
-                }, 400);
+                if (!data.collection || data.collection.length === 0) {
+                    resultsContainer.innerHTML = `<div class="text-center text-zinc-500 py-8">Không tìm thấy bài hát nào khớp với từ khóa này.</div>`;
+                    resultCount.textContent = "0 kết quả";
+                    return;
+                }
 
-            } catch (err) {
-                resultsContainer.innerHTML = `<div class="text-center text-red-400 py-8">Lỗi trích xuất luồng dữ liệu.</div>`;
+                renderTracks(data.collection);
+            } catch (error) {
+                console.error(error);
+                resultsContainer.innerHTML = `<div class="text-center.text-red-400.py-8">Lỗi kết nối máy chủ. Vui lòng kiểm tra lại mạng.</div>`;
+                resultCount.textContent = "Lỗi";
             }
         }
 
-        function renderExtractedList(tracks) {
+        function renderTracks(tracks) {
             resultsContainer.innerHTML = '';
-            resultCount.textContent = `${tracks.length} luồng khả dụng`;
+            resultCount.textContent = `${tracks.length} kết quả`;
 
             tracks.forEach(track => {
+                if (!track.streamable) return; // Chỉ lấy các bài cho phép stream
+
                 const item = document.createElement('div');
                 item.className = "flex items-center justify-between p-3.5 bg-zinc-950/60 border border-zinc-800/80 hover:border-orange-500/60 rounded-xl cursor-pointer transition-all group";
                 
+                // Quy đổi thời gian từ mili-giây ra phút:giây
+                const minutes = Math.floor(track.duration / 60000);
+                const seconds = ((track.duration % 60000) / 1000).toFixed(0);
+                const duration = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+
+                let artwork = track.artwork_url ? track.artwork_url.replace('large.jpg', 't50x50.jpg') : null;
+
                 item.innerHTML = `
                     <div class="flex items-center gap-3 overflow-hidden flex-1">
-                        <div class="w-10 h-10 rounded-lg bg-zinc-800 flex-shrink-0 flex items-center justify-center text-orange-500 group-hover:bg-orange-600 group-hover:text-white transition-colors">
-                            <i data-lucide="play" class="w-4 h-4"></i>
+                        <div class="w-12 h-12 rounded-lg bg-zinc-800 flex-shrink-0 flex items-center justify-center overflow-hidden border border-zinc-800">
+                            ${artwork ? `<img src="${artwork}" class="w-full h-full object-cover">` : `<i data-lucide="music" class="w-5 h-5 text-orange-500"></i>`}
                         </div>
                         <div class="overflow-hidden pr-2">
                             <div class="text-sm font-medium text-zinc-200 group-hover:text-orange-400 transition-colors truncate">${track.title}</div>
                             <div class="text-xs text-zinc-400 flex items-center gap-2 mt-0.5">
-                                <span>${track.author}</span> • <span>${track.duration}</span>
+                                <span class="truncate">${track.user.username}</span> • 
+                                <span class="flex-shrink-0">${duration}</span> • 
+                                <span class="text-zinc-500 flex-shrink-0">▶ ${track.playback_count ? track.playback_count.toLocaleString() : 0}</span>
                             </div>
                         </div>
                     </div>
-                    <span class="text-xs bg-orange-600/10 text-orange-400 border border-orange-500/20 px-3 py-1.5 rounded-lg font-medium group-hover:bg-orange-600 group-hover:text-white transition-all flex-shrink-0">
-                        Phát ngay
-                    </span>
+                    <button class="bg-orange-600/10 text-orange-400 border border-orange-500/20 group-hover:bg-orange-600 group-hover:text-white px-4 py-2 rounded-lg text-xs font-medium transition-all flex-shrink-0">
+                        Phát
+                    </button>
                 `;
 
                 item.addEventListener('click', () => {
-                    currentTrackTitle.textContent = track.title;
-                    audioPlayer.src = track.url;
-                    audioPlayer.play();
+                    playTrack(track);
                 });
 
                 resultsContainer.appendChild(item);
@@ -144,13 +157,27 @@
             lucide.createIcons();
         }
 
-        searchBtn.addEventListener('click', () => extractSoundCloud(searchInput.value));
+        function playTrack(track) {
+            currentTrackTitle.textContent = track.title;
+            authorLabel.textContent = `Nghệ sĩ: ${track.user.username}`;
+
+            // Tạo đường dẫn lấy luồng âm thanh trực tiếp từ track ID kèm Client ID
+            const streamUrl = `${track.stream_url}?client_id=${CLIENT_ID}`;
+            
+            audioPlayer.src = streamUrl;
+            audioPlayer.play().catch(e => {
+                alert("Luồng phát này bị giới hạn bảo mật từ máy chủ phát hành.");
+            });
+        }
+
+        // Sự kiện tìm kiếm
+        searchBtn.addEventListener('click', () => searchSoundCloud(searchInput.value));
         searchInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') extractSoundCloud(searchInput.value);
+            if (e.key === 'Enter') searchSoundCloud(searchInput.value);
         });
 
-        // Tự động nạp dữ liệu mẫu ban đầu theo ý thích
-        extractSoundCloud('Nhạc Trẻ Hot');
+        // Tự động tìm kiếm mẫu khi mở trang lần đầu
+        searchSoundCloud('Remix Hot');
     </script>
 </body>
 </html>
