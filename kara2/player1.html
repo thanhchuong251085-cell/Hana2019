@@ -16,7 +16,7 @@
   gtag('config', 'G-JCB7VEJF1Y');
 </script>
 <style>
-      /* === GIAO DIỆN GỐC === */
+      /* === GIAO DIỆN GỐC + KẾT NỐI ỔN ĐỊNH === */
       #currentTitle {
         position: relative;
         width: 200px;
@@ -65,17 +65,6 @@
         padding: 12px;
         border-radius: 12px;
         max-width: 270px;
-        z-index: 2;
-      }
-
-      #uiContainer2 {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        background: rgba(0, 0, 0, 0.5);
-        padding: 12px;
-        border-radius: 12px;
-        max-width: 220px;
         z-index: 2;
       }
 
@@ -196,8 +185,6 @@
 
     <div class="welcome-text">Chào Mừng Bạn Đến Karaoke Hana ☕️😊</div>
 
-    <div class="overlay"></div>
-
     <div id="uiContainer">
        <div id="roomCodeDisplay">
           Mã kết nối: <span id="code">...</span>
@@ -262,7 +249,6 @@
         fileInput.click();
       }
 
-      // Hàm gửi danh sách nhạc offline lên Firebase (đã sửa)
       async function pushLocalSongList() {
         const sendData = {};
         localFileList.forEach(item=>{
@@ -275,7 +261,6 @@
         await db.ref(`rooms/${roomCode}/localSongs`).set(sendData);
       }
 
-      // Khi chọn file mới → lưu + gửi ngay
       fileInput.onchange = async function(){
         const files = Array.from(fileInput.files);
         files.forEach(f=>{
@@ -314,7 +299,7 @@
                  isPlayerReady = true;
                  event.target.playVideo(); 
                  isPlaying = true;
-                 await pushLocalSongList(); // Gửi ngay khi sẵn sàng
+                 await pushLocalSongList();
                  listenToData(); 
             },
             'onError': onPlayerError 
