@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SoundCloud Remote Fixed</title>
+    <style>
+        body { background: #121212; color: #fff; font-family: sans-serif; padding: 15px; max-width: 500px; margin: auto; }
+        h2 { color: #ff5500; text-align: center; }
+        .box { display: flex; gap: 10px; margin-bottom: 15px; }
+        input { flex: 1; padding: 10px; background: #222; border: 1px solid #444; color: #fff; border-radius: 5px; }
+        button { padding: 10px 15px; background: #ff5500; border: none; color: #fff; font-weight: bold; border-radius: 5px; cursor: pointer; }
+        iframe { width: 100%; height: 300px; border: none; border-radius: 8px; margin-top: 15px; }
+    </style>
+</head>
+<body>
+
+    <h2>SoundCloud Remote</h2>
+
+    <div class="box">
+        <input type="text" id="q" placeholder="Nhập tên bài hát..." onkeypress="if(event.key==='Enter') doSearch()">
+        <button onclick="doSearch()">Tìm</button>
+    </div>
+
+    <!-- Khung hiển thị trình phát SoundCloud trực tiếp -->
+    <iframe id="scFrame" src=""></iframe>
+
+    <script>
+        function doSearch() {
+            const keyword = document.getElementById('q').value.trim();
+            if (!keyword) return;
+
+            // Dùng widget oEmbed của SoundCloud để tải trực tiếp kết quả tìm kiếm dạng nghe được ngay
+            const embedUrl = `https://soundcloud.com/search/sounds?q=` + encodeURIComponent(keyword);
+            
+            // Hoặc load thẳng vào iframe dạng widget player tìm kiếm
+            const scFrame = document.getElementById('scFrame');
+            scFrame.src = `https://w.soundcloud.com/player/?url=` + encodeURIComponent(embedUrl) + `&auto_play=true&show_artwork=true`;
+        }
+    </script>
+</body>
+</html>
