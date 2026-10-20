@@ -16,7 +16,7 @@
   gtag('config', 'G-JCB7VEJF1Y');
 </script>
 <style>
-      /* === GIAO DIỆN GỐC + KẾT NỐI ỔN ĐỊNH === */
+      /* === GIAO DIỆN GỐC === */
       #currentTitle {
         position: relative;
         width: 200px;
@@ -271,7 +271,7 @@
             fileObj: f
           });
         });
-        localStorage.setItem("savedLocalSongs", JSON.stringify(localFileList));
+        localStorage.setItem('savedLocalSongs', JSON.stringify(localFileList));
         await pushLocalSongList();
         showToast("✅ Đã thêm nhạc & gửi danh sách sang điện thoại");
       }
@@ -287,8 +287,7 @@
           playerVars: { 
             'autoplay': 1, 
             'controls': 1,
-            'modestbranding': 1,
-            'rel': 0,                 
+            'rel': 0,
             'enablejsapi': 1,         
             'origin': window.location.origin 
           },
@@ -299,8 +298,8 @@
                  isPlayerReady = true;
                  event.target.playVideo(); 
                  isPlaying = true;
+                 listenToData();
                  await pushLocalSongList();
-                 listenToData(); 
             },
             'onError': onPlayerError 
           }
