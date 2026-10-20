@@ -68,17 +68,6 @@
         z-index: 2;
       }
 
-      #uiContainer2 {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        background: rgba(0, 0, 0, 0.5);
-        padding: 12px;
-        border-radius: 12px;
-        max-width: 220px;
-        z-index: 2;
-      }
-
       #controls {
         display: flex;
         align-items: center;
@@ -173,7 +162,6 @@
           font-size: 24px;
           color: #f1c40f;
       }
-      /* Chỉ giữ chữ chào mừng ở góc trái, bỏ QR + link */
       .welcome-text {
         position: fixed;
         top:15px;
@@ -195,10 +183,7 @@
   <body>
     <div id="player"></div>
 
-    <!-- Chỉ có dòng chữ chào mừng, không có QR hay link gì cả -->
     <div class="welcome-text">Chào Mừng Bạn Đến Karaoke Hana ☕️😊</div>
-
-    <div class="overlay"></div>
 
     <div id="uiContainer">
        <div id="roomCodeDisplay">
@@ -264,8 +249,29 @@
         fileInput.click();
       }
 
+      // Hàm gửi danh sách lên Firebase
+      async function pushLocalSongList() {
+        const sendData = {};
+        localFileList.forEach(item=>{
+          sendData[item.localKey] = {
+            localKey: item.localKey,
+            title: item.title,
+            type: "local"
+          }
+        });
+        try {
+          await db.ref(`rooms/${roomCode}/localSongs`).set(sendData);
+          return true;
+        } catch(err) {
+          console.error("Lỗi gửi:", err);
+          return false;
+        }
+      }
+
+      // Khi chọn file nhạc xong → lưu + gửi ngay
       fileInput.onchange = async function(){
         const files = Array.from(fileInput.files);
+        if(files.length === 0) return;
         files.forEach(f=>{
           const localKey = "local_"+Date.now()+"_"+Math.random().toString(36);
           localFileList.push({
@@ -275,28 +281,12 @@
           });
         });
         localStorage.setItem("savedLocalSongs", JSON.stringify(localFileList));
-        const sendData = {};
-        localFileList.forEach(item=>{
-          sendData[item.localKey] = {
-            localKey: item.localKey,
-            title: item.title,
-            type: "local"
-          }
-        });
-        await db.ref(`rooms/${roomCode}/localSongs`).set(sendData);
-        showToast("✅ Đã thêm nhạc & gửi danh sách sang điện thoại");
-      }
-
-      async function sendSavedLocalList() {
-        const sendData = {};
-        localFileList.forEach(item=>{
-          sendData[item.localKey] = {
-            localKey: item.localKey,
-            title: item.title,
-            type: "local"
-          }
-        });
-        await db.ref(`rooms/${roomCode}/localSongs`).set(sendData);
+        const ok = await pushLocalSongList();
+        if(ok) {
+          showToast("✅ Đã gửi danh sách nhạc sang điện thoại");
+        } else {
+          showToast("❌ Không gửi được, kiểm tra mạng");
+        }
       }
 
       function onYouTubeIframeAPIReady() {
@@ -310,20 +300,19 @@
           playerVars: { 
             'autoplay': 1, 
             'controls': 1,
-            'modestbranding': 1,
-            'rel': 0,                 
+            'rel': 0,
             'enablejsapi': 1,         
             'origin': window.location.origin 
           },
           events: {
             'onStateChange': onPlayerStateChange,
-            'onReady': (event) => {
+            'onReady': async (event) => {
                  console.log("Player đã sẵn sàng");
                  isPlayerReady = true;
                  event.target.playVideo(); 
                  isPlaying = true;
-                 sendSavedLocalList();
-                 listenToData(); 
+                 listenToData();
+                 await pushLocalSongList();
             },
             'onError': onPlayerError 
           }
