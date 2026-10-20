@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SoundCloud Remote Controller</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            padding: 20px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        h2 {
+            text-align: center;
+            color: #ff5500; /* Màu cam đặc trưng SoundCloud */
+            margin-bottom: 20px;
+        }
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            background-color: #1e1e1e;
+            color: #fff;
+            font-size: 16px;
+            outline: none;
+        }
+        input[type="text"]:focus {
+            border-color: #ff5500;
+        }
+        button {
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: none;
+            background-color: #ff5500;
+            color: #fff;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        button:hover {
+            background-color: #e64a00;
+        }
+        .loading {
+            text-align: center;
+            color: #aaa;
+            display: none;
+            margin-bottom: 15px;
+        }
+        .results-list {
+            list-style: none;
+            max-height: 400px;
+            overflow-y: auto;
+            border-radius: 8px;
+            background-color: #181818;
+        }
+        .track-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            border-bottom: 1px solid #282828;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .track-item:hover {
+            background-color: #282828;
+        }
+        .track-item img {
+            width: 50px;
+            height: 50px;
+            border-radius: 6px;
+            object-fit: cover;
+            background-color: #333;
+        }
+        .track-info {
+            flex: 1;
+            overflow: hidden;
+        }
+        .track-title {
+            font-size: 15px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #fff;
+        }
+        .track-artist {
+            font-size: 13px;
+            color: #b3b3b3;
+            margin-top: 4px;
+        }
+        .player-container {
+            margin-top: 20px;
+            background: #1e1e1e;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #ff5500;
+        }
+        iframe {
+            width: 100%;
+            height: 166px;
+            border: none;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>SoundCloud Remote</h2>
+
+    <!-- Ô tìm kiếm -->
+    <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Nhập tên bài hát, ca sĩ..." onkeypress="handleKeyPress(event)">
+        <button onclick="searchSoundCloud()">Tìm kiếm</button>
+    </div>
+
+    <div class="loading" id="loadingText">Đang tìm kiếm bài hát...</div>
+
+    <!-- Danh sách kết quả tìm kiếm -->
+    <ul class="results-list" id="resultsList"></ul>
+
+    <!-- Khung phát nhạc khi chọn bài -->
+    <div class="player-container" id="playerContainer" style="display: none;">
+        <p style="margin-bottom: 10px; font-size: 14px; color: #ff5500; font-weight: bold;">Đang phát:</p>
+        <iframe id="scPlayer" src="" allow="autoplay"></iframe>
+    </div>
+
+    <script>
+        // Client ID công khai dùng để truy vấn SoundCloud Widget / API
+        const CLIENT_ID = 'iZ26S988NoYoL3L89A38a3a0e5b7c7';
+
+        function handleKeyPress(e) {
+            if (e.key === 'Enter') {
+                searchSoundCloud();
+            }
+        }
+
+        async function searchSoundCloud() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (!query) return;
+
+            const loadingText = document.getElementById('loadingText');
+            const resultsList = document.getElementById('resultsList');
+            
+            loadingText.style.display = 'block';
+            resultsList.innerHTML = '';
+
+            try {
+                // Gọi API tìm kiếm SoundCloud
+                const searchUrl = `https://api-v2.soundcloud.com/search/tracks?q=${encodeURIComponent(query)}&client_id=${CLIENT_ID}&limit=15`;
+                const response = await fetch(searchUrl);
+                
+                if (!response.ok) {
+                    throw new Error('Lỗi kết nối máy chủ SoundCloud');
+                }
+
+                const data = await response.json();
+                loadingText.style.display = 'none';
+
+                if (data.collection && data.collection.length > 0) {
+                    renderResults(data.collection);
+                } else {
+                    resultsList.innerHTML = '<li style="padding: 15px; text-align: center; color: #888;">Không tìm thấy bài hát nào.</li>';
+                }
+
+            } catch (error) {
+                console.error(error);
+                loadingText.style.display = 'none';
+                resultsList.innerHTML = '<li style="padding: 15px; text-align: center; color: #ff4d4d;">Không thể lấy dữ liệu. Hãy kiểm tra lại kết nối mạng.</li>';
+            }
+        }
+
+        function renderResults(tracks) {
+            const resultsList = document.getElementById('resultsList');
+            resultsList.innerHTML = '';
+
+            tracks.forEach(track => {
+                const li = document.createElement('li');
+                li.className = 'track-item';
+
+                // Lấy hình ảnh đại diện (artwork_url) hoặc ảnh mặc định
+                const artwork = track.artwork_url ? track.artwork_url.replace('-large', '-t500x500') : 'https://a-v2.sndcdn.com/assets/images/default_avatar-ea00713.png';
+                const title = track.title || 'Không rõ tên bài hát';
+                const artist = track.user ? track.user.username : 'SoundCloud Artist';
+                const trackUrl = track.permalink_url;
+
+                li.innerHTML = `
+                    <img src="${artwork}" alt="artwork">
+                    <div class="track-info">
+                        <div class="track-title">${title}</div>
+                        <div class="track-artist">${artist}</div>
+                    </div>
+                `;
+
+                // Bấm vào bài hát để phát
+                li.onclick = () => playTrack(trackUrl);
+                resultsList.appendChild(li);
+            });
+        }
+
+        function playTrack(trackUrl) {
+            const playerContainer = document.getElementById('playerContainer');
+            const scPlayer = document.getElementById('scPlayer');
+
+            // Dùng SoundCloud Widget nhúng để phát trực tiếp
+            const widgetUrl = `https://w.soundcloud.com/player/?url=${encodeURIComponent(trackUrl)}&color=%23ff5500&auto_play=true&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false`;
+            
+            scPlayer.src = widgetUrl;
+            playerContainer.style.display = 'block';
+
+            // Cuộn xuống trình phát nhạc
+            playerContainer.scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
