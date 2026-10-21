@@ -487,6 +487,9 @@
     let suggestionStartIndex = 0; 
     let isPlayingState = true; 
 
+    // Lưu trữ tạm danh sách nhạc offline để lấy tiêu đề chính xác, an toàn tuyệt đối với ký tự đặc biệt
+    let remoteLocalSongsMap = {};
+
     document.getElementById('searchInput').addEventListener('keypress', function (e) {
       if (e.key === 'Enter') {
         newSearch(); 
@@ -563,18 +566,18 @@
       }
     }
 
-    // --- TẢI VÀ CẬP NHẬT ĐỒNG BỘ DANH SÁCH NHẠC OFFLINE TỪ TV (CÓ NÚT XÓA TỪNG BÀI) ---
+    // --- TẢI VÀ CẬP NHẬT ĐỒNG BỘ DANH SÁCH NHẠC OFFLINE TỪ TV (SỬ DỤNG localKey AN TOÀN TUYỆT ĐỐI) ---
     function loadLocalSongsFromTV() {
       if (!currentRoom) {
         document.getElementById('localSongList').innerHTML = "<p style='text-align:center; color:#666;'>⚠️ Vui lòng kết nối TV trước!</p>";
         return;
       }
 
-      // Dùng .on để tự động cập nhật thời gian thực (realtime): nếu TV thêm hoặc xóa sạch, Remote cập nhật y chang
       db.ref(`rooms/${currentRoom}/localSongs`).on('value', snapshot => {
         const container = document.getElementById('localSongList');
         container.innerHTML = "";
         const songs = snapshot.val();
+        remoteLocalSongsMap = {}; // Reset map tạm
 
         if (!songs) {
           container.innerHTML = "<p style='text-align:center; color:#666;'>Chưa có bài hát offline nào trên TV hoặc TV đã xóa sạch danh sách.</p>";
@@ -583,12 +586,14 @@
 
         Object.keys(songs).forEach((key, index) => {
           const item = songs[key];
+          remoteLocalSongsMap[item.localKey] = item.title; // Lưu trữ tiêu đề vào bộ nhớ tạm
+
           const videoDiv = document.createElement('div');
           videoDiv.className = 'video-item';
           
-          const safeTitle = encodeURIComponent(item.title);
           const thumbIcon = item.title.endsWith('.mp4') || item.title.endsWith('.mkv') ? '🎬' : '🎵';
 
+          // Thay vì truyền trực tiếp chuỗi tiêu đề có dấu nháy gây lỗi, ta chỉ truyền vào localKey duy nhất
           videoDiv.innerHTML = `
             <div style="width: 35%; max-width: 150px; height: 90px; background: #222; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 28px; flex-shrink: 0;">
               <span>${thumbIcon}</span>
@@ -597,10 +602,10 @@
             <div class="video-info">
               <div class="video-title">${item.title}</div>
               <div class="action-buttons-row">
-                <button class="btn-action" onclick="submitLocalSong('${item.localKey}', decodeURIComponent('${safeTitle}'))">Gửi bài</button>
-                <button class="btn-action btn-priority" onclick="submitLocalPrioritySong('${item.localKey}', decodeURIComponent('${safeTitle}'))">Ưu tiên</button>
-                <button class="btn-action btn-playnow" onclick="submitLocalPlayNow('${item.localKey}', decodeURIComponent('${safeTitle}'))">Play Now</button>
-                <button class="btn-action" style="background-color: #e74c3c;" onclick="removeLocalSong('${item.localKey}', decodeURIComponent('${safeTitle}'))">🗑 Xóa</button>
+                <button class="btn-action" onclick="submitLocalSong('${item.localKey}')">Gửi bài</button>
+                <button class="btn-action btn-priority" onclick="submitLocalPrioritySong('${item.localKey}')">Ưu tiên</button>
+                <button class="btn-action btn-playnow" onclick="submitLocalPlayNow('${item.localKey}')">Play Now</button>
+                <button class="btn-action" style="background-color: #e74c3c;" onclick="removeLocalSong('${item.localKey}')">🗑 Xóa</button>
               </div>
             </div>
           `;
@@ -609,17 +614,19 @@
       });
     }
 
-    // Gửi bài offline vào hàng đợi
-    function submitLocalSong(localKey, title) {
+    // Gửi bài offline vào hàng đợi dựa trên localKey an toàn
+    function submitLocalSong(localKey) {
       if (!currentRoom) return showToast("⚠️ Bạn chưa kết nối!");
+      const title = remoteLocalSongsMap[localKey] || "Bài offline";
       const song = { type: 'local', localKey: localKey, title: title, timestamp: Date.now() };
       db.ref(`rooms/${currentRoom}/playlist`).push(song)
         .then(() => showToast("✅ Đã thêm bài offline vào hàng đợi"));
     }
 
-    // Ưu tiên bài offline
-    function submitLocalPrioritySong(localKey, title) {
+    // Ưu tiên bài offline dựa trên localKey an toàn
+    function submitLocalPrioritySong(localKey) {
       if (!currentRoom) return showToast("⚠️ Bạn chưa kết nối!");
+      const title = remoteLocalSongsMap[localKey] || "Bài offline";
       const playlistRef = db.ref(`rooms/${currentRoom}/playlist`);
       
       playlistRef.orderByChild('timestamp').limitToFirst(2).once('value', snapshot => {
@@ -642,9 +649,10 @@
       });
     }
 
-    // Play Now bài offline ngay lập tức
-    function submitLocalPlayNow(localKey, title) {
+    // Play Now bài offline ngay lập tức dựa trên localKey an toàn
+    function submitLocalPlayNow(localKey) {
       if (!currentRoom) return showToast("⚠️ Bạn chưa kết nối!");
+      const title = remoteLocalSongsMap[localKey] || "Bài offline";
       db.ref(`rooms/${currentRoom}/command`).set({
         type: 'PLAY_NOW',
         typeSource: 'local',
@@ -655,9 +663,10 @@
       showToast("⚡ Lệnh: Phát ngay bài offline!");
     }
 
-    // Xóa một bài nhạc offline cụ thể khỏi danh sách
-    function removeLocalSong(localKey, title) {
+    // Xóa bài nhạc offline dựa trên localKey an toàn
+    function removeLocalSong(localKey) {
       if (!currentRoom) return showToast("⚠️ Bạn chưa kết nối!");
+      const title = remoteLocalSongsMap[localKey] || "Bài này";
       db.ref(`rooms/${currentRoom}/localSongs/${localKey}`).remove()
         .then(() => showToast(`🗑 Đã xóa '${title}' khỏi danh sách offline`))
         .catch(error => showToast("Lỗi: " + error.message));
@@ -1274,7 +1283,7 @@
         title: title,
         time: Date.now()
       });
-      showToast("⚡ Lệnh: Phát ngay lập tức lập tức!");
+      showToast("⚡ Lệnh: Phát ngay lập tức!");
     }
 
     function addSuggestion(videoId, title) {
