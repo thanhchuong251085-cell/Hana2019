@@ -287,7 +287,7 @@
     const db = firebase.database();
 
     let player;
-    let currentVideoId = null;
+    let currentPlayingKey = null; // Theo dõi key bài đang phát trên hàng đợi
     let playlist = [];
     let isPlayerReady = false;
     let isPlaying = false;
@@ -303,7 +303,6 @@
     }
     codeDisplayEl.innerText = roomCode;
 
-    // Tự động dọn sạch danh sách offline trên Firebase khi Player ngắt kết nối
     db.ref(`rooms/${roomCode}/localSongs`).onDisconnect().remove();
 
     function onYouTubeIframeAPIReady() {
@@ -331,7 +330,7 @@
                event.target.playVideo(); 
                isPlaying = true;
                listenToData(); 
-               listenToLocalSongs(); // 🛡️ Lắng nghe đồng bộ nhạc offline 2 chiều realtime
+               listenToLocalSongs(); 
           },
           'onError': onPlayerError 
         }
@@ -340,14 +339,22 @@
 
     function listenToData() {
       db.ref(`rooms/${roomCode}/playlist`).orderByChild('timestamp').on('value', snapshot => {
+        const oldFirstKey = playlist.length > 0 ? playlist[0].key : null;
         playlist = [];
         snapshot.forEach(child => {
           playlist.push({ key: child.key, ...child.val() });
         });
         updateUI();
         
-        if (currentVideoId === null && playlist.length > 0 && !isOfflineMode) {
-          checkAndPlay();
+        if (playlist.length === 0) {
+          stopAllPlayers();
+          currentPlayingKey = null;
+        } else {
+          const newFirstKey = playlist[0].key;
+          // Nếu bài hát đứng đầu thay đổi (do thêm bài, ưu tiên, hoặc qua bài) thì tự động phát bài mới ngay lập tức
+          if (newFirstKey !== currentPlayingKey) {
+            checkAndPlayTopSong();
+          }
         }
       });
 
@@ -360,7 +367,6 @@
       });
     }
 
-    // 🛡️ Lắng nghe dữ liệu nhạc offline từ Firebase (Đồng bộ tuyệt đối khi Remote xóa bài hoặc khi reload)
     function listenToLocalSongs() {
       db.ref(`rooms/${roomCode}/localSongs`).on('value', snapshot => {
         offlinePlaylist = [];
@@ -380,13 +386,11 @@
       listEl.innerHTML = "";
       
       if (playlist.length === 0) {
-          if (!isOfflineMode) titleEl.textContent = "🕒 Chờ bài hát...";
+          titleEl.textContent = "🕒 Chờ bài hát...";
           return;
       }
       
-      if (!isOfflineMode) {
-        titleEl.textContent = "🎵 " + playlist[0].title;
-      }
+      titleEl.textContent = "🎵 " + playlist[0].title;
       
       for (let i = 1; i < Math.min(playlist.length, 11); i++) {
         const li = document.createElement('li');
@@ -395,21 +399,54 @@
       }
     }
 
-    function checkAndPlay() {
+    // Điều phối và phát bài đứng đầu hàng đợi (Hỗ trợ cả Online và Offline)
+    function checkAndPlayTopSong() {
       if (!isPlayerReady || playlist.length === 0) return;
-      isOfflineMode = false;
-      document.getElementById('localPlayer').style.display = 'none';
-      document.getElementById('player').style.display = 'block';
       
       const topSong = playlist[0];
-      currentVideoId = topSong.videoId;
-      player.loadVideoById(currentVideoId);
+      currentPlayingKey = topSong.key;
+
+      if (topSong.type === 'local') {
+        // Phát bài Offline
+        let targetIndex = offlinePlaylist.findIndex(s => s.localKey === topSong.localKey);
+        if (targetIndex !== -1) {
+          playOfflineSong(targetIndex, false);
+        } else {
+          // Nếu file local không tìm thấy trên TV, tự động bỏ qua
+          removeCurrentSong();
+        }
+      } else {
+        // Phát bài YouTube Online
+        isOfflineMode = false;
+        const localVid = document.getElementById('localPlayer');
+        localVid.pause();
+        localVid.currentTime = 0;
+        localVid.style.display = 'none';
+        document.getElementById('player').style.display = 'block';
+
+        if (topSong.videoId && player && player.loadVideoById) {
+          player.loadVideoById(topSong.videoId);
+        }
+      }
+    }
+
+    function stopAllPlayers() {
+      isOfflineMode = false;
+      const localVid = document.getElementById('localPlayer');
+      localVid.pause();
+      localVid.currentTime = 0;
+      localVid.style.display = 'none';
+      document.getElementById('player').style.display = 'block';
+      if (player && player.stopVideo) {
+        player.stopVideo();
+      }
+      document.getElementById('scrollingTitle').textContent = "🕒 Chờ bài hát...";
+      showToast("📭 Hết bài chờ");
     }
 
     function onPlayerStateChange(event) {
       if (isOfflineMode) return;
       if (event.data === YT.PlayerState.ENDED) {
-          currentVideoId = null;
           if (playlist.length > 0) {
               removeCurrentSong();
           } else {
@@ -429,29 +466,13 @@
       }, 2000);
     }
 
+    // Xóa bài hát hiện tại đang phát khỏi Firebase để tự động chuyển bài tiếp theo
     function removeCurrentSong() {
       if (playlist.length === 0) return;
-
-      let nextSongToPlay = null;
-      if (playlist.length > 1) {
-        nextSongToPlay = playlist[1];
-      }
-
       const currentKey = playlist[0].key;
-      db.ref(`rooms/${roomCode}/playlist/${currentKey}`).remove().then(() => {
-        if (nextSongToPlay && !isOfflineMode) {
-          currentVideoId = nextSongToPlay.videoId;
-          player.loadVideoById(currentVideoId);
-          showToast("⏭ Đang phát: " + nextSongToPlay.title);
-        } else if (!isOfflineMode) {
-          currentVideoId = null;
-          player.stopVideo();
-          showToast("📭 Hết bài chờ");
-        }
-      });
+      db.ref(`rooms/${roomCode}/playlist/${currentKey}`).remove();
     }
 
-    // --- CẬP NHẬT CỘNG DỒN DỮ LIỆU LÊN FIREBASE KHI CHỌN THÊM FILE ---
     function handleLocalFiles(input) {
       const files = input.files;
       if (!files || files.length === 0) return;
@@ -471,16 +492,14 @@
         };
       }
 
-      input.value = ''; // Reset input để chọn tiếp file mới
+      input.value = ''; 
 
-      // Dùng update để cộng dồn bài mới lên Firebase, hàm listenToLocalSongs sẽ tự động cập nhật lại giao diện Player
       db.ref(`rooms/${roomCode}/localSongs`).update(updates).then(() => {
         db.ref(`rooms/${roomCode}/localSongs`).onDisconnect().remove();
         showToast(`📁 Đã thêm ${addedCount} bài vào máy!`);
       });
     }
 
-    // Hiển thị danh sách ô vuông thumbnail
     function renderOfflinePlaylist() {
       const container = document.getElementById('offlinePlaylistContainer');
       container.innerHTML = "";
@@ -503,13 +522,13 @@
 
         card.onclick = () => {
           let realIndex = offlinePlaylist.findIndex(s => s.localKey === song.localKey);
-          playOfflineSong(realIndex);
+          playOfflineSong(realIndex, true);
         };
         container.appendChild(card);
       });
     }
 
-    function playOfflineSong(index) {
+    function playOfflineSong(index, directClick = true) {
       if (index < 0 || index >= offlinePlaylist.length) return;
       isOfflineMode = true;
 
@@ -520,18 +539,25 @@
       localVid.style.display = 'block';
 
       const song = offlinePlaylist[index];
-      localVid.src = song.url;
+      if (localVid.src !== song.url) {
+        localVid.src = song.url;
+      }
       localVid.play();
       isPlaying = true;
 
       const songName = song.name || song.title;
       document.getElementById('scrollingTitle').textContent = "🎵 [Offline] " + songName;
-      showToast("▶️ Đang phát offline: " + songName);
+      if (directClick) {
+        showToast("▶️ Đang phát offline: " + songName);
+      }
 
       localVid.onended = () => {
-        if (index + 1 < offlinePlaylist.length) {
-          playOfflineSong(index + 1);
+        if (playlist.length > 0) {
+          removeCurrentSong();
         } else {
+          isOfflineMode = false;
+          localVid.style.display = 'none';
+          document.getElementById('player').style.display = 'block';
           showToast("📭 Hết danh sách nhạc offline");
         }
       };
@@ -580,15 +606,19 @@
             if (cmdData.typeSource === 'local') {
               let targetIndex = offlinePlaylist.findIndex(s => s.localKey === cmdData.localKey);
               if (targetIndex !== -1) {
-                playOfflineSong(targetIndex);
+                if (player && player.pauseVideo) player.pauseVideo();
+                playOfflineSong(targetIndex, true);
               }
             } else {
               isOfflineMode = false;
-              document.getElementById('localPlayer').pause();
-              document.getElementById('localPlayer').style.display = 'none';
+              const localVid = document.getElementById('localPlayer');
+              localVid.pause();
+              localVid.currentTime = 0;
+              localVid.style.display = 'none';
               document.getElementById('player').style.display = 'block';
+
               currentVideoId = cmdData.videoId; 
-              player.loadVideoById(currentVideoId);
+              player.loadVideoById(cmdData.videoId);
               showToast("⚡ Phát ngay lập tức!");
             }
             break;
@@ -603,14 +633,10 @@
             
           case 'NEXT': 
             showToast("⏭ Đang chuyển bài...");
-            if (isOfflineMode) {
-              const localVid = document.getElementById('localPlayer');
-              let currentIndex = offlinePlaylist.findIndex(item => item.url === localVid.src);
-              if (currentIndex !== -1 && currentIndex + 1 < offlinePlaylist.length) {
-                playOfflineSong(currentIndex + 1);
-              }
+            if (playlist.length > 0) {
+              removeCurrentSong();
             } else {
-              removeCurrentSong(); 
+              stopAllPlayers();
             }
             break;
             
