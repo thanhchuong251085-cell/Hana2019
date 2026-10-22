@@ -57,15 +57,12 @@
       z-index: 0;
     }
 
-    /* CSS quản lý ẩn/hiện chuột mượt mà cho video offline y hệt YouTube */
+    /* Giữ controls và ép con trỏ chuột hiển thị rõ ràng, mượt mà khi rê trên video offline */
     #localPlayer {
       object-fit: contain;
       background: #000;
       display: none;
-      cursor: default;
-    }
-    #localPlayer.hide-cursor {
-      cursor: none !important;
+      cursor: default !important;
     }
 
     #uiContainer {
@@ -238,8 +235,8 @@
 
   <!-- Trình phát YouTube -->
   <div id="player"></div>
-  <!-- Trình phát Nhạc Offline -->
-  <video id="localPlayer"></video>
+  <!-- Trình phát Nhạc Offline (Đã có lại controls đầy đủ thanh tua, nút play, fullscreen) -->
+  <video id="localPlayer" controls></video>
 
   <div class="top-left-container">
     <div class="qr-cafe-text-main">Chào Mừng Bạn Đến Karaoke Hana ☕️😊</div>
@@ -558,24 +555,10 @@
       };
     }
 
-    // --- CƠ CHẾ ẨN/HIỆN CHUỘT MƯỢT MÀ CHO VIDEO OFFLINE ---
-    let mouseTimer = null;
+    // --- QUẢN LÝ HIỂN THỊ CON TRỎ CHUỘT MƯỢT MÀ CHO VIDEO OFFLINE ---
     const localVid = document.getElementById('localPlayer');
-
     localVid.addEventListener('mousemove', () => {
-      localVid.classList.remove('hide-cursor');
-      clearTimeout(mouseTimer);
-      
-      mouseTimer = setTimeout(() => {
-        if (!localVid.paused) {
-          localVid.classList.add('hide-cursor');
-        }
-      }, 2000);
-    });
-
-    localVid.addEventListener('mouseleave', () => {
-      localVid.classList.remove('hide-cursor');
-      clearTimeout(mouseTimer);
+      localVid.style.cursor = 'default';
     });
 
     function togglePlayPause() {
