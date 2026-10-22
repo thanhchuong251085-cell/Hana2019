@@ -56,8 +56,9 @@
         .tab-content.active { display: block; animation: fadeIn 0.2s ease; }
         @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
 
+        /* MÀN HÌNH PHÁT VĨNH VIỄN KHÔNG LỖI ĐEN */
         .wmp-display {
-            background: linear-gradient(180deg, #000a12 0%, #051525 100%);
+            background: #000;
             border-radius: 6px; border: 2px solid #4a6b8c;
             box-shadow: inset 0 0 20px rgba(0,60,120,0.3);
             aspect-ratio: 16/9; display: flex; align-items: center; justify-content: center;
@@ -65,6 +66,28 @@
             position: relative;
         }
         
+        /* CẤU HÌNH KHUNG YOUTUBE HIỂN THỊ CHUẨN ĐÚNG LỚP Z-INDEX */
+        #ytContainer {
+            position: absolute !important;
+            top: 0 !important; left: 0 !important;
+            width: 100% !important; height: 100% !important;
+            z-index: 20 !important;
+            display: none;
+        }
+        #ytContainer iframe {
+            width: 100% !important;
+            height: 100% !important;
+            border: none !important;
+        }
+
+        #localVideo {
+            position: absolute !important;
+            top: 0 !important; left: 0 !important;
+            width: 100% !important; height: 100% !important;
+            z-index: 10 !important;
+            display: none;
+        }
+
         .wmp-display-text { 
             color: #6a95c2; font-size: 15px; text-align: center; 
             position: relative; z-index: 2; text-shadow: 0 0 10px rgba(0,0,0,0.8);
@@ -167,12 +190,8 @@
         .modal-btn.ok { background: linear-gradient(180deg, #4a9cff, #2b7cd3); border-color: #1f5cad; color: white; }
         .modal-btn.cancel { background: #e6edf5; border-color: #98a9c2; color: #2a4365; }
 
-        #ytContainer, #localVideo {
-            width: 100%; height: 100%; position: absolute; top: 0; left: 0; border: none; display: none; z-index: 5;
-        }
         .hidden { display: none !important; }
     </style>
-    <!-- Thư viện chuẩn YouTube IFrame API -->
     <script src="https://www.youtube.com/iframe_api"></script>
 </head>
 <body>
@@ -261,7 +280,7 @@
         <!-- ========== TRUYỀN HÌNH IPTV ========== -->
         <div id="tab-iptv" class="tab-content">
             <div class="wmp-display">
-                <video id="playerIptv" class="w-full h-full hidden" controls preload="metadata" style="width:100%; height:100%; position:absolute; top:0; left:0;"></video>
+                <video id="playerIptv" class="w-full h-full hidden" controls preload="metadata" style="width:100%; height:100%; position:absolute; top:0; left:0; z-index:15;"></video>
                 <div id="placeholderIptv" class="wmp-display-text">
                     <span class="icon">📺</span>
                     <p>Dán link danh sách kênh .m3u / .m3u8 để xem</p>
@@ -372,7 +391,7 @@ function onYouTubeIframeAPIReady() {
     ytPlayerObj = new YT.Player('ytContainer', {
         width: '100%',
         height: '100%',
-        playerVars: { autoplay: 0, controls: 1, rel: 0, fs: 1 },
+        playerVars: { autoplay: 1, controls: 1, rel: 0, fs: 1 },
         events: {
             'onReady': () => { ytDaSanSang = true; },
             'onStateChange': xuLyTrangThaiYT
@@ -397,7 +416,7 @@ function xuLyTrangThaiYT(suKien) {
 function batTheoDoiTienDo() {
     dungTheoDoiTienDo();
     boDemTienDo = setInterval(() => {
-        if (!ytPlayerObj || !ytDaSanSang) return;
+        if (!ytPlayerObj || !ytDaSanSang || !ytPlayerObj.getCurrentTime) return;
         const cur = ytPlayerObj.getCurrentTime();
         const dur = ytPlayerObj.getDuration();
         if (dur > 0) {
@@ -467,18 +486,18 @@ function chonBaiNhac(idx) {
     
     document.getElementById('titleNhac').textContent = b.ten;
     placeholderNhac.classList.add('hidden');
-    ytContainer.style.display = 'none';
-    localVideo.style.display = 'none';
 
     let vol = document.getElementById('volNhac').value / 100;
 
     if (b.loai === 'yt') {
-        ytContainer.style.display = 'block';
-        if (ytDaSanSang && ytPlayerObj) {
+        localVideo.style.display = 'none';
+        ytContainer.style.display = 'block'; // Đảm bảo mở hiển thị trên cùng
+        if (ytDaSanSang && ytPlayerObj && ytPlayerObj.loadVideoById) {
             ytPlayerObj.loadVideoById(b.id);
             ytPlayerObj.setVolume(document.getElementById('volNhac').value);
         }
     } else {
+        ytContainer.style.display = 'none';
         localVideo.style.display = 'block';
         localVideo.src = b.link;
         localVideo.volume = vol;
@@ -569,7 +588,9 @@ function tienDoNhac(e) {
     const pct = (e.clientX - r.left) / r.width;
     const b = danhSachNhac[chiSoNhac];
     if (b.loai === 'yt') {
-        if (ytDaSanSang && ytPlayerObj) ytPlayerObj.seekTo(pct * ytPlayerObj.getDuration(), true);
+        if (ytDaSanSang && ytPlayerObj && ytPlayerObj.getDuration) {
+            ytPlayerObj.seekTo(pct * ytPlayerObj.getDuration(), true);
+        }
     } else if (localVideo.duration) {
         localVideo.currentTime = pct * localVideo.duration;
     }
@@ -578,7 +599,7 @@ function tienDoNhac(e) {
 function capNhatAmLuongNhac(v) {
     document.getElementById('volPctNhac').textContent = v + '%';
     localVideo.volume = v / 100;
-    if (ytDaSanSang && ytPlayerObj) ytPlayerObj.setVolume(v);
+    if (ytDaSanSang && ytPlayerObj && ytPlayerObj.setVolume) ytPlayerObj.setVolume(v);
 }
 
 function moThemNhac() { document.getElementById('modalThemNhac').classList.add('show'); }
