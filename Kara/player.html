@@ -57,10 +57,12 @@
       z-index: 0;
     }
 
+    /* Giữ controls và ép con trỏ chuột hiển thị rõ ràng, mượt mà khi rê trên video offline */
     #localPlayer {
       object-fit: contain;
       background: #000;
       display: none;
+      cursor: default !important;
     }
 
     #uiContainer {
@@ -160,7 +162,7 @@
       color: #f1c40f;
     }
 
-    /* --- GÓC TRÊN BÊN TRÁI: DÒNG CHỮ & THẺ THUMBNAIL OFFLINE DẠNG NGANG --- */
+    /* --- GÓC TRÊN BÊN TRÁI: THẺ THUMBNAIL OFFLINE DẠNG NGANG --- */
     .top-left-container {
       position: fixed;
       top: 15px;
@@ -179,7 +181,6 @@
       margin-bottom: 6px;
     }
 
-    /* Khung chứa các ô thumbnail vuông, cuộn ngang gọn gàng nếu nhiều bài */
     #offlinePlaylistContainer {
       display: flex;
       gap: 8px;
@@ -192,7 +193,6 @@
       display: none;
     }
 
-    /* Thẻ ô vuông nhỏ đại diện file trong máy */
     .offline-card {
       flex: 0 0 60px;
       height: 60px;
@@ -235,16 +235,14 @@
 
   <!-- Trình phát YouTube -->
   <div id="player"></div>
-  <!-- Trình phát Nhạc Offline (Local Video/Audio) -->
+  <!-- Trình phát Nhạc Offline (Đã có lại controls đầy đủ thanh tua, nút play, fullscreen) -->
   <video id="localPlayer" controls></video>
 
-  <!-- Khu vực hiển thị Chào mừng và Các ô thumbnail nhạc offline ngang góc trái -->
   <div class="top-left-container">
     <div class="qr-cafe-text-main">Chào Mừng Bạn Đến Karaoke Hana ☕️😊</div>
     <div id="offlinePlaylistContainer"></div>
   </div>
 
-  <!-- Input ẩn để chọn file nhạc từ máy -->
   <input type="file" id="localFileInput" accept="video/*,audio/*" multiple style="display: none;" onchange="handleLocalFiles(this)">
 
   <div id="uiContainer">
@@ -287,7 +285,7 @@
     const db = firebase.database();
 
     let player;
-    let currentPlayingKey = null; // Theo dõi key bài đang phát trên hàng đợi
+    let currentPlayingKey = null; 
     let playlist = [];
     let isPlayerReady = false;
     let isPlaying = false;
@@ -321,7 +319,8 @@
           'enablejsapi': 1,         
           'origin': window.location.origin,
           'iv_load_policy': 3,
-          'playsinline': 1
+          'playsinline': 1,
+          'vq': 'hd1080'
         },
         events: {
           'onStateChange': onPlayerStateChange,
@@ -339,7 +338,6 @@
 
     function listenToData() {
       db.ref(`rooms/${roomCode}/playlist`).orderByChild('timestamp').on('value', snapshot => {
-        const oldFirstKey = playlist.length > 0 ? playlist[0].key : null;
         playlist = [];
         snapshot.forEach(child => {
           playlist.push({ key: child.key, ...child.val() });
@@ -351,7 +349,6 @@
           currentPlayingKey = null;
         } else {
           const newFirstKey = playlist[0].key;
-          // Nếu bài hát đứng đầu thay đổi (do thêm bài, ưu tiên, hoặc qua bài) thì tự động phát bài mới ngay lập tức
           if (newFirstKey !== currentPlayingKey) {
             checkAndPlayTopSong();
           }
@@ -399,7 +396,6 @@
       }
     }
 
-    // Điều phối và phát bài đứng đầu hàng đợi (Hỗ trợ cả Online và Offline)
     function checkAndPlayTopSong() {
       if (!isPlayerReady || playlist.length === 0) return;
       
@@ -407,16 +403,13 @@
       currentPlayingKey = topSong.key;
 
       if (topSong.type === 'local') {
-        // Phát bài Offline
         let targetIndex = offlinePlaylist.findIndex(s => s.localKey === topSong.localKey);
         if (targetIndex !== -1) {
           playOfflineSong(targetIndex, false);
         } else {
-          // Nếu file local không tìm thấy trên TV, tự động bỏ qua
           removeCurrentSong();
         }
       } else {
-        // Phát bài YouTube Online
         isOfflineMode = false;
         const localVid = document.getElementById('localPlayer');
         localVid.pause();
@@ -466,7 +459,6 @@
       }, 2000);
     }
 
-    // Xóa bài hát hiện tại đang phát khỏi Firebase để tự động chuyển bài tiếp theo
     function removeCurrentSong() {
       if (playlist.length === 0) return;
       const currentKey = playlist[0].key;
@@ -563,9 +555,14 @@
       };
     }
 
+    // --- QUẢN LÝ HIỂN THỊ CON TRỎ CHUỘT MƯỢT MÀ CHO VIDEO OFFLINE ---
+    const localVid = document.getElementById('localPlayer');
+    localVid.addEventListener('mousemove', () => {
+      localVid.style.cursor = 'default';
+    });
+
     function togglePlayPause() {
       if (isOfflineMode) {
-        const localVid = document.getElementById('localPlayer');
         if (localVid.paused) {
           localVid.play();
           isPlaying = true;
@@ -611,7 +608,6 @@
               }
             } else {
               isOfflineMode = false;
-              const localVid = document.getElementById('localPlayer');
               localVid.pause();
               localVid.currentTime = 0;
               localVid.style.display = 'none';
@@ -639,10 +635,18 @@
               stopAllPlayers();
             }
             break;
+
+          case 'SET_HD': 
+            if (!isOfflineMode && player && player.setPlaybackQuality) {
+              player.setPlaybackQuality('hd1080');
+              showToast("🎥 Đã yêu cầu chất lượng HD/Full HD");
+            } else {
+              showToast("ℹ️ Chế độ này áp dụng cho video YouTube online");
+            }
+            break;
             
           case 'VOL_UP': 
             if (isOfflineMode) {
-              const localVid = document.getElementById('localPlayer');
               localVid.volume = Math.min(localVid.volume + 0.1, 1);
             } else if (player && player.getVolume) {
               player.setVolume(Math.min(player.getVolume() + 10, 100));
@@ -652,7 +656,6 @@
             
           case 'VOL_DOWN': 
             if (isOfflineMode) {
-              const localVid = document.getElementById('localPlayer');
               localVid.volume = Math.max(localVid.volume - 0.1, 0);
             } else if (player && player.getVolume) {
               player.setVolume(Math.max(player.getVolume() - 10, 0));
