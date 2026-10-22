@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <base target="_top">
+  <title>Karaoke Player</title>
+  <link rel="manifest" href="./manifest_tv.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+
+  <script async="" src="https://www.googletagmanager.com/gtag/js?id=G-JCB7VEJF1Y"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-JCB7VEJF1Y');
+  </script>
+  <style>
+    #currentTitle {
+      position: relative;
+      width: 200px;
+      height: 24px;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    #scrollingTitle {
+      position: absolute;
+      white-space: nowrap;
+      display: inline-block;
+      animation: scroll-left 12s linear infinite;
+      color: #00ffcc;
+      font-weight: bold;
+    }
+
+    @keyframes scroll-left {
+      0% { left: 100%; }
+      100% { left: -100%; }
+    }
+
+    body {
+      background-color: #000;
+      color: white;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+
+    #player, #localPlayer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+    }
+
+    /* CSS quản lý ẩn/hiện chuột mượt mà cho video offline y hệt YouTube */
+    #localPlayer {
+      object-fit: contain;
+      background: #000;
+      display: none;
+      cursor: default;
+    }
+    #localPlayer.hide-cursor {
+      cursor: none !important;
+    }
+
+    #uiContainer {
+      position: absolute;
+      top: 20px;
+      right: 10px;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 12px;
+      border-radius: 12px;
+      max-width: 270px;
+      z-index: 2;
+    }
+
+    #controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    #playlistDisplay {
+      margin: 0;
+      padding-left: 14px;
+      font-size: 14px; 
+      font-weight: normal; 
+      color: rgba(255, 255, 255, 0.95);
+      margin-bottom: 8px;
+      list-style: disc;
+    }
+    
+    #playlistDisplay li {
+      white-space: nowrap; 
+      overflow: hidden;    
+      text-overflow: ellipsis; 
+    }
+    
+    #nextSongs h4 {
+      font-size: 14px;
+      color: #00ffff;
+      font-weight: bold;
+      margin-bottom: 6px;
+      margin-top: 0;
+    }
+
+    #playPauseBtn {
+      background-color: #00cc99;
+      color: white;
+    }
+    #playPauseBtn:hover {
+      background-color: #00aa88;
+    }
+
+    button {
+      font-size: 16px;
+      padding: 6px 10px;
+      border: none;
+      border-radius: 6px;
+      background-color: #333;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #555;
+    }
+
+    #toast {
+      position: fixed;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #333;
+      color: white;
+      padding: 20px 24px;
+      border-radius: 8px;
+      font-size: 30px;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      z-index: 9999;
+      visibility: hidden;
+    }
+
+    #toast.show {
+      visibility: visible;
+      opacity: 1;
+    }
+    
+    #roomCodeDisplay {
+      font-size: 18px;
+      color: yellow;
+      padding-left: 1px;
+      margin-bottom: 10px;
+    }
+    #roomCodeDisplay #code {
+      font-weight: bold;
+      font-size: 24px;
+      color: #f1c40f;
+    }
+
+    /* --- GÓC TRÊN BÊN TRÁI: THẺ THUMBNAIL OFFLINE DẠNG NGANG --- */
+    .top-left-container {
+      position: fixed;
+      top: 15px;
+      left: 15px;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      max-width: calc(100vw - 310px);
+    }
+
+    .qr-cafe-text-main {
+      color: #ffdd00;
+      font-size: 1rem;
+      font-weight: bold;
+      text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
+      margin-bottom: 6px;
+    }
+
+    #offlinePlaylistContainer {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      white-space: nowrap;
+      padding-bottom: 4px;
+      scrollbar-width: none;
+    }
+    #offlinePlaylistContainer::-webkit-scrollbar {
+      display: none;
+    }
+
+    .offline-card {
+      flex: 0 0 60px;
+      height: 60px;
+      background: rgba(30, 30, 30, 0.85);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.2s ease;
+    }
+
+    .offline-card:hover {
+      border-color: #00cc99;
+      transform: scale(1.05);
+      background: rgba(0, 204, 153, 0.3);
+    }
+
+    .offline-card-icon {
+      font-size: 22px;
+      margin-bottom: 2px;
+    }
+
+    .offline-card-title {
+      font-size: 10px;
+      color: #add8e6;
+      width: 90%;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Trình phát YouTube -->
+  <div id="player"></div>
+  <!-- Trình phát Nhạc Offline -->
+  <video id="localPlayer"></video>
+
+  <div class="top-left-container">
+    <div class="qr-cafe-text-main">Chào Mừng Bạn Đến Karaoke Hana ☕️😊</div>
+    <div id="offlinePlaylistContainer"></div>
+  </div>
+
+  <input type="file" id="localFileInput" accept="video/*,audio/*" multiple style="display: none;" onchange="handleLocalFiles(this)">
+
+  <div id="uiContainer">
+     <div id="roomCodeDisplay">
+        Mã kết nối: <span id="code">...</span>
+        <button onclick="resetRoomCode()" style="margin-left: 10px;">🔄Đổi mã</button>
+     </div>
+    <div id="controls">
+      <button onclick="document.getElementById('localFileInput').click()" title="Thêm nhạc trong máy">📁</button>
+      <button id="playPauseBtn" onclick="togglePlayPause()">⏯</button>
+      <button onclick="removeCurrentSong()">⏭</button>
+      <div id="currentTitle"><div id="scrollingTitle">Đang tải...</div></div>
+    </div>
+
+    <div id="nextSongs">
+      <h4>🎶 Tiếp theo:</h4>
+      <ul id="playlistDisplay"></ul>
+    </div>
+  </div>
+  
+  <div id="toast"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script src="https://www.youtube.com/iframe_api"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAIwBqg8EYLU7TQXfOO697C4D5p5_GeghQ",
+      authDomain: "karaoke-home.firebaseapp.com",
+      databaseURL: "https://karaoke-home-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "karaoke-home",
+      storageBucket: "karaoke-home.firebasestorage.app",
+      messagingSenderId: "285959719922",
+      appId: "1:285959719922:web:6cb594ebb3ef854124796b",
+      measurementId: "G-EH8DQLGWSY"
+    };
+
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let player;
+    let currentPlayingKey = null; 
+    let playlist = [];
+    let isPlayerReady = false;
+    let isPlaying = false;
+    let roomCode = localStorage.getItem('roomCode');
+    const codeDisplayEl = document.getElementById('code');
+
+    let offlinePlaylist = [];
+    let isOfflineMode = false;
+
+    if (!roomCode) {
+      roomCode = Math.floor(10000 + Math.random() * 90000).toString();
+      localStorage.setItem('roomCode', roomCode);
+    }
+    codeDisplayEl.innerText = roomCode;
+
+    db.ref(`rooms/${roomCode}/localSongs`).onDisconnect().remove();
+
+    function onYouTubeIframeAPIReady() {
+      const WAITING_VIDEO_ID = "6BlfNIfGFfM"; 
+
+      player = new YT.Player('player', {
+        height: '100%', 
+        width: '100%',
+        videoId: WAITING_VIDEO_ID, 
+        host: 'https://www.youtube.com',
+        playerVars: { 
+          'autoplay': 1, 
+          'controls': 1,
+          'modestbranding': 1,
+          'rel': 0,                 
+          'enablejsapi': 1,         
+          'origin': window.location.origin,
+          'iv_load_policy': 3,
+          'playsinline': 1,
+          'vq': 'hd1080'
+        },
+        events: {
+          'onStateChange': onPlayerStateChange,
+          'onReady': (event) => {
+               isPlayerReady = true;
+               event.target.playVideo(); 
+               isPlaying = true;
+               listenToData(); 
+               listenToLocalSongs(); 
+          },
+          'onError': onPlayerError 
+        }
+      });
+    }
+
+    function listenToData() {
+      db.ref(`rooms/${roomCode}/playlist`).orderByChild('timestamp').on('value', snapshot => {
+        playlist = [];
+        snapshot.forEach(child => {
+          playlist.push({ key: child.key, ...child.val() });
+        });
+        updateUI();
+        
+        if (playlist.length === 0) {
+          stopAllPlayers();
+          currentPlayingKey = null;
+        } else {
+          const newFirstKey = playlist[0].key;
+          if (newFirstKey !== currentPlayingKey) {
+            checkAndPlayTopSong();
+          }
+        }
+      });
+
+      db.ref(`rooms/${roomCode}/command`).on('value', snapshot => {
+        const cmdData = snapshot.val();
+        if (cmdData) {
+          executeCommand(cmdData);
+          db.ref(`rooms/${roomCode}/command`).remove();
+        }
+      });
+    }
+
+    function listenToLocalSongs() {
+      db.ref(`rooms/${roomCode}/localSongs`).on('value', snapshot => {
+        offlinePlaylist = [];
+        const songsData = snapshot.val();
+        if (songsData) {
+          Object.keys(songsData).forEach(key => {
+            offlinePlaylist.push(songsData[key]);
+          });
+        }
+        renderOfflinePlaylist();
+      });
+    }
+
+    function updateUI() {
+      const listEl = document.getElementById('playlistDisplay');
+      const titleEl = document.getElementById('scrollingTitle');
+      listEl.innerHTML = "";
+      
+      if (playlist.length === 0) {
+          titleEl.textContent = "🕒 Chờ bài hát...";
+          return;
+      }
+      
+      titleEl.textContent = "🎵 " + playlist[0].title;
+      
+      for (let i = 1; i < Math.min(playlist.length, 11); i++) {
+        const li = document.createElement('li');
+        li.innerText = `${i}. ${playlist[i].title}`;
+        listEl.appendChild(li);
+      }
+    }
+
+    function checkAndPlayTopSong() {
+      if (!isPlayerReady || playlist.length === 0) return;
+      
+      const topSong = playlist[0];
+      currentPlayingKey = topSong.key;
+
+      if (topSong.type === 'local') {
+        let targetIndex = offlinePlaylist.findIndex(s => s.localKey === topSong.localKey);
+        if (targetIndex !== -1) {
+          playOfflineSong(targetIndex, false);
+        } else {
+          removeCurrentSong();
+        }
+      } else {
+        isOfflineMode = false;
+        const localVid = document.getElementById('localPlayer');
+        localVid.pause();
+        localVid.currentTime = 0;
+        localVid.style.display = 'none';
+        document.getElementById('player').style.display = 'block';
+
+        if (topSong.videoId && player && player.loadVideoById) {
+          player.loadVideoById(topSong.videoId);
+        }
+      }
+    }
+
+    function stopAllPlayers() {
+      isOfflineMode = false;
+      const localVid = document.getElementById('localPlayer');
+      localVid.pause();
+      localVid.currentTime = 0;
+      localVid.style.display = 'none';
+      document.getElementById('player').style.display = 'block';
+      if (player && player.stopVideo) {
+        player.stopVideo();
+      }
+      document.getElementById('scrollingTitle').textContent = "🕒 Chờ bài hát...";
+      showToast("📭 Hết bài chờ");
+    }
+
+    function onPlayerStateChange(event) {
+      if (isOfflineMode) return;
+      if (event.data === YT.PlayerState.ENDED) {
+          if (playlist.length > 0) {
+              removeCurrentSong();
+          } else {
+              player.playVideo();
+          }
+      } else if (event.data === YT.PlayerState.PLAYING) {
+          isPlaying = true;
+      } else if (event.data === YT.PlayerState.PAUSED) {
+          isPlaying = false;
+      }
+    }
+
+    function onPlayerError(event) {
+      if (isOfflineMode) return;
+      setTimeout(() => {
+          if(playlist.length > 0) removeCurrentSong();
+      }, 2000);
+    }
+
+    function removeCurrentSong() {
+      if (playlist.length === 0) return;
+      const currentKey = playlist[0].key;
+      db.ref(`rooms/${roomCode}/playlist/${currentKey}`).remove();
+    }
+
+    function handleLocalFiles(input) {
+      const files = input.files;
+      if (!files || files.length === 0) return;
+
+      let updates = {};
+      const addedCount = files.length;
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const fileURL = URL.createObjectURL(file);
+        const localKey = 'song_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+
+        updates[localKey] = {
+          localKey: localKey,
+          title: file.name,
+          url: fileURL
+        };
+      }
+
+      input.value = ''; 
+
+      db.ref(`rooms/${roomCode}/localSongs`).update(updates).then(() => {
+        db.ref(`rooms/${roomCode}/localSongs`).onDisconnect().remove();
+        showToast(`📁 Đã thêm ${addedCount} bài vào máy!`);
+      });
+    }
+
+    function renderOfflinePlaylist() {
+      const container = document.getElementById('offlinePlaylistContainer');
+      container.innerHTML = "";
+      
+      offlinePlaylist.forEach((song, index) => {
+        const card = document.createElement('div');
+        card.className = 'offline-card';
+        card.title = song.name || song.title;
+
+        let iconSymbol = "🎵";
+        const songName = song.name || song.title || "";
+        if (songName.endsWith('.mp4') || songName.endsWith('.mkv') || songName.endsWith('.webm')) {
+          iconSymbol = "🎬";
+        }
+
+        card.innerHTML = `
+          <div class="offline-card-icon">${iconSymbol}</div>
+          <div class="offline-card-title">Bài ${index + 1}</div>
+        `;
+
+        card.onclick = () => {
+          let realIndex = offlinePlaylist.findIndex(s => s.localKey === song.localKey);
+          playOfflineSong(realIndex, true);
+        };
+        container.appendChild(card);
+      });
+    }
+
+    function playOfflineSong(index, directClick = true) {
+      if (index < 0 || index >= offlinePlaylist.length) return;
+      isOfflineMode = true;
+
+      if (player && player.pauseVideo) player.pauseVideo();
+
+      document.getElementById('player').style.display = 'none';
+      const localVid = document.getElementById('localPlayer');
+      localVid.style.display = 'block';
+
+      const song = offlinePlaylist[index];
+      if (localVid.src !== song.url) {
+        localVid.src = song.url;
+      }
+      localVid.play();
+      isPlaying = true;
+
+      const songName = song.name || song.title;
+      document.getElementById('scrollingTitle').textContent = "🎵 [Offline] " + songName;
+      if (directClick) {
+        showToast("▶️ Đang phát offline: " + songName);
+      }
+
+      localVid.onended = () => {
+        if (playlist.length > 0) {
+          removeCurrentSong();
+        } else {
+          isOfflineMode = false;
+          localVid.style.display = 'none';
+          document.getElementById('player').style.display = 'block';
+          showToast("📭 Hết danh sách nhạc offline");
+        }
+      };
+    }
+
+    // --- CƠ CHẾ ẨN/HIỆN CHUỘT MƯỢT MÀ CHO VIDEO OFFLINE ---
+    let mouseTimer = null;
+    const localVid = document.getElementById('localPlayer');
+
+    localVid.addEventListener('mousemove', () => {
+      localVid.classList.remove('hide-cursor');
+      clearTimeout(mouseTimer);
+      
+      mouseTimer = setTimeout(() => {
+        if (!localVid.paused) {
+          localVid.classList.add('hide-cursor');
+        }
+      }, 2000);
+    });
+
+    localVid.addEventListener('mouseleave', () => {
+      localVid.classList.remove('hide-cursor');
+      clearTimeout(mouseTimer);
+    });
+
+    function togglePlayPause() {
+      if (isOfflineMode) {
+        if (localVid.paused) {
+          localVid.play();
+          isPlaying = true;
+          showToast("▶️ Tiếp tục");
+        } else {
+          localVid.pause();
+          isPlaying = false;
+          showToast("⏸ Tạm dừng");
+        }
+        return;
+      }
+
+      if (!player || !isPlayerReady) return;
+      const state = player.getPlayerState();
+      if (state === YT.PlayerState.PLAYING) {
+        player.pauseVideo();
+        isPlaying = false;
+        showToast("⏸ Tạm dừng");
+      } else {
+        player.playVideo();
+        isPlaying = true;
+        showToast("▶️ Tiếp tục");
+      }
+    }
+    
+    function resetRoomCode() {
+      db.ref(`rooms/${roomCode}/localSongs`).remove();
+      localStorage.removeItem('roomCode');
+      location.reload();
+    }
+
+    function executeCommand(cmdData) {
+      const type = (typeof cmdData === 'object') ? cmdData.type : cmdData;
+
+      try {
+        switch (type) {
+          case 'PLAY_NOW': 
+            if (cmdData.typeSource === 'local') {
+              let targetIndex = offlinePlaylist.findIndex(s => s.localKey === cmdData.localKey);
+              if (targetIndex !== -1) {
+                if (player && player.pauseVideo) player.pauseVideo();
+                playOfflineSong(targetIndex, true);
+              }
+            } else {
+              isOfflineMode = false;
+              localVid.pause();
+              localVid.currentTime = 0;
+              localVid.style.display = 'none';
+              document.getElementById('player').style.display = 'block';
+
+              currentVideoId = cmdData.videoId; 
+              player.loadVideoById(cmdData.videoId);
+              showToast("⚡ Phát ngay lập tức!");
+            }
+            break;
+            
+          case 'PLAY': 
+            togglePlayPause();
+            break;
+            
+          case 'PAUSE': 
+            togglePlayPause();
+            break;
+            
+          case 'NEXT': 
+            showToast("⏭ Đang chuyển bài...");
+            if (playlist.length > 0) {
+              removeCurrentSong();
+            } else {
+              stopAllPlayers();
+            }
+            break;
+
+          case 'SET_HD': 
+            if (!isOfflineMode && player && player.setPlaybackQuality) {
+              player.setPlaybackQuality('hd1080');
+              showToast("🎥 Đã yêu cầu chất lượng HD/Full HD");
+            } else {
+              showToast("ℹ️ Chế độ này áp dụng cho video YouTube online");
+            }
+            break;
+            
+          case 'VOL_UP': 
+            if (isOfflineMode) {
+              localVid.volume = Math.min(localVid.volume + 0.1, 1);
+            } else if (player && player.getVolume) {
+              player.setVolume(Math.min(player.getVolume() + 10, 100));
+            }
+            showToast("🔊 Tăng âm lượng");
+            break;
+            
+          case 'VOL_DOWN': 
+            if (isOfflineMode) {
+              localVid.volume = Math.max(localVid.volume - 0.1, 0);
+            } else if (player && player.getVolume) {
+              player.setVolume(Math.max(player.getVolume() - 10, 0));
+            }
+            showToast("🔉 Giảm âm lượng");
+            break;
+        }
+      } catch (e) { 
+        console.error("Lỗi thực thi lệnh:", e); 
+      }
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = 'show';
+      setTimeout(() => toast.className = '', 2000);
+    }
+  </script>
+</body>
+</html>
