@@ -22,7 +22,6 @@
       box-sizing: border-box;
     }
 
-    /* 🌟 KHUNG TIÊU ĐỀ RỘNG VÀ THOÁNG HƠN */
     #currentTitle {
       position: relative;
       width: 260px;
@@ -36,12 +35,12 @@
       align-items: center;
     }
 
-    /* 🌟 CHỈNH TỐC ĐỘ CHẠY CHẬM LẠI (TỪ 12s LÊN 20s ĐỂ DỄ ĐỌC KHI TÊN DÀI) */
+    /* 🌟 CHỮ CHẠY TỪ TỪ, VỪA MẮT + DỪNG NGHỈ ĐÚNG 3 GIÂY RỒI LẶP LẠI */
     #scrollingTitle {
       position: absolute;
       white-space: nowrap;
       display: inline-block;
-      animation: scroll-left 20s linear infinite; /* Tăng thời gian lên 20s cho chữ chạy chậm, mượt */
+      animation: scroll-left 18s linear infinite; /* Tốc độ vừa phải, trôi êm ái */
       color: #00ffcc;
       font-weight: bold;
       font-size: 14px;
@@ -49,8 +48,15 @@
     }
 
     @keyframes scroll-left {
-      0% { transform: translateX(100%); }
-      100% { transform: translateX(-100%); }
+      0% { 
+        transform: translateX(100%); 
+      }
+      83% { 
+        transform: translateX(-100%); /* Chữ chạy hết từ phải sang trái */
+      }
+      100% { 
+        transform: translateX(-100%); /* Dừng nghỉ ngắn khoảng 3 giây trước khi quay lại từ phải */
+      }
     }
 
     body {
@@ -247,7 +253,7 @@
 <body>
 
   <div id="player"></div>
-  <video id="localPlayer" controls preload="auto" playsinline></video>
+  <video id="localPlayer" controls preload="auto" playsinline autobuffer></video>
 
   <div class="top-left-container">
     <div class="qr-cafe-text-main">Chào Mừng Bạn Đến Karaoke Hana ☕️😊</div>
@@ -577,6 +583,16 @@
 
       localVid.src = playUrl;
       localVid.load();
+
+      localVid.onprogress = function() {
+        if (localVid.buffered.length > 0) {
+          let bufferedEnd = localVid.buffered.end(localVid.buffered.length - 1);
+          let duration = localVid.duration;
+          if (bufferedEnd - localVid.currentTime < 15 && bufferedEnd < duration) {
+             localVid.playbackRate = 1.0; 
+          }
+        }
+      };
 
       localVid.play().catch(e => {
         console.log("Thử kích hoạt lại luồng phát:", e);
