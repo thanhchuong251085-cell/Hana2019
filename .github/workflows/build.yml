@@ -18,26 +18,37 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Download Wrapper and Build
+      - name: Setup Android Project Structure
         run: |
-          git clone https://github.com/thanhchuong251085-cell/Hana2019.git temp_repo || true
           mkdir -p app/src/main/java/com/player/app
-          mkdir -p app/src/main/res/values
 
-          # Tạo file Gradle tối giản
+          # Create settings.gradle
           echo 'include(":app")' > settings.gradle
-          echo "sdk.dir=$ANDROID_HOME" > local.properties
 
+          # Create Root build.gradle
           cat << 'EOF' > build.gradle
           buildscript {
-              repositories { google(); mavenCentral() }
-              dependencies { classpath 'com.android.tools.build:gradle:7.4.2' }
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+              dependencies {
+                  classpath 'com.android.tools.build:gradle:7.4.2'
+              }
           }
-          allprojects { repositories { google(); mavenCentral() } }
+          allprojects {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
           EOF
 
+          # Create App build.gradle
           cat << 'EOF' > app/build.gradle
-          plugins { id 'com.android.application' }
+          plugins {
+              id 'com.android.application'
+          }
           android {
               namespace 'com.player.app'
               compileSdk 33
@@ -54,18 +65,22 @@ jobs:
           }
           EOF
 
+          # Create AndroidManifest.xml
           cat << 'EOF' > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <uses-permission android:name="android.permission.INTERNET" />
+              <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
               <application
                   android:allowBackup="true"
                   android:label="TV Player"
+                  android:supportsRtl="true"
                   android:usesCleartextTraffic="true"
                   android:theme="@style/Theme.AppCompat.NoActionBar">
                   <activity
                       android:name=".MainActivity"
-                      android:exported="true">
+                      android:exported="true"
+                      android:configChanges="orientation|screenSize|keyboardHidden">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
                           <category android:name="android.intent.category.LAUNCHER" />
@@ -76,6 +91,7 @@ jobs:
           </manifest>
           EOF
 
+          # Create MainActivity.java
           cat << 'EOF' > app/src/main/java/com/player/app/MainActivity.java
           package com.player.app;
 
@@ -86,24 +102,41 @@ jobs:
           import androidx.appcompat.app.AppCompatActivity;
 
           public class MainActivity extends AppCompatActivity {
+              private WebView webView;
+
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
-                  WebView webView = new WebView(this);
+                  webView = new WebView(this);
                   setContentView(webView);
+
                   WebSettings settings = webView.getSettings();
                   settings.setJavaScriptEnabled(true);
                   settings.setDomStorageEnabled(true);
+                  settings.setDatabaseEnabled(true);
+                  settings.setMediaPlaybackRequiresUserGesture(false);
                   settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+
                   webView.setWebViewClient(new WebViewClient());
                   webView.loadUrl("https://thanhchuong251085-cell.github.io/Hana2019/Kara/player.html");
+              }
+
+              @Override
+              public void onBackPressed() {
+                  if (webView.canGoBack()) {
+                      webView.goBack();
+                  } else {
+                      super.onBackPressed();
+                  }
               }
           }
           EOF
 
-          gradle wrapper --gradle-version 7.5
-          chmod +x gradlew
-          ./gradlew assembleDebug
+      - name: Download Gradle Wrapper & Build APK
+        run: |
+          curl -s -L -o gradle.zip https://services.gradle.org/distributions/gradle-7.5-bin.zip
+          unzip -q gradle.zip
+          ./gradle-7.5/bin/gradle assembleDebug
 
       - name: Upload APK Result
         uses: actions/upload-artifact@v4
