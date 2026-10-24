@@ -12,49 +12,101 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Install Cordova
-        run: npm install -g cordova
-
-      - name: Create Cordova Project
+      - name: Download Wrapper and Build
         run: |
-          cordova create tvapp com.player.app "TV Player"
-          cd tvapp
-          cordova platform add android@12.0.0
-          
-          # Cấu hình tự động chuyển hướng thẳng đến link Karaoke của bạn
-          cat << 'EOF' > www/index.html
-          <!DOCTYPE html>
-          <html>
-          <head>
-              <meta charset="utf-8">
-              <meta http-equiv="refresh" content="0; url=https://thanhchuong251085-cell.github.io/Hana2019/Kara/player.html">
-              <script type="text/javascript">
-                  window.location.href = "https://thanhchuong251085-cell.github.io/Hana2019/Kara/player.html";
-              </script>
-          </head>
-          <body>
-          </body>
-          </html>
+          git clone https://github.com/thanhchuong251085-cell/Hana2019.git temp_repo || true
+          mkdir -p app/src/main/java/com/player/app
+          mkdir -p app/src/main/res/values
+
+          # Tạo file Gradle tối giản
+          echo 'include(":app")' > settings.gradle
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+
+          cat << 'EOF' > build.gradle
+          buildscript {
+              repositories { google(); mavenCentral() }
+              dependencies { classpath 'com.android.tools.build:gradle:7.4.2' }
+          }
+          allprojects { repositories { google(); mavenCentral() } }
           EOF
 
-      - name: Build Android APK
-        run: |
-          cd tvapp
-          cordova build android --debug
+          cat << 'EOF' > app/build.gradle
+          plugins { id 'com.android.application' }
+          android {
+              namespace 'com.player.app'
+              compileSdk 33
+              defaultConfig {
+                  applicationId "com.player.app"
+                  minSdk 21
+                  targetSdk 33
+                  versionCode 1
+                  versionName "1.0"
+              }
+          }
+          dependencies {
+              implementation 'androidx.appcompat:appcompat:1.6.1'
+          }
+          EOF
+
+          cat << 'EOF' > app/src/main/AndroidManifest.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.INTERNET" />
+              <application
+                  android:allowBackup="true"
+                  android:label="TV Player"
+                  android:usesCleartextTraffic="true"
+                  android:theme="@style/Theme.AppCompat.NoActionBar">
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                          <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
+          cat << 'EOF' > app/src/main/java/com/player/app/MainActivity.java
+          package com.player.app;
+
+          import android.os.Bundle;
+          import android.webkit.WebSettings;
+          import android.webkit.WebView;
+          import android.webkit.WebViewClient;
+          import androidx.appcompat.app.AppCompatActivity;
+
+          public class MainActivity extends AppCompatActivity {
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  WebView webView = new WebView(this);
+                  setContentView(webView);
+                  WebSettings settings = webView.getSettings();
+                  settings.setJavaScriptEnabled(true);
+                  settings.setDomStorageEnabled(true);
+                  settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+                  webView.setWebViewClient(new WebViewClient());
+                  webView.loadUrl("https://thanhchuong251085-cell.github.io/Hana2019/Kara/player.html");
+              }
+          }
+          EOF
+
+          gradle wrapper --gradle-version 7.5
+          chmod +x gradlew
+          ./gradlew assembleDebug
 
       - name: Upload APK Result
         uses: actions/upload-artifact@v4
         with:
           name: Standalone-TV-Player-APK
-          path: tvapp/platforms/android/app/build/outputs/apk/debug/*.apk
+          path: app/build/outputs/apk/debug/*.apk
