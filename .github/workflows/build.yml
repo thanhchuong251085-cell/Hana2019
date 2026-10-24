@@ -18,15 +18,15 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Android Project Files
+      - name: Create Android Project Files
         run: |
           mkdir -p app/src/main/java/com/player/app
           mkdir -p app/src/main/res/values
 
-          # 1. Root settings.gradle
+          # 1. settings.gradle
           echo 'include(":app")' > settings.gradle
 
-          # 2. Root build.gradle
+          # 2. build.gradle (Root)
           cat << 'EOF' > build.gradle
           buildscript {
               repositories { google(); mavenCentral() }
@@ -35,7 +35,7 @@ jobs:
           allprojects { repositories { google(); mavenCentral() } }
           EOF
 
-          # 3. App build.gradle
+          # 3. app/build.gradle
           cat << 'EOF' > app/build.gradle
           plugins { id 'com.android.application' }
           android {
@@ -123,11 +123,11 @@ jobs:
           }
           EOF
 
-      - name: Build Standard Debug APK
-        run: |
-          gradle init --type basic --dsl groovy || true
-          chmod +x gradlew || true
-          ./gradlew assembleDebug || gradle assembleDebug
+      - name: Setup Gradle Wrapper
+        run: gradle wrapper
+
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug
 
       - name: Upload APK Result
         uses: actions/upload-artifact@v4
