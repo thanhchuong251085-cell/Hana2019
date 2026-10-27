@@ -2,9 +2,9 @@
 #EXTINF:-1 tvg-logo="https://vn.xemtv.net/image/vtv1.png" group-title="VTV", (VTV1) This file is come from thành chương. Please do not reup. - VTV1
 https://dethich.pw/vtv1/index.m3u8
 #EXTINF:-1 tvg-logo="https://vn.xemtv.net/image/vtv2.png" group-title="VTV",VTV2
-https://1011154949.vnns.net/CDN-FPT02/VTV2-HD-1080p/playlist.m3u8
+https://dethich.pw/vtv2/index.m3u8
 #EXTINF:-1 tvg-logo="https://vn.xemtv.net/image/vtv3.png" group-title="VTV",VTV3
-https://1011154949.vnns.net/CDN-FPT02/VTV3-HD-1080p/playlist.m3u8
+https://dethich.pw/vtv3/index.m3u8
 #EXTINF:-1 tvg-logo="https://vn.xemtv.net/image/vtv4.png" group-title="VTV",VTV4
 https://vtvgolive-sctvdrm.vtvdigital.vn/manifest/vtv4/playlist_720p.m3u8
 #EXTINF:-1 tvg-logo="https://vn.xemtv.net/image/vtv5.png" group-title="VTV",VTV5
