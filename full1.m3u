@@ -1,4 +1,4 @@
-xe#EXTM3U url-tvg="https://epg.io.vn/epgu.xml"
+ixe#EXTM3U url-tvg="https://epg.io.vn/epgu.xml"
 #EXTINF:-1 tvg-logo="https://vn.xemtv.net/image/vtv1.png" group-title="VTV", (VTV1) This file is come from thành chương. Please do not reup. - VTV1
 https://dethich.pw/vtv1/index.m3u8
 #EXTINF:-1 tvg-logo="https://vn.xemtv.net/image/vtv2.png" group-title="VTV",VTV2
@@ -15,8 +15,8 @@ https://dethich.pw/vtv5tnb/index.m3u8
 https://dethich.pw/vtv5tn/index.m3u8
 #EXTINF:-1 tvg-logo="https://vn.xemtv.net/image/vtv6hd.png" group-title="VTV",VTV6 HD
 https://dethich.pw/vtv6/index.m3u8
-#EXTINF:-1 group-title="VTV",VTV6
-https://vtvgolive-sctvdrm.vtvdigital.vn/manifest/vtv6/playlist_720p.m3u8
+#EXTINF:-1 tvg-id="vtv6hd" group-title="VTV" tvg-logo="https://r2.epg.io.vn/2026-09-17/8.png", VTV6
+https://vmttv.dpdns.org/tv360/?id=vtv6
 #EXTINF:-1 tvg-logo="https://vn.xemtv.net/image/vtv7.png" group-title="VTV",VTV7
 https://dethich.pw/vtv7/index.m3u8
 #EXTINF:-1 tvg-logo="https://vn.xemtv.net/image/vtv8.png" group-title="VTV",VTV8
