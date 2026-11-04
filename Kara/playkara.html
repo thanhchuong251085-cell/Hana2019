@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <base target="_top">
+  <title>Karaoke Player UI</title>
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+
+  <style>
+    * {
+      -webkit-font-smoothing: antialiased;
+      box-sizing: border-box;
+    }
+
+    #currentTitle {
+      position: relative;
+      width: 260px;
+      height: 28px;
+      overflow: hidden;
+      white-space: nowrap;
+      background: rgba(0, 0, 0, 0.4);
+      border-radius: 4px;
+      padding: 2px 6px;
+      display: flex;
+      align-items: center;
+    }
+
+    /* 🌟 CHỮ CHẠY TỪ TỪ, VỪA MẮT + DỪNG NGHỈ ĐÚNG 3 GIÂY RỒI LẶP LẠI */
+    #scrollingTitle {
+      position: absolute;
+      white-space: nowrap;
+      display: inline-block;
+      animation: scroll-left 18s linear infinite; /* Tốc độ vừa phải, trôi êm ái */
+      color: #00ffcc;
+      font-weight: bold;
+      font-size: 14px;
+      will-change: transform;
+    }
+
+    @keyframes scroll-left {
+      0% { 
+        transform: translateX(100%); 
+      }
+      83% { 
+        transform: translateX(-100%); /* Chữ chạy hết từ phải sang trái */
+      }
+      100% { 
+        transform: translateX(-100%); /* Dừng nghỉ ngắn khoảng 3 giây trước khi quay lại từ phải */
+      }
+    }
+
+    body {
+      background-color: #000;
+      color: white;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+
+    #uiContainer {
+      position: absolute;
+      top: 20px;
+      right: 10px;
+      background: rgba(0, 0, 0, 0.55);
+      padding: 12px;
+      border-radius: 12px;
+      width: 330px;
+      z-index: 2;
+    }
+
+    #controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    #playlistDisplay {
+      margin: 0;
+      padding-left: 14px;
+      font-size: 14px; 
+      font-weight: normal; 
+      color: rgba(255, 255, 255, 0.95);
+      margin-bottom: 8px;
+      list-style: disc;
+    }
+    
+    #playlistDisplay li {
+      white-space: nowrap; 
+      overflow: hidden;    
+      text-overflow: ellipsis; 
+    }
+    
+    #nextSongs h4 {
+      font-size: 14px;
+      color: #00ffff;
+      font-weight: bold;
+      margin-bottom: 6px;
+      margin-top: 0;
+    }
+
+    #playPauseBtn {
+      background-color: #00cc99;
+      color: white;
+    }
+    #playPauseBtn:hover {
+      background-color: #00aa88;
+    }
+
+    button {
+      font-size: 16px;
+      padding: 6px 10px;
+      border: none;
+      border-radius: 6px;
+      background-color: #333;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #555;
+    }
+
+    #toast {
+      position: fixed;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #333;
+      color: white;
+      padding: 16px 24px;
+      border-radius: 8px;
+      font-size: 24px;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      z-index: 9999;
+      visibility: hidden;
+    }
+
+    #toast.show {
+      visibility: visible;
+      opacity: 1;
+    }
+    
+    #roomCodeDisplay {
+      font-size: 18px;
+      color: yellow;
+      padding-left: 1px;
+      margin-bottom: 10px;
+    }
+    #roomCodeDisplay #code {
+      font-weight: bold;
+      font-size: 24px;
+      color: #f1c40f;
+    }
+
+    .top-left-container {
+      position: fixed;
+      top: 15px;
+      left: 15px;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      max-width: calc(100vw - 360px);
+    }
+
+    .qr-cafe-text-main {
+      color: #ffdd00;
+      font-size: 1rem;
+      font-weight: bold;
+      text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
+      margin-bottom: 6px;
+    }
+
+    #offlinePlaylistContainer {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      white-space: nowrap;
+      padding-bottom: 4px;
+      scrollbar-width: none;
+    }
+    #offlinePlaylistContainer::-webkit-scrollbar {
+      display: none;
+    }
+
+    .offline-card {
+      flex: 0 0 60px;
+      height: 60px;
+      background: rgba(30, 30, 30, 0.85);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.2s ease;
+    }
+
+    .offline-card:hover {
+      border-color: #00cc99;
+      transform: scale(1.05);
+      background: rgba(0, 204, 153, 0.3);
+    }
+
+    .offline-card-icon {
+      font-size: 22px;
+      margin-bottom: 2px;
+    }
+
+    .offline-card-title {
+      font-size: 10px;
+      color: #add8e6;
+      width: 90%;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="top-left-container">
+    <div class="qr-cafe-text-main">Chào Mừng Bạn Đến Karaoke Hana ☕️😊</div>
+    <div id="offlinePlaylistContainer"></div>
+  </div>
+
+  <input type="file" id="localFileInput" accept="video/*,audio/*" multiple style="display: none;">
+
+  <div id="uiContainer">
+     <div id="roomCodeDisplay">
+        Mã kết nối: <span id="code">...</span>
+        <button style="margin-left: 10px;">🔄Đổi mã</button>
+     </div>
+    <div id="controls">
+      <button onclick="document.getElementById('localFileInput').click()" title="Thêm nhạc trong máy">📁</button>
+      <button id="playPauseBtn">⏯</button>
+      <button>⏭</button>
+      <div id="currentTitle"><div id="scrollingTitle">Đang tải...</div></div>
+    </div>
+
+    <div id="nextSongs">
+      <h4>🎶 Tiếp theo:</h4>
+      <ul id="playlistDisplay"></ul>
+    </div>
+  </div>
+  
+  <div id="toast"></div>
+
+</body>
+</html>
