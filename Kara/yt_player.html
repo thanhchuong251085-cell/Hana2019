@@ -3,7 +3,7 @@
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        /* Chỉ để khung đen tuyệt đối, không có bất kỳ giao diện nào thừa thãi */
+        /* Chỉ để màn hình đen thui tuyệt đối, không có bất kỳ giao diện nào */
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: black; overflow: hidden; }
         #player { width: 100%; height: 100%; }
     </style>
@@ -31,16 +31,13 @@
 
         let player;
         let isPlayerReady = false;
-
-        // Lấy chính xác mã phòng do Kotlin truyền sang qua đường dẫn URL (?room=...)
-        const urlParams = new URLSearchParams(window.location.search);
-        let roomCode = urlParams.get('room') || '95490';
+        let roomCode = null;
 
         function onYouTubeIframeAPIReady() {
             player = new YT.Player('player', {
                 height: '100%',
                 width: '100%',
-                videoId: '6BlfNIfGFfM', // Video chờ mặc định (hình xe hơi)
+                videoId: '6BlfNIfGFfM', // Video chờ hình xe hơi
                 host: 'https://www.youtube.com',
                 playerVars: {
                     'autoplay': 1,
@@ -55,11 +52,12 @@
                     'onReady': (e) => {
                         isPlayerReady = true;
                         e.target.playVideo();
-                        listenToRoomPlaylist();
+                        
+                        // Sau khi player sẵn sàng, ta tự động nhận mã phòng từ đường dẫn URL hoặc chờ Android cung cấp
+                        detectRoomCode();
                     },
                     'onStateChange': (e) => {
-                        // Phát xong tự động xóa bài đầu tiên để chuyển bài tiếp theo
-                        if (e.data === YT.PlayerState.ENDED) {
+                        if (e.data === YT.PlayerState.ENDED && roomCode) {
                             db.ref(`rooms/${roomCode}/playlist`).once('value', snapshot => {
                                 let list = [];
                                 snapshot.forEach(child => { list.push(child.key); });
@@ -73,8 +71,32 @@
             });
         }
 
-        // Lắng nghe trực tiếp Firebase theo đúng mã phòng của app Kotlin
-        function listenToRoomPlaylist() {
+        // Hàm tự động bắt mã phòng (Hỗ trợ cả bắt qua URL hoặc hàm gọi từ Android)
+        function detectRoomCode() {
+            // Cách 1: Lấy từ đuôi URL nếu có truyền (?room=XXXXX)
+            const urlParams = new URLSearchParams(window.location.search);
+            roomCode = urlParams.get('room');
+
+            if (roomCode) {
+                startListening(roomCode);
+            } else {
+                // Cách 2: Nếu chưa có, ta tự quét các phòng gần nhất trên Firebase hoặc chờ lệnh setRoomCode từ app
+                console.log("Đang chờ nhận mã phòng...");
+            }
+        }
+
+        // Hàm để Android Studio có thể gọi trực tiếp sang truyền mã phòng bất cứ lúc nào
+        function setRoomCode(code) {
+            roomCode = code;
+            startListening(roomCode);
+        }
+
+        // Bắt đầu lắng nghe Firebase theo đúng mã phòng đó
+        function startListening(code) {
+            if (!code) return;
+            roomCode = code;
+            console.log("Đã kết nối thành công với phòng: " + roomCode);
+
             db.ref(`rooms/${roomCode}/playlist`).orderByChild('timestamp').on('value', snapshot => {
                 let playlist = [];
                 snapshot.forEach(child => {
