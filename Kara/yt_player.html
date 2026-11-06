@@ -86,27 +86,27 @@
           'onStateChange': onPlayerStateChange,
           'onReady': (event) => {
                isPlayerReady = true;
-               // 🚗 Ép phát ngay lập tức khi vừa sẵn sàng
-               forcePlayWaitingCar();
+               // Vừa mở lên là ép xe hơi chạy ngay lập tức để không bao giờ màn hình đen
+               setTimeout(() => {
+                   forcePlayWaitingCar();
+               }, 300);
           },
           'onError': onPlayerError 
         }
       });
     }
 
-    // 🚗 HÀM ÉP PHẠT XE HƠI AN TOÀN (Có cơ chế lặp lại nếu WebView bận)
+    // 🚗 HÀM ÉP PHÁT XE HƠI VÀ RESET TRẠNG THÁI SẠCH SẼ
     function forcePlayWaitingCar() {
       if (!player || !isPlayerReady) return;
       
-      // Nếu hiện tại không có bài hát nào trong playlist hoặc playlist trống, bắt buộc phải hiện xe hơi
       if (playlist.length === 0) {
         try {
           player.loadVideoById(WAITING_VIDEO_ID);
           player.playVideo();
-          console.log("🚗 Đã ép phát xe hơi thành công!");
+          console.log("🚗 Xe hơi khởi động thành công!");
         } catch (e) {
-          console.log("Lỗi ép phát xe hơi, thử lại sau...", e);
-          setTimeout(forcePlayWaitingCar, 1000); // Thử lại sau 1 giây nếu bị nghẽn
+          setTimeout(forcePlayWaitingCar, 1000);
         }
       }
     }
@@ -138,7 +138,7 @@
         });
         
         if (playlist.length === 0) {
-          stopAllPlayers(); // Hết sạch bài -> Gọi xe hơi ngay lập tức
+          stopAllPlayers(); 
           currentPlayingKey = null;
         } else {
           const newFirstKey = playlist[0].key;
@@ -187,11 +187,11 @@
       }
     }
 
-    // 🚗 Hết bài / Hết danh sách chờ -> Ép quay về xe hơi chạy ngay lập tức không chần chừ
+    // 🚗 Hết bài / Hết danh sách chờ -> Quay về xe hơi
     function stopAllPlayers() {
       currentPlayingKey = null;
       if (qualityTimer) clearTimeout(qualityTimer);
-      forcePlayWaitingCar(); // Gọi hàm ép phát xe hơi thông minh
+      forcePlayWaitingCar();
     }
 
     function stopYouTubeCompletely() {
@@ -203,12 +203,11 @@
     }
 
     function onPlayerStateChange(event) {
-      // Khi YouTube phát hết bài
       if (event.data === YT.PlayerState.ENDED) {
           if (playlist.length > 0) {
               removeCurrentSong();
           } else {
-              stopAllPlayers(); // Hết bài -> Xe hơi lên sóng
+              stopAllPlayers();
           }
       }
     }
@@ -224,11 +223,12 @@
       if (playlist.length === 0 || !roomCode) return;
       const currentKey = playlist[0].key;
       db.ref(`rooms/${roomCode}/playlist/${currentKey}`).remove().then(() => {
+        // Sau khi xóa bài hiện tại, kiểm tra nếu danh sách thực sự trống thì mới gọi xe hơi
         setTimeout(() => {
-          if (playlist.length <= 1) {
-            stopAllPlayers(); // Xóa xong mà hết sạch bài -> Lôi xe hơi ra ngay
+          if (playlist.length === 0) {
+            stopAllPlayers();
           }
-        }, 500);
+        }, 300);
       });
     }
 
@@ -273,7 +273,7 @@
             
           case 'NEXT': 
             if (playlist.length > 0) {
-              removeCurrentSong();
+              removeCurrentSong(); // Xóa bài đang phát, tự động đôn bài cuối lên phát chuẩn xác
             } else {
               stopAllPlayers();
             }
