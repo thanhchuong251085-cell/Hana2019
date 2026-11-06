@@ -1,15 +1,306 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>404 Not Found</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <base target="_top">
+  <title>Karaoke YouTube Player</title>
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+
   <style>
-    body { font-family: Arial, sans-serif; text-align: center; padding-top: 50px; color: #555; }
-    h1 { font-size: 50px; margin-bottom: 10px; }
+    * {
+      -webkit-font-smoothing: antialiased;
+      box-sizing: border-box;
+    }
+
+    body {
+      background-color: #000;
+      color: white;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+
+    #player {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+      transform: translateZ(0);
+    }
   </style>
 </head>
 <body>
-  <h1>404 Not Found</h1>
-  <p>The requested URL was not found on this server.</p>
+
+  <div id="player"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script src="https://www.youtube.com/iframe_api"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAIwBqg8EYLU7TQXfOO697C4D5p5_GeghQ",
+      authDomain: "karaoke-home.firebaseapp.com",
+      databaseURL: "https://karaoke-home-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "karaoke-home",
+      storageBucket: "karaoke-home.firebasestorage.app",
+      messagingSenderId: "285959719922",
+      appId: "1:285959719922:web:6cb594ebb3ef854124796b"
+    };
+
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let player;
+    let currentPlayingKey = null; 
+    let playlist = [];
+    let isPlayerReady = false;
+    let roomCode = null; 
+    let qualityTimer = null;
+    let playlistRef = null;
+    let commandRef = null;
+    const WAITING_VIDEO_ID = "6BlfNIfGFfM"; // 🚗 Xe hơi huyền thoại
+
+    function onYouTubeIframeAPIReady() {
+      player = new YT.Player('player', {
+        height: '100%', 
+        width: '100%',
+        videoId: WAITING_VIDEO_ID, 
+        host: 'https://www.youtube.com',
+        playerVars: { 
+          'autoplay': 1, 
+          'controls': 1,
+          'modestbranding': 1,
+          'rel': 0,                 
+          'enablejsapi': 1,         
+          'origin': window.location.origin,
+          'iv_load_policy': 3,
+          'playsinline': 1,
+          'vq': 'hd1080'
+        },
+        events: {
+          'onStateChange': onPlayerStateChange,
+          'onReady': (event) => {
+               isPlayerReady = true;
+               // Vừa mở lên là ép xe hơi chạy ngay lập tức, triệt tiêu màn hình đen
+               setTimeout(() => {
+                   forcePlayWaitingCar();
+               }, 300);
+          },
+          'onError': onPlayerError 
+        }
+      });
+    }
+
+    // 🚗 HÀM ÉP PHÁT XE HƠI AN TOÀN VÀ QUYẾT LIỆT
+    function forcePlayWaitingCar() {
+      if (!player || !isPlayerReady) return;
+      
+      if (playlist.length === 0) {
+        try {
+          player.loadVideoById(WAITING_VIDEO_ID);
+          player.playVideo(); // Ép phát ngay lập tức để không bao giờ bị đen
+          console.log("🚗 Xe hơi đã được kích hoạt chạy!");
+        } catch (e) {
+          setTimeout(forcePlayWaitingCar, 1000);
+        }
+      }
+    }
+
+    function setRoomCode(code) {
+      if (!code || roomCode === code) return;
+      roomCode = code;
+      console.log("Đã đồng bộ mã phòng từ Android: " + roomCode);
+
+      if (playlistRef) playlistRef.off();
+      if (commandRef) commandRef.off();
+
+      playlistRef = db.ref(`rooms/${roomCode}/playlist`);
+      commandRef = db.ref(`rooms/${roomCode}/command`);
+
+      listenToData();
+    }
+
+    function listenToData() {
+      playlistRef.orderByChild('timestamp').on('value', snapshot => {
+        playlist = [];
+        snapshot.forEach(child => {
+          let item = child.val();
+          if (item.type === 'local' || item.localKey) {
+            stopYouTubeCompletely();
+          } else {
+            playlist.push({ key: child.key, ...item });
+          }
+        });
+        
+        if (playlist.length === 0) {
+          stopAllPlayers(); 
+          currentPlayingKey = null;
+        } else {
+          const newFirstKey = playlist[0].key;
+          if (newFirstKey !== currentPlayingKey) {
+            checkAndPlayTopSong();
+          }
+        }
+      });
+
+      commandRef.on('value', snapshot => {
+        const cmdData = snapshot.val();
+        if (cmdData) {
+          executeCommand(cmdData);
+          commandRef.remove();
+        }
+      });
+    }
+
+    function checkAndPlayTopSong() {
+      if (!isPlayerReady || !player) return;
+
+      if (playlist.length === 0) {
+        stopAllPlayers();
+        return;
+      }
+      
+      const topSong = playlist[0];
+      
+      if (topSong.type === 'local' || topSong.localKey) {
+        stopYouTubeCompletely();
+        return;
+      }
+
+      currentPlayingKey = topSong.key;
+
+      if (topSong.videoId && player.loadVideoById) {
+        if (qualityTimer) clearTimeout(qualityTimer);
+        player.loadVideoById(topSong.videoId);
+        player.playVideo();
+
+        qualityTimer = setTimeout(() => {
+          if (player && player.setPlaybackQuality) {
+            player.setPlaybackQuality('hd1080');
+          }
+        }, 4000);
+      }
+    }
+
+    // 🚗 Hết bài / Hết danh sách chờ -> Bắt buộc lôi xe hơi ra chạy và ép phát
+    function stopAllPlayers() {
+      currentPlayingKey = null;
+      if (qualityTimer) clearTimeout(qualityTimer);
+      forcePlayWaitingCar();
+    }
+
+    function stopYouTubeCompletely() {
+      if (qualityTimer) clearTimeout(qualityTimer);
+      if (player && player.stopVideo) {
+        player.stopVideo();
+        player.pauseVideo();
+      }
+    }
+
+    function onPlayerStateChange(event) {
+      if (event.data === YT.PlayerState.ENDED) {
+          if (playlist.length > 0) {
+              removeCurrentSong();
+          } else {
+              stopAllPlayers();
+          }
+      }
+    }
+
+    function onPlayerError(event) {
+      setTimeout(() => {
+          if(playlist.length > 0) removeCurrentSong();
+          else stopAllPlayers();
+      }, 2000);
+    }
+
+    function removeCurrentSong() {
+      if (playlist.length === 0 || !roomCode) return;
+      const currentKey = playlist[0].key;
+      db.ref(`rooms/${roomCode}/playlist/${currentKey}`).remove().then(() => {
+        setTimeout(() => {
+          if (playlist.length === 0) {
+            stopAllPlayers(); // Xóa xong hết bài -> Xe hơi lên sóng ngay lập tức
+          }
+        }, 300);
+      });
+    }
+
+    function togglePlayPause() {
+      if (!player || !isPlayerReady) return;
+      const state = player.getPlayerState();
+      if (state === YT.PlayerState.PLAYING) {
+        player.pauseVideo();
+      } else {
+        player.playVideo();
+      }
+    }
+
+    function executeCommand(cmdData) {
+      const type = (typeof cmdData === 'object') ? cmdData.type : cmdData;
+
+      try {
+        switch (type) {
+          case 'PLAY_NOW': 
+            if (cmdData.typeSource === 'local' || cmdData.localKey) {
+              stopYouTubeCompletely();
+              break;
+            }
+
+            // 🎯 ĐẢM BẢO CHỈ CẦN 1 CÚ BẤM LÀ PHÁT NGAY LẬP TỨC, KHÔNG CẦN BẤM LẦN 2
+            if (cmdData.videoId) {
+              if (qualityTimer) clearTimeout(qualityTimer);
+              player.loadVideoById(cmdData.videoId);
+              player.playVideo(); // Ép phát ngay lập tức
+
+              qualityTimer = setTimeout(() => {
+                if (player && player.setPlaybackQuality) {
+                  player.setPlaybackQuality('hd1080');
+                }
+              }, 4000);
+            }
+            break;
+            
+          case 'PLAY': 
+          case 'PAUSE': 
+            togglePlayPause();
+            break;
+            
+          case 'NEXT': 
+            if (playlist.length > 0) {
+              removeCurrentSong(); 
+            } else {
+              stopAllPlayers();
+            }
+            break;
+
+          case 'SET_HD': 
+            if (player && player.setPlaybackQuality) {
+              player.setPlaybackQuality('hd1080');
+            }
+            break;
+            
+          case 'VOL_UP': 
+            if (player && player.getVolume) {
+              player.setVolume(Math.min(player.getVolume() + 10, 100));
+            }
+            break;
+            
+          case 'VOL_DOWN': 
+            if (player && player.getVolume) {
+              player.setVolume(Math.max(player.getVolume() - 10, 0));
+            }
+            break;
+        }
+      } catch (e) { 
+        console.error("Lỗi thực thi lệnh:", e); 
+      }
+    }
+  </script>
 </body>
 </html>
