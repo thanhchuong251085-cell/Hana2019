@@ -58,11 +58,12 @@
         let currentPlayingKey = null;
         let isPlayerReady = false;
         let isOfflineMode = false;
-        const WAITING_VIDEO_ID = "6BlfNIfGFfM"; // 🚗 Xe hơi huyền thoại tự động chạy
+        let hasFirebaseInitialLoaded = false; // 🛡️ Cờ kiểm soát chống Firebase đè lúc đầu
+        const WAITING_VIDEO_ID = "6BlfNIfGFfM"; // 🚗 Xe hơi huyền thoại
 
         const localVid = document.getElementById('localPlayer');
 
-        // 1️⃣ KHỞI TẠO PLAYER: Dựa chuẩn cơ chế zin, nạp sẵn xe hơi và autoplay ngay khi sẵn sàng (Chống màn hình đen)
+        // 1️⃣ KHỞI TẠO ĐỘC LẬP TUYỆT ĐỐI (Giống hệt đoạn code zin của anh để xe hơi chạy ngay lập tức)
         function onYouTubeIframeAPIReady() {
             player = new YT.Player('player', {
                 height: '100%',
@@ -82,9 +83,10 @@
                 events: {
                     'onReady': (e) => {
                         isPlayerReady = true;
-                        // Ép phát xe hơi ngay giây đầu tiên mở app, tuyệt đối không đen màn hình
+                        // Ép phát xe hơi ngay lập tức, không chờ đợi ai cả
                         e.target.loadVideoById(WAITING_VIDEO_ID);
                         e.target.playVideo();
+                        console.log("🚗 Xe hơi đã tự động xuất phát độc lập!");
                     },
                     'onStateChange': onPlayerStateChange
                 }
@@ -106,7 +108,7 @@
             listenToFirebase();
         }
 
-        // 3️⃣ LẮNG NGHE FIREBASE & ĐIỂM ĂN TIỀN: Phân tách tuyệt đối Online (YouTube) và Offline (ExoPlayer)
+        // 3️⃣ LẮNG NGHE FIREBASE (Đã bọc cờ bảo vệ để không làm đen màn hình lúc mở app)
         function listenToFirebase() {
             playlistRef.orderByChild('timestamp').on('value', snapshot => {
                 let playlist = [];
@@ -115,18 +117,24 @@
                     playlist.push({ key: child.key, ...item });
                 });
 
+                hasFirebaseInitialLoaded = true; // Đã nhận dữ liệu lần đầu
+
                 if (playlist.length === 0) {
                     currentPlayingKey = null;
                     stopOfflinePlayer();
-                    // Danh sách rỗng -> Tự động nạp và phát xe hơi
+                    // Nếu danh sách trống -> Đảm bảo xe hơi luôn chạy
                     if (isPlayerReady && player && player.loadVideoById) {
-                        player.loadVideoById(WAITING_VIDEO_ID);
-                        player.playVideo();
+                        const currentState = player.getPlayerState();
+                        // Chỉ load lại nếu không phải đang chạy xe hơi
+                        if (currentState !== YT.PlayerState.PLAYING && currentState !== YT.PlayerState.BUFFERING) {
+                            player.loadVideoById(WAITING_VIDEO_ID);
+                            player.playVideo();
+                        }
                     }
                 } else {
                     let topSong = playlist[0];
 
-                    // 🛡️ Phân tách tuyến âm thanh: Nếu là bài local / offline thì tắt YouTube, bật ExoPlayer
+                    // 🛡️ Phân tách tuyến âm thanh tuyệt đối giữa Local và YouTube
                     if (topSong.type === 'local' || topSong.localKey) {
                         stopYouTubeCompletely();
                         playOfflineSong(topSong);
@@ -183,7 +191,7 @@
             }
         }
 
-        // 5️⃣ XỬ LÝ KHI HẾT BÀI (Hết danh sách chờ -> Quay về xe hơi)
+        // 5️⃣ XỬ LÝ KHI HẾT BÀI (Tự động quay về xe hơi mượt mà không bị màn hình đen)
         function onPlayerStateChange(event) {
             if (isOfflineMode) return;
             if (event.data === YT.PlayerState.ENDED) {
@@ -196,19 +204,19 @@
             playlistRef.orderByChild('timestamp').limitToFirst(1).once('value', snap => {
                 snap.forEach(child => {
                     child.ref.remove().then(() => {
-                        // Kiểm tra nếu hết sạch bài thì tự động gọi xe hơi chạy tiếp
+                        // Sau khi xóa bài hết, kiểm tra nếu danh sách sạch bóng thì gọi ngay xe hơi chạy tiếp
                         setTimeout(() => {
                             if (isPlayerReady && player && player.loadVideoById) {
                                 player.loadVideoById(WAITING_VIDEO_ID);
                                 player.playVideo();
                             }
-                        }, 300);
+                        }, 200);
                     });
                 });
             });
         }
 
-        // 6️⃣ BỘ LỆNH ĐIỀU KHIỂN REMOTE (PLAY, PAUSE, NEXT, VOL...)
+        // 6️⃣ BỘ LỆNH ĐIỀU KHIỂN REMOTE
         function executeCommand(cmdData) {
             const type = (typeof cmdData === 'object') ? cmdData.type : cmdData;
 
