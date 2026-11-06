@@ -28,7 +28,7 @@
       left: 0;
       width: 100vw;
       height: 100vh;
-      z-index: 1;
+      z-index: 0;
       transform: translateZ(0);
     }
   </style>
@@ -59,17 +59,18 @@
     let currentPlayingKey = null; 
     let playlist = [];
     let isPlayerReady = false;
-    let roomCode = null; 
+    let roomCode = null; // Mã phòng nhận từ Android Studio (Khởi động & Đổi mã)
     let qualityTimer = null;
     let playlistRef = null;
     let commandRef = null;
-    const WAITING_VIDEO_ID = "6BlfNIfGFfM"; // 🚗 Video xe hơi cố định
+    const WAITING_VIDEO_ID = "6BlfNIfGFfM"; // 🚗 Video xe hơi chuẩn gốc
 
+    // 1️⃣ KHỞI TẠO Y CHANG BẢN GỐC (Mở lên là xe hơi tự động play phà phà)
     function onYouTubeIframeAPIReady() {
       player = new YT.Player('player', {
         height: '100%', 
         width: '100%',
-        videoId: WAITING_VIDEO_ID, // Mở lên nạp sẵn xe hơi
+        videoId: WAITING_VIDEO_ID, 
         host: 'https://www.youtube.com',
         playerVars: { 
           'autoplay': 1, 
@@ -86,35 +87,20 @@
           'onStateChange': onPlayerStateChange,
           'onReady': (event) => {
                isPlayerReady = true;
-               // Vừa mở lên: Nếu chưa có bài hát nào, nạp xe hơi và khóa nút Next an toàn
-               if (playlist.length === 0) {
-                   playVideoByIdAuto(WAITING_VIDEO_ID);
-               }
+               event.target.playVideo(); 
           },
           'onError': onPlayerError 
         }
       });
     }
 
-    // 🚗 Hàm bơm Video ID phát tự động
-    function playVideoByIdAuto(videoId) {
-      if (!isPlayerReady || !player || !player.loadVideoById) return;
-      
-      if (qualityTimer) clearTimeout(qualityTimer);
-      try {
-        player.loadVideoById(videoId);
-        player.playVideo();
-        console.log("▶️ Đang phát Video ID: " + videoId);
-      } catch (e) {
-        setTimeout(() => playVideoByIdAuto(videoId), 800);
-      }
-    }
-
+    // 2️⃣ MÃ PHÒNG 2 CHIỀU: Nhận mã từ Android (Khởi động app hoặc bấm Đổi mã)
     function setRoomCode(code) {
       if (!code || roomCode === code) return;
       roomCode = code;
-      console.log("Đã đồng bộ mã phòng từ Android: " + roomCode);
+      console.log("🚀 Đã đồng bộ mã phòng từ Android Studio: " + roomCode);
 
+      // Gỡ bỏ lắng nghe cũ để chuyển sang mã phòng mới mượt mà
       if (playlistRef) playlistRef.off();
       if (commandRef) commandRef.off();
 
@@ -124,11 +110,13 @@
       listenToData();
     }
 
+    // 3️⃣ LẮNG NGHE DỮ LIỆU CHUẨN FORM GỐC
     function listenToData() {
       playlistRef.orderByChild('timestamp').on('value', snapshot => {
         playlist = [];
         snapshot.forEach(child => {
           let item = child.val();
+          // Lọc bỏ nhạc offline (ExoPlayer xử lý), HTML chỉ thuần túy chơi YouTube online
           if (item.type === 'local' || item.localKey) {
             stopYouTubeCompletely();
           } else {
@@ -137,8 +125,8 @@
         });
         
         if (playlist.length === 0) {
-          // 🚗 Danh sách trống -> Chạy xe hơi & Nút Next tạm thời bị khóa vô hiệu hóa
-          playVideoByIdAuto(WAITING_VIDEO_ID);
+          // Hết bài / Danh sách rỗng -> Trả về xe hơi chạy lặp lại
+          playWaitingCar();
           currentPlayingKey = null;
         } else {
           const newFirstKey = playlist[0].key;
@@ -158,10 +146,10 @@
     }
 
     function checkAndPlayTopSong() {
-      if (!isPlayerReady) return;
+      if (!isPlayerReady || !player) return;
 
       if (playlist.length === 0) {
-        playVideoByIdAuto(WAITING_VIDEO_ID);
+        playWaitingCar();
         return;
       }
       
@@ -174,14 +162,29 @@
 
       currentPlayingKey = topSong.key;
 
-      if (topSong.videoId) {
-        playVideoByIdAuto(topSong.videoId);
-        
+      if (topSong.videoId && player.loadVideoById) {
+        if (qualityTimer) clearTimeout(qualityTimer);
+        player.loadVideoById(topSong.videoId);
+        player.playVideo();
+
         qualityTimer = setTimeout(() => {
           if (player && player.setPlaybackQuality) {
             player.setPlaybackQuality('hd1080');
           }
         }, 4000);
+      }
+    }
+
+    function playWaitingCar() {
+      currentPlayingKey = null;
+      if (qualityTimer) clearTimeout(qualityTimer);
+      if (isPlayerReady && player && player.loadVideoById) {
+        try {
+          player.loadVideoById(WAITING_VIDEO_ID);
+          player.playVideo();
+        } catch (e) {
+          setTimeout(playWaitingCar, 800);
+        }
       }
     }
 
@@ -198,8 +201,7 @@
           if (playlist.length > 0) {
               removeCurrentSong();
           } else {
-              // 🚗 Hết bài -> Về xe hơi (Nút Next tự động được khóa an toàn)
-              playVideoByIdAuto(WAITING_VIDEO_ID);
+              playWaitingCar(); // Hết bài -> Về xe hơi
           }
       }
     }
@@ -207,7 +209,7 @@
     function onPlayerError(event) {
       setTimeout(() => {
           if(playlist.length > 0) removeCurrentSong();
-          else playVideoByIdAuto(WAITING_VIDEO_ID);
+          else playWaitingCar();
       }, 2000);
     }
 
@@ -217,7 +219,7 @@
       db.ref(`rooms/${roomCode}/playlist/${currentKey}`).remove().then(() => {
         setTimeout(() => {
           if (playlist.length === 0) {
-            playVideoByIdAuto(WAITING_VIDEO_ID);
+            playWaitingCar();
           }
         }, 300);
       });
@@ -233,6 +235,7 @@
       }
     }
 
+    // 4️⃣ BỘ ĐIỀU KHIỂN REMOTE CHUẨN FORM GỐC (Play Now, Next, Vol, Play/Pause ăn ngay lập tức)
     function executeCommand(cmdData) {
       const type = (typeof cmdData === 'object') ? cmdData.type : cmdData;
 
@@ -244,8 +247,16 @@
               break;
             }
 
-            if (cmdData.videoId) {
-              playVideoByIdAuto(cmdData.videoId); // Phát nhạc online phà phà
+            if (cmdData.videoId && player && player.loadVideoById) {
+              if (qualityTimer) clearTimeout(qualityTimer);
+              player.loadVideoById(cmdData.videoId);
+              player.playVideo(); // Bấm Play Now phát nhạc YouTube phà phà trong 1 nốt nhạc
+
+              qualityTimer = setTimeout(() => {
+                if (player && player.setPlaybackQuality) {
+                  player.setPlaybackQuality('hd1080');
+                }
+              }, 4000);
             }
             break;
             
@@ -255,15 +266,13 @@
             break;
             
           case 'NEXT': 
-            // 🛡️ KHÓA THÔNG MINH NÚT NEXT: 
-            // Nếu danh sách trống (đang chạy xe hơi lúc mới mở app hoặc lúc vừa hết bài) -> Chặn cứng nút Next!
+            // 🛡️ NÚT NEXT THÔNG MINH: Đang ở xe hơi (danh sách trống) -> Khóa cứng an toàn
             if (playlist.length === 0) {
-              console.log("🛡️ Đang chạy xe hơi, nút Next bị khóa an toàn để tránh màn hình đen!");
-              playVideoByIdAuto(WAITING_VIDEO_ID); // Giữ nguyên xe hơi chạy
+              console.log("🛡️ Đang chạy xe hơi, nút Next bị khóa an toàn!");
+              playWaitingCar();
               break;
             }
 
-            // Nếu có danh sách bài hát -> Cho phép Next bình thường qua bài kế tiếp
             if (playlist.length > 0) {
               removeCurrentSong(); 
             }
@@ -288,7 +297,7 @@
             break;
         }
       } catch (e) { 
-        console.error("Lỗi thực thi lệnh:", e); 
+        console.error("Lỗi thực thi lệnh điều khiển remote:", e); 
       }
     }
   </script>
