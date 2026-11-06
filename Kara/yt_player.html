@@ -86,7 +86,7 @@
           'onStateChange': onPlayerStateChange,
           'onReady': (event) => {
                isPlayerReady = true;
-               // Vừa mở lên là ép xe hơi chạy ngay lập tức để không bao giờ màn hình đen
+               // Vừa mở lên là ép xe hơi chạy ngay lập tức, triệt tiêu màn hình đen
                setTimeout(() => {
                    forcePlayWaitingCar();
                }, 300);
@@ -96,15 +96,15 @@
       });
     }
 
-    // 🚗 HÀM ÉP PHÁT XE HƠI VÀ RESET TRẠNG THÁI SẠCH SẼ
+    // 🚗 HÀM ÉP PHÁT XE HƠI AN TOÀN VÀ QUYẾT LIỆT
     function forcePlayWaitingCar() {
       if (!player || !isPlayerReady) return;
       
       if (playlist.length === 0) {
         try {
           player.loadVideoById(WAITING_VIDEO_ID);
-          player.playVideo();
-          console.log("🚗 Xe hơi khởi động thành công!");
+          player.playVideo(); // Ép phát ngay lập tức để không bao giờ bị đen
+          console.log("🚗 Xe hơi đã được kích hoạt chạy!");
         } catch (e) {
           setTimeout(forcePlayWaitingCar, 1000);
         }
@@ -187,7 +187,7 @@
       }
     }
 
-    // 🚗 Hết bài / Hết danh sách chờ -> Quay về xe hơi
+    // 🚗 Hết bài / Hết danh sách chờ -> Bắt buộc lôi xe hơi ra chạy và ép phát
     function stopAllPlayers() {
       currentPlayingKey = null;
       if (qualityTimer) clearTimeout(qualityTimer);
@@ -223,10 +223,9 @@
       if (playlist.length === 0 || !roomCode) return;
       const currentKey = playlist[0].key;
       db.ref(`rooms/${roomCode}/playlist/${currentKey}`).remove().then(() => {
-        // Sau khi xóa bài hiện tại, kiểm tra nếu danh sách thực sự trống thì mới gọi xe hơi
         setTimeout(() => {
           if (playlist.length === 0) {
-            stopAllPlayers();
+            stopAllPlayers(); // Xóa xong hết bài -> Xe hơi lên sóng ngay lập tức
           }
         }, 300);
       });
@@ -253,10 +252,11 @@
               break;
             }
 
+            // 🎯 ĐẢM BẢO CHỈ CẦN 1 CÚ BẤM LÀ PHÁT NGAY LẬP TỨC, KHÔNG CẦN BẤM LẦN 2
             if (cmdData.videoId) {
               if (qualityTimer) clearTimeout(qualityTimer);
               player.loadVideoById(cmdData.videoId);
-              player.playVideo();
+              player.playVideo(); // Ép phát ngay lập tức
 
               qualityTimer = setTimeout(() => {
                 if (player && player.setPlaybackQuality) {
@@ -273,7 +273,7 @@
             
           case 'NEXT': 
             if (playlist.length > 0) {
-              removeCurrentSong(); // Xóa bài đang phát, tự động đôn bài cuối lên phát chuẩn xác
+              removeCurrentSong(); 
             } else {
               stopAllPlayers();
             }
