@@ -8,28 +8,21 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
 
   <style>
-    * {
-      -webkit-font-smoothing: antialiased;
-      box-sizing: border-box;
-    }
-
-    body {
+    html, body {
       background-color: #000;
       color: white;
       font-family: Arial, sans-serif;
       margin: 0;
       padding: 0;
+      width: 100%;
+      height: 100%;
       overflow: hidden;
     }
 
     #player {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      z-index: 0;
-      transform: translateZ(0);
+      width: 100%;
+      height: 100%;
+      background-color: #000;
     }
   </style>
 </head>
@@ -63,9 +56,9 @@
     let qualityTimer = null;
     let playlistRef = null;
     let commandRef = null;
-    const WAITING_VIDEO_ID = "6BlfNIfGFfM"; // 🚗 Video xe hơi huyền thoại
+    const WAITING_VIDEO_ID = "6BlfNIfGFfM"; // 🚗 Xe hơi huyền thoại
 
-    // 1️⃣ KHỞI TẠO AUTOPLAY: Mở app lên là xe hơi tự động phóng thẳng ngay lập tức
+    // 1️⃣ ĐIỂM 1: KHỞI TẠO ĐỘC LẬP - Mở app lên là nạp và chạy xe hơi ngay lập tức
     function onYouTubeIframeAPIReady() {
       player = new YT.Player('player', {
         height: '100%', 
@@ -73,7 +66,7 @@
         videoId: WAITING_VIDEO_ID, 
         host: 'https://www.youtube.com',
         playerVars: { 
-          'autoplay': 1,            // Tự động play nhờ sức mạnh WebView Android
+          'autoplay': 1, 
           'controls': 1,
           'modestbranding': 1,
           'rel': 0,                 
@@ -87,18 +80,32 @@
           'onStateChange': onPlayerStateChange,
           'onReady': (event) => {
                isPlayerReady = true;
-               event.target.playVideo(); // Ép phát ngay lập tức
+               playWaitingCar();
           },
           'onError': onPlayerError 
         }
       });
     }
 
-    // 2️⃣ MÃ PHÒNG 2 CHIỀU: Nhận mã từ Android Studio (Khởi động & Đổi mã)
+    function playWaitingCar() {
+      currentPlayingKey = null;
+      if (qualityTimer) clearTimeout(qualityTimer);
+      if (isPlayerReady && player && player.loadVideoById) {
+        try {
+          player.loadVideoById(WAITING_VIDEO_ID);
+          player.playVideo();
+          console.log("🚗 Xe hơi đang chạy độc lập mượt mà!");
+        } catch (e) {
+          setTimeout(playWaitingCar, 800);
+        }
+      }
+    }
+
+    // 2️⃣ ĐIỂM 2: MÃ PHÒNG 2 CHIỀU (Nhận từ Android Studio khi khởi động hoặc Đổi mã)
     function setRoomCode(code) {
       if (!code || roomCode === code) return;
       roomCode = code;
-      console.log("🚀 Đã nhận mã phòng từ Android: " + roomCode);
+      console.log("🚀 Đã đồng bộ mã phòng từ Android: " + roomCode);
 
       if (playlistRef) playlistRef.off();
       if (commandRef) commandRef.off();
@@ -109,19 +116,22 @@
       listenToData();
     }
 
-    // 3️⃣ LẮNG NGHE DỮ LIỆU TỪ FIREBASE
+    // 3️⃣ ĐIỂM 3: FIREBASE & ĐIỀU KHIỂN REMOTE (Ăn khớp 100%, phân tách Local/Online tuyệt đối)
     function listenToData() {
       playlistRef.orderByChild('timestamp').on('value', snapshot => {
         playlist = [];
         snapshot.forEach(child => {
           let item = child.val();
-          if (!item.type || item.type !== 'local') {
+          // 🛡️ Điểm ăn tiền: Lọc bỏ nhạc local để ExoPlayer xử lý độc lập, chống chồng hình/chồng tiếng
+          if (item.type === 'local' || item.localKey) {
+            stopYouTubeCompletely();
+          } else {
             playlist.push({ key: child.key, ...item });
           }
         });
         
         if (playlist.length === 0) {
-          // Khi danh sách rỗng -> Tự động gọi xe hơi chạy lặp lại
+          // Hết bài / Danh sách rỗng -> Tự động gọi xe hơi chạy rần rần
           playWaitingCar();
           currentPlayingKey = null;
         } else {
@@ -171,19 +181,6 @@
       }
     }
 
-    function playWaitingCar() {
-      currentPlayingKey = null;
-      if (qualityTimer) clearTimeout(qualityTimer);
-      if (isPlayerReady && player && player.loadVideoById) {
-        try {
-          player.loadVideoById(WAITING_VIDEO_ID);
-          player.playVideo();
-        } catch (e) {
-          setTimeout(playWaitingCar, 800);
-        }
-      }
-    }
-
     function stopYouTubeCompletely() {
       if (qualityTimer) clearTimeout(qualityTimer);
       if (player && player.stopVideo) {
@@ -193,13 +190,12 @@
     }
 
     function onPlayerStateChange(event) {
-      // Khi YouTube phát hết 1 bài
       if (event.data === YT.PlayerState.ENDED) {
           if (playlist.length > 0) {
               removeCurrentSong();
           } else {
-              // 🎬 HẾT BÀI / HẾT DANH SÁCH: Giữ nguyên trạng thái bài cuối cùng hiển thị giao diện YouTube (Không gọi xe hơi đè lên, không có màn hình đen)
-              console.log("🏁 Đã hát hết danh sách chờ. Dừng lại ở giao diện bài cuối cùng.");
+              // 🚗 Hát hết danh sách -> Tự động quay về xe hơi chạy tiếp
+              playWaitingCar();
           }
       }
     }
@@ -207,6 +203,7 @@
     function onPlayerError(event) {
       setTimeout(() => {
           if(playlist.length > 0) removeCurrentSong();
+          else playWaitingCar();
       }, 2000);
     }
 
@@ -216,7 +213,7 @@
       db.ref(`rooms/${roomCode}/playlist/${currentKey}`).remove().then(() => {
         setTimeout(() => {
           if (playlist.length === 0) {
-            // Xóa xong bài cuối cùng -> Dừng ở giao diện bài cuối, không bị màn hình đen
+            playWaitingCar();
           }
         }, 300);
       });
@@ -232,7 +229,7 @@
       }
     }
 
-    // 4️⃣ BỘ ĐIỀU KHIỂN REMOTE KÈM KHÓA THÔNG MINH NÚT NEXT
+    // 4️⃣ BỘ LỆNH REMOTE & NÚT NEXT THÔNG MINH
     function executeCommand(cmdData) {
       const type = (typeof cmdData === 'object') ? cmdData.type : cmdData;
 
@@ -247,7 +244,7 @@
             if (cmdData.videoId && player && player.loadVideoById) {
               if (qualityTimer) clearTimeout(qualityTimer);
               player.loadVideoById(cmdData.videoId);
-              player.playVideo(); // Phát nhạc ngay lập tức
+              player.playVideo(); 
 
               qualityTimer = setTimeout(() => {
                 if (player && player.setPlaybackQuality) {
@@ -263,9 +260,10 @@
             break;
             
           case 'NEXT': 
-            // 🛡️ NÚT NEXT THÔNG MINH: Nếu danh sách trống -> Khóa cứng, không làm gì cả để giữ nguyên màn hình
+            // 🛡️ NÚT NEXT THÔNG MINH: Đang chạy xe hơi (danh sách rỗng) -> Khóa an toàn, tiếp tục cho xe chạy
             if (playlist.length === 0) {
-              console.log("🛡️ Danh sách chờ đã trống, nút Next bị khóa an toàn!");
+              console.log("🛡️ Đang chạy xe hơi, nút Next bị khóa an toàn!");
+              playWaitingCar();
               break;
             }
 
@@ -293,7 +291,7 @@
             break;
         }
       } catch (e) { 
-        console.error("Lỗi thực thi lệnh điều khiển remote:", e); 
+        console.error("Lỗi thực thi lệnh điều khiển:", e); 
       }
     }
   </script>
