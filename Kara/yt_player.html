@@ -37,7 +37,7 @@
             player = new YT.Player('player', {
                 height: '100%',
                 width: '100%',
-                videoId: '6BlfNIfGFfM', // Video chờ mặc định (hình xe hơi)
+                videoId: '6BlfNIfGFfM', // 🚗 VỪA MỞ LÊN LÀ PHÁT NGAY VIDEO XE HƠI MẶC ĐỊNH
                 host: 'https://www.youtube.com',
                 playerVars: {
                     'autoplay': 1,
@@ -51,10 +51,10 @@
                 events: {
                     'onReady': (e) => {
                         isPlayerReady = true;
-                        e.target.playVideo();
+                        e.target.playVideo(); // Ép phát ngay lập tức không chần chừ
                     },
                     'onStateChange': (e) => {
-                        // Phát xong tự động xóa bài đầu tiên để chuyển bài tiếp theo
+                        // Khi phát xong một bài YouTube bất kỳ, tự động xóa khỏi hàng đợi và quay về xe hơi
                         if (e.data === YT.PlayerState.ENDED && roomCode) {
                             db.ref(`rooms/${roomCode}/playlist`).once('value', snapshot => {
                                 let list = [];
@@ -69,13 +69,12 @@
             });
         }
 
-        // 🚀 NHIỆM VỤ DUY NHẤT CỦA HTML: Nhận mã phòng do Android Studio gửi xuống đây!
+        // Nhận mã phòng do Android Studio gửi xuống để kết nối Firebase lắng nghe Remote
         function setRoomCode(code) {
             if (!code || roomCode === code) return;
             roomCode = code;
             console.log("Đã nhận mã phòng từ Android: " + roomCode);
 
-            // Ngắt kết nối phòng cũ nếu có, chuyển sang lắng nghe phòng mới
             if (dbRef) dbRef.off();
 
             dbRef = db.ref(`rooms/${roomCode}/playlist`);
@@ -89,12 +88,12 @@
                     const topSong = playlist[0];
                     if (topSong.videoId) {
                         if (player && player.loadVideoById) {
-                            player.loadVideoById(topSong.videoId);
+                            player.loadVideoById(topSong.videoId); // Có bài mới -> Phát bài mới
                         }
                     }
                 } else if (playlist.length === 0 && isPlayerReady) {
                     if (player && player.loadVideoById) {
-                        player.loadVideoById('6BlfNIfGFfM'); // Hết bài về lại xe hơi
+                        player.loadVideoById('6BlfNIfGFfM'); // Hết bài -> Tự động quay lại xe hơi chạy mượt mà
                     }
                 }
             });
