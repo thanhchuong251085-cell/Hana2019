@@ -32,13 +32,13 @@
         let isPlayerReady = false;
         let roomCode = null;
         let dbRef = null;
-        let pendingVideoId = null; // Lưu tạm video chờ nếu player chưa kịp sẵn sàng
+        let currentPlayingVideoId = ""; // Lưu ID bài đang hát để tránh bị load lại oan uổng
 
         function onYouTubeIframeAPIReady() {
             player = new YT.Player('player', {
                 height: '100%',
                 width: '100%',
-                videoId: '6BlfNIfGFfM', // 🚗 VỪA MỞ LÊN LÀ PHÁT NGAY XE HƠI MƯỢT MÀ
+                videoId: '6BlfNIfGFfM', // 🚗 Mặc định xe hơi chạy ngay lập tức khi load trang
                 host: 'https://www.youtube.com',
                 playerVars: {
                     'autoplay': 1,
@@ -53,14 +53,9 @@
                     'onReady': (e) => {
                         isPlayerReady = true;
                         e.target.playVideo();
-                        // Nếu trước đó có lệnh chọn bài mà player chưa sẵn sàng, giờ phát luôn
-                        if (pendingVideoId) {
-                            player.loadVideoById(pendingVideoId);
-                            pendingVideoId = null;
-                        }
                     },
                     'onStateChange': (e) => {
-                        // Khi phát hết 1 bài YouTube, tự động xóa bài đó khỏi playlist
+                        // Khi phát hết 1 bài YouTube, tự động xóa bài đó khỏi playlist Firebase để chuyển bài tiếp theo
                         if (e.data === YT.PlayerState.ENDED && roomCode) {
                             db.ref(`rooms/${roomCode}/playlist`).once('value', snapshot => {
                                 let list = [];
@@ -75,9 +70,9 @@
             });
         }
 
-        // Nhận mã phòng từ Android Studio gửi xuống
+        // Nhận mã phòng từ Android Studio gửi xuống qua lệnh evaluateJavascript
         function setRoomCode(code) {
-            if (!code) return;
+            if (!code || roomCode === code) return;
             roomCode = code;
             console.log("Đã nhận mã phòng từ Android: " + roomCode);
 
@@ -90,19 +85,28 @@
                     playlist.push({ key: child.key, ...child.val() });
                 });
 
-                if (playlist.length > 0) {
+                if (playlist.length > 0 && isPlayerReady) {
                     const topSong = playlist[0];
-                    if (topSong.videoId) {
-                        if (isPlayerReady && player && player.loadVideoById) {
-                            player.loadVideoById(topSong.videoId); // Đổi sang bài YouTube mới
-                        } else {
-                            pendingVideoId = topSong.videoId; // Lưu lại chờ player sẵn sàng
+                    const targetVideoId = topSong.videoId;
+
+                    if (targetVideoId) {
+                        // 🎯 ĐIỂM SÁNG QUAN TRỌNG: 
+                        // Chỉ lệnh đổi bài khi video đầu bảng KHÁC với video đang phát. 
+                        // Nếu có người thêm bài mới vào danh sách chờ phía sau, bài đang hát vẫn trơ trơ chạy tiếp, KHÔNG BAO GIỜ BỊ NHÁY LẠI!
+                        if (targetVideoId !== currentPlayingVideoId) {
+                            currentPlayingVideoId = targetVideoId;
+                            if (player && player.loadVideoById) {
+                                player.loadVideoById(targetVideoId);
+                            }
                         }
                     }
-                } else {
-                    // Nếu playlist trống, tự động quay về xe hơi
-                    if (isPlayerReady && player && player.loadVideoById) {
-                        player.loadVideoById('6BlfNIfGFfM');
+                } else if (playlist.length === 0 && isPlayerReady) {
+                    // Nếu danh sách trống (hết bài), reset lại biến và quay về xe hơi
+                    if (currentPlayingVideoId !== '6BlfNIfGFfM') {
+                        currentPlayingVideoId = '6BlfNIfGFfM';
+                        if (player && player.loadVideoById) {
+                            player.loadVideoById('6BlfNIfGFfM');
+                        }
                     }
                 }
             });
