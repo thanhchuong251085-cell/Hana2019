@@ -32,7 +32,7 @@
     <div id="player"></div>
     <video id="localPlayer" controls preload="auto" playsinline></video>
 
-    <!-- Thư viện Firebase & YouTube Iframe API -->
+    <!-- Thư viện Firebase & YouTube API chuẩn zin -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://www.youtube.com/iframe_api"></script>
@@ -58,16 +58,17 @@
         let currentPlayingKey = null;
         let isPlayerReady = false;
         let isOfflineMode = false;
-        const WAITING_VIDEO_ID = "6BlfNIfGFfM"; // 🚗 Xe hơi huyền thoại
-
+        
+        // 🚗 Lấy đúng chuẩn ID xe hơi huyền thoại từ đoạn code anh cung cấp
+        const WAITING_VIDEO_ID = '6BlfNIfGFfM'; 
         const localVid = document.getElementById('localPlayer');
 
-        // 1️⃣ KHỞI TẠO PLAYER VỚI ĐỘ TRỄ AN TOÀN (Đảm bảo mở lên là xe hơi tự chạy phà phà)
+        // 1️⃣ KHỞI TẠO PLAYER: Áp dụng chuẩn y hệt đoạn code xe hơi thuần túy (Mở lên là chạy ngay, không bao giờ đen màn hình)
         function onYouTubeIframeAPIReady() {
             player = new YT.Player('player', {
                 height: '100%',
                 width: '100%',
-                videoId: WAITING_VIDEO_ID,
+                videoId: WAITING_VIDEO_ID, // Nạp sẵn xe hơi từ cấu hình gốc
                 host: 'https://www.youtube.com',
                 playerVars: {
                     'autoplay': 1,
@@ -76,27 +77,19 @@
                     'rel': 0,
                     'enablejsapi': 1,
                     'origin': window.location.origin,
-                    'playsinline': 1,
-                    'vq': 'hd1080'
+                    'playsinline': 1
                 },
                 events: {
                     'onReady': (e) => {
                         isPlayerReady = true;
-                        // Dùng độ trễ nhỏ 300ms để Iframe kịp render khung hình, dứt điểm hoàn toàn màn hình đen
-                        setTimeout(() => {
-                            if (player && player.loadVideoById) {
-                                player.loadVideoById(WAITING_VIDEO_ID);
-                                player.playVideo();
-                                console.log("🚗 Xe hơi đã xuất phát thành công ngay từ đầu!");
-                            }
-                        }, 300);
+                        e.target.playVideo(); // Kích hoạt chạy ngay lập tức khi sẵn sàng
                     },
                     'onStateChange': onPlayerStateChange
                 }
             });
         }
 
-        // 2️⃣ MÃ PHÒNG 2 CHIỀU: Nhận mã kết nối từ Android Studio
+        // 2️⃣ MÃ PHÒNG 2 CHIỀU: Nhận mã kết nối từ Android Studio (Giữ nguyên vẹn 100%)
         function setRoomCode(code) {
             if (!code || roomCode === code) return;
             roomCode = code;
@@ -111,7 +104,7 @@
             listenToFirebase();
         }
 
-        // 3️⃣ LẮNG NGHE FIREBASE & XỬ LÝ TUYẾN ÂM THANH
+        // 3️⃣ LẮNG NGHE FIREBASE & PHÂN TÁCH TUYẾN ÂM THANH ONLINE / OFFLINE (Giữ nguyên vẹn cấu trúc anh em mình)
         function listenToFirebase() {
             playlistRef.orderByChild('timestamp').on('value', snapshot => {
                 let playlist = [];
@@ -123,7 +116,7 @@
                 if (playlist.length === 0) {
                     currentPlayingKey = null;
                     stopOfflinePlayer();
-                    // Danh sách rỗng -> Bắt buộc gọi xe hơi chạy ngay lập tức và dừng sạch tiếng cũ
+                    // Khi danh sách trống -> Đưa player về lại xe hơi chạy tiếp
                     if (isPlayerReady && player && player.loadVideoById) {
                         player.loadVideoById(WAITING_VIDEO_ID);
                         player.playVideo();
@@ -131,6 +124,7 @@
                 } else {
                     let topSong = playlist[0];
 
+                    // Phân tách tuyến âm thanh: Local / Offline vs YouTube Online
                     if (topSong.type === 'local' || topSong.localKey) {
                         stopYouTubeCompletely();
                         playOfflineSong(topSong);
@@ -147,6 +141,7 @@
                 }
             });
 
+            // Lắng nghe lệnh điều khiển từ Remote
             commandRef.on('value', snapshot => {
                 let cmd = snapshot.val();
                 if (!cmd) return;
@@ -155,6 +150,7 @@
             });
         }
 
+        // 4️⃣ XỬ LÝ NHẠC OFFLINE (EXOPLAYER)
         function playOfflineSong(song) {
             isOfflineMode = true;
             document.getElementById('player').style.display = 'none';
@@ -179,14 +175,13 @@
             document.getElementById('player').style.display = 'block';
         }
 
-        // 🛡️ TIÊU DIỆT TRIỆT ĐỂ CẢ HÌNH LẪN TIẾNG CỦA YOUTUBE KHI CẦN
         function stopYouTubeCompletely() {
             if (player && player.stopVideo) {
                 player.stopVideo();
-                player.clearVideo(); // Xóa sạch bộ nhớ đệm để không bao giờ còn tiếng hát ngầm
             }
         }
 
+        // 5️⃣ XỬ LÝ KHI HẾT BÀI HOẶC NEXT
         function onPlayerStateChange(event) {
             if (isOfflineMode) return;
             if (event.data === YT.PlayerState.ENDED) {
@@ -199,7 +194,7 @@
             playlistRef.orderByChild('timestamp').limitToFirst(1).once('value', snap => {
                 snap.forEach(child => {
                     child.ref.remove().then(() => {
-                        // Sau khi xóa bài, lập tức nạp lại xe hơi để khỏa lấp màn hình, tuyệt đối không để trống đen
+                        // Sau khi xóa bài, tự động gọi lại xe hơi chạy nếu hết danh sách
                         setTimeout(() => {
                             if (isPlayerReady && player && player.loadVideoById) {
                                 player.loadVideoById(WAITING_VIDEO_ID);
@@ -211,6 +206,7 @@
             });
         }
 
+        // 6️⃣ BỘ LỆNH ĐIỀU KHIỂN REMOTE (PLAY, PAUSE, NEXT, VOL...)
         function executeCommand(cmdData) {
             const type = (typeof cmdData === 'object') ? cmdData.type : cmdData;
 
