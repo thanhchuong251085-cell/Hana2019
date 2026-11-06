@@ -63,9 +63,9 @@
     let qualityTimer = null;
     let playlistRef = null;
     let commandRef = null;
-    const WAITING_VIDEO_ID = "6BlfNIfGFfM"; // 🚗 Xe hơi chuẩn gốc
+    const WAITING_VIDEO_ID = "6BlfNIfGFfM"; // 🚗 Video xe hơi huyền thoại
 
-    // 1️⃣ KHỞI TẠO Y CHANG BẢN GỐC (Mở lên là xe hơi tự động play ngay lập tức)
+    // 1️⃣ KHỞI TẠO AUTOPLAY: Mở app lên là xe hơi tự động phóng thẳng ngay lập tức
     function onYouTubeIframeAPIReady() {
       player = new YT.Player('player', {
         height: '100%', 
@@ -73,7 +73,7 @@
         videoId: WAITING_VIDEO_ID, 
         host: 'https://www.youtube.com',
         playerVars: { 
-          'autoplay': 1, 
+          'autoplay': 1,            // Tự động play nhờ sức mạnh WebView Android
           'controls': 1,
           'modestbranding': 1,
           'rel': 0,                 
@@ -87,18 +87,18 @@
           'onStateChange': onPlayerStateChange,
           'onReady': (event) => {
                isPlayerReady = true;
-               event.target.playVideo(); 
+               event.target.playVideo(); // Ép phát ngay lập tức
           },
           'onError': onPlayerError 
         }
       });
     }
 
-    // 2️⃣ MÃ PHÒNG 2 CHIỀU: Nhận mã từ Android
+    // 2️⃣ MÃ PHÒNG 2 CHIỀU: Nhận mã từ Android Studio (Khởi động & Đổi mã)
     function setRoomCode(code) {
       if (!code || roomCode === code) return;
       roomCode = code;
-      console.log("🚀 Đã đồng bộ mã phòng từ Android Studio: " + roomCode);
+      console.log("🚀 Đã nhận mã phòng từ Android: " + roomCode);
 
       if (playlistRef) playlistRef.off();
       if (commandRef) commandRef.off();
@@ -106,15 +106,10 @@
       playlistRef = db.ref(`rooms/${roomCode}/playlist`);
       commandRef = db.ref(`rooms/${roomCode}/command`);
 
-      // 🧹 MỖI KHI VỪA MỞ APP / ĐỔI MÃ: XÓA SẠCH SẼ RÁC TRÊN FIREBASE ĐỂ TRÁNH LƯU LẠI BÀI CŨ
-      playlistRef.remove().then(() => {
-        console.log("🧹 Đã làm sạch trắng tinh danh sách phòng trên Firebase khi khởi động!");
-      });
-
       listenToData();
     }
 
-    // 3️⃣ LẮNG NGHE DỮ LIỆU ĐÃ TRẮNG TINH
+    // 3️⃣ LẮNG NGHE DỮ LIỆU TỪ FIREBASE
     function listenToData() {
       playlistRef.orderByChild('timestamp').on('value', snapshot => {
         playlist = [];
@@ -126,6 +121,7 @@
         });
         
         if (playlist.length === 0) {
+          // Khi danh sách rỗng -> Tự động gọi xe hơi chạy lặp lại
           playWaitingCar();
           currentPlayingKey = null;
         } else {
@@ -182,7 +178,6 @@
         try {
           player.loadVideoById(WAITING_VIDEO_ID);
           player.playVideo();
-          console.log("🚗 Xe hơi đã được gọi chạy chuẩn xác!");
         } catch (e) {
           setTimeout(playWaitingCar, 800);
         }
@@ -198,11 +193,13 @@
     }
 
     function onPlayerStateChange(event) {
+      // Khi YouTube phát hết 1 bài
       if (event.data === YT.PlayerState.ENDED) {
           if (playlist.length > 0) {
               removeCurrentSong();
           } else {
-              playWaitingCar(); 
+              // 🎬 HẾT BÀI / HẾT DANH SÁCH: Giữ nguyên trạng thái bài cuối cùng hiển thị giao diện YouTube (Không gọi xe hơi đè lên, không có màn hình đen)
+              console.log("🏁 Đã hát hết danh sách chờ. Dừng lại ở giao diện bài cuối cùng.");
           }
       }
     }
@@ -210,7 +207,6 @@
     function onPlayerError(event) {
       setTimeout(() => {
           if(playlist.length > 0) removeCurrentSong();
-          else playWaitingCar();
       }, 2000);
     }
 
@@ -220,7 +216,7 @@
       db.ref(`rooms/${roomCode}/playlist/${currentKey}`).remove().then(() => {
         setTimeout(() => {
           if (playlist.length === 0) {
-            playWaitingCar();
+            // Xóa xong bài cuối cùng -> Dừng ở giao diện bài cuối, không bị màn hình đen
           }
         }, 300);
       });
@@ -251,7 +247,7 @@
             if (cmdData.videoId && player && player.loadVideoById) {
               if (qualityTimer) clearTimeout(qualityTimer);
               player.loadVideoById(cmdData.videoId);
-              player.playVideo(); 
+              player.playVideo(); // Phát nhạc ngay lập tức
 
               qualityTimer = setTimeout(() => {
                 if (player && player.setPlaybackQuality) {
@@ -267,10 +263,9 @@
             break;
             
           case 'NEXT': 
-            // 🛡️ NÚT NEXT THÔNG MINH: Đang ở xe hơi (danh sách trống) -> Khóa cứng an toàn
+            // 🛡️ NÚT NEXT THÔNG MINH: Nếu danh sách trống -> Khóa cứng, không làm gì cả để giữ nguyên màn hình
             if (playlist.length === 0) {
-              console.log("🛡️ Đang chạy xe hơi, nút Next bị khóa an toàn!");
-              playWaitingCar();
+              console.log("🛡️ Danh sách chờ đã trống, nút Next bị khóa an toàn!");
               break;
             }
 
