@@ -59,13 +59,13 @@
     let currentPlayingKey = null; 
     let playlist = [];
     let isPlayerReady = false;
-    let roomCode = null; // Mã phòng nhận từ Android Studio (Khởi động & Đổi mã)
+    let roomCode = null; 
     let qualityTimer = null;
     let playlistRef = null;
     let commandRef = null;
-    const WAITING_VIDEO_ID = "6BlfNIfGFfM"; // 🚗 Video xe hơi chuẩn gốc
+    const WAITING_VIDEO_ID = "6BlfNIfGFfM"; // 🚗 Xe hơi chuẩn gốc
 
-    // 1️⃣ KHỞI TẠO Y CHANG BẢN GỐC (Mở lên là xe hơi tự động play phà phà)
+    // 1️⃣ KHỞI TẠO Y CHANG BẢN GỐC (Mở lên là xe hơi tự động play ngay lập tức)
     function onYouTubeIframeAPIReady() {
       player = new YT.Player('player', {
         height: '100%', 
@@ -94,38 +94,38 @@
       });
     }
 
-    // 2️⃣ MÃ PHÒNG 2 CHIỀU: Nhận mã từ Android (Khởi động app hoặc bấm Đổi mã)
+    // 2️⃣ MÃ PHÒNG 2 CHIỀU: Nhận mã từ Android
     function setRoomCode(code) {
       if (!code || roomCode === code) return;
       roomCode = code;
       console.log("🚀 Đã đồng bộ mã phòng từ Android Studio: " + roomCode);
 
-      // Gỡ bỏ lắng nghe cũ để chuyển sang mã phòng mới mượt mà
       if (playlistRef) playlistRef.off();
       if (commandRef) commandRef.off();
 
       playlistRef = db.ref(`rooms/${roomCode}/playlist`);
       commandRef = db.ref(`rooms/${roomCode}/command`);
 
+      // 🧹 MỖI KHI VỪA MỞ APP / ĐỔI MÃ: XÓA SẠCH SẼ RÁC TRÊN FIREBASE ĐỂ TRÁNH LƯU LẠI BÀI CŨ
+      playlistRef.remove().then(() => {
+        console.log("🧹 Đã làm sạch trắng tinh danh sách phòng trên Firebase khi khởi động!");
+      });
+
       listenToData();
     }
 
-    // 3️⃣ LẮNG NGHE DỮ LIỆU CHUẨN FORM GỐC
+    // 3️⃣ LẮNG NGHE DỮ LIỆU ĐÃ TRẮNG TINH
     function listenToData() {
       playlistRef.orderByChild('timestamp').on('value', snapshot => {
         playlist = [];
         snapshot.forEach(child => {
           let item = child.val();
-          // Lọc bỏ nhạc offline (ExoPlayer xử lý), HTML chỉ thuần túy chơi YouTube online
-          if (item.type === 'local' || item.localKey) {
-            stopYouTubeCompletely();
-          } else {
+          if (!item.type || item.type !== 'local') {
             playlist.push({ key: child.key, ...item });
           }
         });
         
         if (playlist.length === 0) {
-          // Hết bài / Danh sách rỗng -> Trả về xe hơi chạy lặp lại
           playWaitingCar();
           currentPlayingKey = null;
         } else {
@@ -182,6 +182,7 @@
         try {
           player.loadVideoById(WAITING_VIDEO_ID);
           player.playVideo();
+          console.log("🚗 Xe hơi đã được gọi chạy chuẩn xác!");
         } catch (e) {
           setTimeout(playWaitingCar, 800);
         }
@@ -201,7 +202,7 @@
           if (playlist.length > 0) {
               removeCurrentSong();
           } else {
-              playWaitingCar(); // Hết bài -> Về xe hơi
+              playWaitingCar(); 
           }
       }
     }
@@ -235,7 +236,7 @@
       }
     }
 
-    // 4️⃣ BỘ ĐIỀU KHIỂN REMOTE CHUẨN FORM GỐC (Play Now, Next, Vol, Play/Pause ăn ngay lập tức)
+    // 4️⃣ BỘ ĐIỀU KHIỂN REMOTE KÈM KHÓA THÔNG MINH NÚT NEXT
     function executeCommand(cmdData) {
       const type = (typeof cmdData === 'object') ? cmdData.type : cmdData;
 
@@ -250,7 +251,7 @@
             if (cmdData.videoId && player && player.loadVideoById) {
               if (qualityTimer) clearTimeout(qualityTimer);
               player.loadVideoById(cmdData.videoId);
-              player.playVideo(); // Bấm Play Now phát nhạc YouTube phà phà trong 1 nốt nhạc
+              player.playVideo(); 
 
               qualityTimer = setTimeout(() => {
                 if (player && player.setPlaybackQuality) {
