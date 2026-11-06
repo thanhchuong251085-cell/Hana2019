@@ -1,282 +1,296 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <base target="_top">
-    <title>Karaoke YouTube Player</title>
-    <style>
-        body, html { 
-            margin: 0; 
-            padding: 0; 
-            width: 100%; 
-            height: 100%; 
-            background: black; 
-            overflow: hidden; 
-        }
-        #player, #localPlayer { 
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%; 
-            height: 100%; 
-            z-index: 0;
-        }
-        #localPlayer {
-            object-fit: contain;
-            background: #000;
-            display: none;
-        }
-    </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <base target="_top">
+  <title>Karaoke YouTube Player</title>
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+
+  <style>
+    * {
+      -webkit-font-smoothing: antialiased;
+      box-sizing: border-box;
+    }
+
+    body {
+      background-color: #000;
+      color: white;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+
+    #player {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+      transform: translateZ(0);
+    }
+  </style>
 </head>
 <body>
-    <div id="player"></div>
-    <video id="localPlayer" controls preload="auto" playsinline></video>
 
-    <!-- Thư viện Firebase & YouTube API chuẩn zin -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <script src="https://www.youtube.com/iframe_api"></script>
+  <div id="player"></div>
 
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyAIwBqg8EYLU7TQXfOO697C4D5p5_GeghQ",
-            authDomain: "karaoke-home.firebaseapp.com",
-            databaseURL: "https://karaoke-home-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "karaoke-home",
-            storageBucket: "karaoke-home.firebasestorage.app",
-            messagingSenderId: "285959719922",
-            appId: "1:285959719922:web:6cb594ebb3ef854124796b"
-        };
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script src="https://www.youtube.com/iframe_api"></script>
 
-        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAIwBqg8EYLU7TQXfOO697C4D5p5_GeghQ",
+      authDomain: "karaoke-home.firebaseapp.com",
+      databaseURL: "https://karaoke-home-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "karaoke-home",
+      storageBucket: "karaoke-home.firebasestorage.app",
+      messagingSenderId: "285959719922",
+      appId: "1:285959719922:web:6cb594ebb3ef854124796b"
+    };
 
-        let player;
-        let roomCode = null;
-        let playlistRef = null;
-        let commandRef = null;
-        let currentPlayingKey = null;
-        let isPlayerReady = false;
-        let isOfflineMode = false;
-        
-        const WAITING_VIDEO_ID = '6BlfNIfGFfM'; // 🚗 Xe hơi huyền thoại
-        const localVid = document.getElementById('localPlayer');
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-        // 1️⃣ KHỞI TẠO PLAYER: Chống màn hình đen, tự động phát xe hơi ngay khi sẵn sàng
-        function onYouTubeIframeAPIReady() {
-            player = new YT.Player('player', {
-                height: '100%',
-                width: '100%',
-                videoId: WAITING_VIDEO_ID,
-                host: 'https://www.youtube.com',
-                playerVars: {
-                    'autoplay': 1,
-                    'controls': 1,
-                    'modestbranding': 1,
-                    'rel': 0,
-                    'enablejsapi': 1,
-                    'origin': window.location.origin,
-                    'playsinline': 1,
-                    'vq': 'hd1080'
-                },
-                events: {
-                    'onReady': (e) => {
-                        isPlayerReady = true;
-                        setTimeout(() => {
-                            forcePlayWaitingCar();
-                        }, 300);
-                    },
-                    'onStateChange': onPlayerStateChange
-                }
-            });
+    let player;
+    let currentPlayingKey = null; 
+    let playlist = [];
+    let isPlayerReady = false;
+    let roomCode = null; 
+    let qualityTimer = null;
+    let playlistRef = null;
+    let commandRef = null;
+    const WAITING_VIDEO_ID = "6BlfNIfGFfM"; // 🚗 Xe hơi mặc định
+
+    function onYouTubeIframeAPIReady() {
+      player = new YT.Player('player', {
+        height: '100%', 
+        width: '100%',
+        videoId: WAITING_VIDEO_ID, 
+        host: 'https://www.youtube.com',
+        playerVars: { 
+          'autoplay': 1, 
+          'controls': 1,
+          'modestbranding': 1,
+          'rel': 0,                 
+          'enablejsapi': 1,         
+          'origin': window.location.origin,
+          'iv_load_policy': 3,
+          'playsinline': 1,
+          'vq': 'hd1080'
+        },
+        events: {
+          'onStateChange': onPlayerStateChange,
+          'onReady': (event) => {
+               isPlayerReady = true;
+               // 🚗 Mở lên là ép phát ngay xe hơi sáng màn hình, không bao giờ đen thui
+               event.target.loadVideoById(WAITING_VIDEO_ID);
+               event.target.playVideo(); 
+          },
+          'onError': onPlayerError 
         }
+      });
+    }
 
-        // 🚗 Hàm ép phát xe hơi an toàn (Lấy từ bản B)
-        function forcePlayWaitingCar() {
-            if (!player || !isPlayerReady) return;
-            try {
-                player.loadVideoById(WAITING_VIDEO_ID);
-                player.playVideo();
-            } catch (e) {
-                setTimeout(forcePlayWaitingCar, 1000);
-            }
-        }
+    function setRoomCode(code) {
+      if (!code || roomCode === code) return;
+      roomCode = code;
+      console.log("Đã đồng bộ mã phòng từ Android: " + roomCode);
 
-        // 2️⃣ MÃ PHÒNG 2 CHIỀU: Nhận mã kết nối từ Android Studio
-        function setRoomCode(code) {
-            if (!code || roomCode === code) return;
-            roomCode = code;
-            console.log("🚀 Đã đồng bộ mã phòng từ Android: " + roomCode);
+      if (playlistRef) playlistRef.off();
+      if (commandRef) commandRef.off();
 
-            if (playlistRef) playlistRef.off();
-            if (commandRef) commandRef.off();
+      playlistRef = db.ref(`rooms/${roomCode}/playlist`);
+      commandRef = db.ref(`rooms/${roomCode}/command`);
 
-            playlistRef = db.ref(`rooms/${roomCode}/playlist`);
-            commandRef = db.ref(`rooms/${roomCode}/command`);
+      listenToData();
+    }
 
-            listenToFirebase();
-        }
-
-        // 3️⃣ LẮNG NGHE FIREBASE & PHÂN TÁCH TUYẾN ÂM THANH
-        function listenToFirebase() {
-            playlistRef.orderByChild('timestamp').on('value', snapshot => {
-                let playlist = [];
-                snapshot.forEach(child => {
-                    let item = child.val();
-                    playlist.push({ key: child.key, ...item });
-                });
-
-                if (playlist.length === 0) {
-                    currentPlayingKey = null;
-                    stopOfflinePlayer();
-                    stopAllPlayers(); // 🛡️ Dùng hàm chuẩn của bản B để ngắt sạch tiếng ngầm
-                } else {
-                    let topSong = playlist[0];
-
-                    if (topSong.type === 'local' || topSong.localKey) {
-                        stopYouTubeCompletely();
-                        playOfflineSong(topSong);
-                    } else {
-                        stopOfflinePlayer();
-                        if (topSong.key !== currentPlayingKey) {
-                            currentPlayingKey = topSong.key;
-                            if (topSong.videoId && isPlayerReady && player && player.loadVideoById) {
-                                player.loadVideoById(topSong.videoId);
-                                player.playVideo();
-                            }
-                        }
-                    }
-                }
-            });
-
-            commandRef.on('value', snapshot => {
-                let cmd = snapshot.val();
-                if (!cmd) return;
-                commandRef.remove();
-                executeCommand(cmd);
-            });
-        }
-
-        // 4️⃣ XỬ LÝ NHẠC OFFLINE (EXOPLAYER)
-        function playOfflineSong(song) {
-            isOfflineMode = true;
-            document.getElementById('player').style.display = 'none';
-            localVid.style.display = 'block';
-
-            if (localVid.src !== song.url) {
-                localVid.src = song.url;
-                localVid.load();
-                localVid.play().catch(e => console.log("Lỗi play local:", e));
-            }
-
-            localVid.onended = () => {
-                removeCurrentSong();
-            };
-        }
-
-        function stopOfflinePlayer() {
-            isOfflineMode = false;
-            localVid.pause();
-            localVid.removeAttribute('src');
-            localVid.style.display = 'none';
-            document.getElementById('player').style.display = 'block';
-        }
-
-        function stopYouTubeCompletely() {
-            if (player && player.stopVideo) {
-                player.stopVideo();
-                player.pauseVideo();
-            }
-        }
-
-        function stopAllPlayers() {
-            currentPlayingKey = null;
+    function listenToData() {
+      playlistRef.orderByChild('timestamp').on('value', snapshot => {
+        playlist = [];
+        snapshot.forEach(child => {
+          let item = child.val();
+          // Nếu là bài offline (có type='local' hoặc localKey), HTML phải lập tức DỪNG hẳn YouTube để tránh chồng tiếng!
+          if (item.type === 'local' || item.localKey) {
             stopYouTubeCompletely();
-            forcePlayWaitingCar();
+          } else {
+            playlist.push({ key: child.key, ...item });
+          }
+        });
+        
+        if (playlist.length === 0) {
+          stopAllPlayers(); // Hết sạch bài -> Quay về xe hơi chạy
+          currentPlayingKey = null;
+        } else {
+          const newFirstKey = playlist[0].key;
+          if (newFirstKey !== currentPlayingKey) {
+            checkAndPlayTopSong();
+          }
         }
+      });
 
-        // 5️⃣ XỬ LÝ KHI HẾT BÀI HOẶC NEXT
-        function onPlayerStateChange(event) {
-            if (isOfflineMode) return;
-            if (event.data === YT.PlayerState.ENDED) {
-                removeCurrentSong();
+      commandRef.on('value', snapshot => {
+        const cmdData = snapshot.val();
+        if (cmdData) {
+          executeCommand(cmdData);
+          commandRef.remove();
+        }
+      });
+    }
+
+    function checkAndPlayTopSong() {
+      if (!isPlayerReady || !player) return;
+
+      if (playlist.length === 0) {
+        stopAllPlayers();
+        return;
+      }
+      
+      const topSong = playlist[0];
+      
+      // Nếu bài đầu bảng là bài offline -> Dừng YouTube ngay lập tức để không chồng tiếng
+      if (topSong.type === 'local' || topSong.localKey) {
+        stopYouTubeCompletely();
+        return;
+      }
+
+      currentPlayingKey = topSong.key;
+
+      if (topSong.videoId && player.loadVideoById) {
+        if (qualityTimer) clearTimeout(qualityTimer);
+        player.loadVideoById(topSong.videoId);
+        player.playVideo();
+
+        qualityTimer = setTimeout(() => {
+          if (player && player.setPlaybackQuality) {
+            player.setPlaybackQuality('hd1080');
+          }
+        }, 4000);
+      }
+    }
+
+    // 🚗 Hết bài / Hết danh sách chờ -> Ép quay về xe hơi chạy ngay lập tức
+    function stopAllPlayers() {
+      currentPlayingKey = null;
+      if (qualityTimer) clearTimeout(qualityTimer);
+      if (player && player.loadVideoById) {
+        player.loadVideoById(WAITING_VIDEO_ID);
+        player.playVideo();
+      }
+    }
+
+    // 🛑 Dừng hoàn toàn YouTube (Dùng khi chuyển sang phát nhạc offline để triệt tiêu hoàn toàn lỗi chồng tiếng)
+    function stopYouTubeCompletely() {
+      if (qualityTimer) clearTimeout(qualityTimer);
+      if (player && player.stopVideo) {
+        player.stopVideo();
+        player.pauseVideo();
+      }
+    }
+
+    function onPlayerStateChange(event) {
+      if (event.data === YT.PlayerState.ENDED) {
+          if (playlist.length > 0) {
+              removeCurrentSong();
+          } else {
+              stopAllPlayers();
+          }
+      }
+    }
+
+    function onPlayerError(event) {
+      setTimeout(() => {
+          if(playlist.length > 0) removeCurrentSong();
+      }, 2000);
+    }
+
+    function removeCurrentSong() {
+      if (playlist.length === 0 || !roomCode) return;
+      const currentKey = playlist[0].key;
+      db.ref(`rooms/${roomCode}/playlist/${currentKey}`).remove().then(() => {
+        setTimeout(() => {
+          if (playlist.length <= 1) {
+            stopAllPlayers();
+          }
+        }, 500);
+      });
+    }
+
+    function togglePlayPause() {
+      if (!player || !isPlayerReady) return;
+      const state = player.getPlayerState();
+      if (state === YT.PlayerState.PLAYING) {
+        player.pauseVideo();
+      } else {
+        player.playVideo();
+      }
+    }
+
+    function executeCommand(cmdData) {
+      const type = (typeof cmdData === 'object') ? cmdData.type : cmdData;
+
+      try {
+        switch (type) {
+          case 'PLAY_NOW': 
+            // Nếu remote ra lệnh phát bài offline -> Dừng ngay YouTube để tránh chồng tiếng
+            if (cmdData.typeSource === 'local' || cmdData.localKey) {
+              stopYouTubeCompletely();
+              break;
             }
-        }
 
-        function removeCurrentSong() {
-            if (!playlistRef || roomCode === null) return;
-            playlistRef.orderByChild('timestamp').limitToFirst(1).once('value', snap => {
-                snap.forEach(child => {
-                    child.ref.remove().then(() => {
-                        setTimeout(() => {
-                            // Kiểm tra lại danh sách, nếu thực sự rỗng thì gọi stopAllPlayers
-                            playlistRef.once('value', snapshot => {
-                                if (!snapshot.exists()) {
-                                    stopAllPlayers();
-                                }
-                            });
-                        }, 200);
-                    });
-                });
-            });
-        }
+            // Nếu phát YouTube online
+            if (cmdData.videoId) {
+              if (qualityTimer) clearTimeout(qualityTimer);
+              player.loadVideoById(cmdData.videoId);
+              player.playVideo();
 
-        // 6️⃣ BỘ LỆNH ĐIỀU KHIỂN REMOTE (PLAY, PAUSE, NEXT, VOL...)
-        function executeCommand(cmdData) {
-            const type = (typeof cmdData === 'object') ? cmdData.type : cmdData;
-
-            try {
-                switch (type) {
-                    case 'PLAY_NOW':
-                        if (cmdData.typeSource === 'local' || cmdData.localKey) {
-                            stopYouTubeCompletely();
-                            break;
-                        }
-                        if (cmdData.videoId && isPlayerReady && player && player.loadVideoById) {
-                            stopOfflinePlayer();
-                            player.loadVideoById(cmdData.videoId);
-                            player.playVideo();
-                        }
-                        break;
-                    case 'PLAY':
-                        if (isOfflineMode) {
-                            localVid.play();
-                        } else if (isPlayerReady && player) {
-                            player.playVideo();
-                        }
-                        break;
-                    case 'PAUSE':
-                        if (isOfflineMode) {
-                            localVid.pause();
-                        } else if (isPlayerReady && player) {
-                            player.pauseVideo();
-                        }
-                        break;
-                    case 'NEXT':
-                        if (isOfflineMode) {
-                            stopOfflinePlayer();
-                        }
-                        removeCurrentSong();
-                        break;
-                    case 'VOL_UP':
-                        if (isOfflineMode) {
-                            localVid.volume = Math.min(localVid.volume + 0.1, 1);
-                        } else if (isPlayerReady && player && player.getVolume) {
-                            player.setVolume(Math.min(player.getVolume() + 10, 100));
-                        }
-                        break;
-                    case 'VOL_DOWN':
-                        if (isOfflineMode) {
-                            localVid.volume = Math.max(localVid.volume - 0.1, 0);
-                        } else if (isPlayerReady && player && player.getVolume) {
-                            player.setVolume(Math.max(player.getVolume() - 10, 0));
-                        }
-                        break;
+              qualityTimer = setTimeout(() => {
+                if (player && player.setPlaybackQuality) {
+                  player.setPlaybackQuality('hd1080');
                 }
-            } catch (e) {
-                console.log("Lỗi thực thi lệnh Remote:", e);
+              }, 4000);
             }
+            break;
+            
+          case 'PLAY': 
+          case 'PAUSE': 
+            togglePlayPause();
+            break;
+            
+          case 'NEXT': 
+            if (playlist.length > 0) {
+              removeCurrentSong();
+            } else {
+              stopAllPlayers();
+            }
+            break;
+
+          case 'SET_HD': 
+            if (player && player.setPlaybackQuality) {
+              player.setPlaybackQuality('hd1080');
+            }
+            break;
+            
+          case 'VOL_UP': 
+            if (player && player.getVolume) {
+              player.setVolume(Math.min(player.getVolume() + 10, 100));
+            }
+            break;
+            
+          case 'VOL_DOWN': 
+            if (player && player.getVolume) {
+              player.setVolume(Math.max(player.getVolume() - 10, 0));
+            }
+            break;
         }
-    </script>
+      } catch (e) { 
+        console.error("Lỗi thực thi lệnh:", e); 
+      }
+    }
+  </script>
 </body>
 </html>
