@@ -63,7 +63,8 @@
     let qualityTimer = null;
     let playlistRef = null;
     let commandRef = null;
-    const WAITING_VIDEO_ID = "6BlfNIfGFfM"; // 🚗 Xe hơi mặc định
+    let currentActiveVideoId = null; // Theo dõi vết ID video đang phát thực tế
+    const WAITING_VIDEO_ID = "6BlfNIfGFfM"; // 🚗 Xe hơi mặc định cố định
 
     function onYouTubeIframeAPIReady() {
       player = new YT.Player('player', {
@@ -86,13 +87,25 @@
           'onStateChange': onPlayerStateChange,
           'onReady': (event) => {
                isPlayerReady = true;
-               // 🚗 Mở lên là ép phát ngay xe hơi sáng màn hình, không bao giờ đen thui
-               event.target.loadVideoById(WAITING_VIDEO_ID);
-               event.target.playVideo(); 
+               // 🚗 Ý tưởng của anh: Khởi động xong, tự động chèn video ID xe hơi vào chạy như lệnh Play Now
+               injectAndPlayVideo(WAITING_VIDEO_ID);
           },
           'onError': onPlayerError 
         }
       });
+    }
+
+    // 🚗 HÀM CHUYÊN DỤNG: Tự động chèn ID video vào và ép phát ngay lập tức (Giống hệt Remote chèn)
+    function injectAndPlayVideo(videoId) {
+      if (!player || !isPlayerReady) return;
+      try {
+        currentActiveVideoId = videoId; // Ghi nhận ID hiện tại
+        player.loadVideoById(videoId);
+        player.playVideo();
+        console.log("🎯 Đã tự động chèn và phát video ID: " + videoId);
+      } catch (e) {
+        setTimeout(() => injectAndPlayVideo(videoId), 1000);
+      }
     }
 
     function setRoomCode(code) {
@@ -114,7 +127,6 @@
         playlist = [];
         snapshot.forEach(child => {
           let item = child.val();
-          // Nếu là bài offline (có type='local' hoặc localKey), HTML phải lập tức DỪNG hẳn YouTube để tránh chồng tiếng!
           if (item.type === 'local' || item.localKey) {
             stopYouTubeCompletely();
           } else {
@@ -123,7 +135,7 @@
         });
         
         if (playlist.length === 0) {
-          stopAllPlayers(); // Hết sạch bài -> Quay về xe hơi chạy
+          stopAllPlayers(); // Hết sạch bài -> Tự động chèn xe hơi vô chạy tiếp
           currentPlayingKey = null;
         } else {
           const newFirstKey = playlist[0].key;
@@ -152,7 +164,6 @@
       
       const topSong = playlist[0];
       
-      // Nếu bài đầu bảng là bài offline -> Dừng YouTube ngay lập tức để không chồng tiếng
       if (topSong.type === 'local' || topSong.localKey) {
         stopYouTubeCompletely();
         return;
@@ -162,8 +173,7 @@
 
       if (topSong.videoId && player.loadVideoById) {
         if (qualityTimer) clearTimeout(qualityTimer);
-        player.loadVideoById(topSong.videoId);
-        player.playVideo();
+        injectAndPlayVideo(topSong.videoId); // Chèn bài hát online do Firebase/Remote chỉ định
 
         qualityTimer = setTimeout(() => {
           if (player && player.setPlaybackQuality) {
@@ -173,17 +183,13 @@
       }
     }
 
-    // 🚗 Hết bài / Hết danh sách chờ -> Ép quay về xe hơi chạy ngay lập tức
+    // 🚗 Hết bài / Hết danh sách chờ -> Tự động bơm lại xe hơi chạy
     function stopAllPlayers() {
       currentPlayingKey = null;
       if (qualityTimer) clearTimeout(qualityTimer);
-      if (player && player.loadVideoById) {
-        player.loadVideoById(WAITING_VIDEO_ID);
-        player.playVideo();
-      }
+      injectAndPlayVideo(WAITING_VIDEO_ID);
     }
 
-    // 🛑 Dừng hoàn toàn YouTube (Dùng khi chuyển sang phát nhạc offline để triệt tiêu hoàn toàn lỗi chồng tiếng)
     function stopYouTubeCompletely() {
       if (qualityTimer) clearTimeout(qualityTimer);
       if (player && player.stopVideo) {
@@ -194,10 +200,15 @@
 
     function onPlayerStateChange(event) {
       if (event.data === YT.PlayerState.ENDED) {
-          if (playlist.length > 0) {
-              removeCurrentSong();
+          // Nếu đang chạy xe hơi mà hết video thì tự lặp lại xe hơi, còn bài hát thật thì next
+          if (currentActiveVideoId === WAITING_VIDEO_ID) {
+              injectAndPlayVideo(WAITING_VIDEO_ID);
           } else {
-              stopAllPlayers();
+              if (playlist.length > 0) {
+                  removeCurrentSong();
+              } else {
+                  stopAllPlayers();
+              }
           }
       }
     }
@@ -205,10 +216,17 @@
     function onPlayerError(event) {
       setTimeout(() => {
           if(playlist.length > 0) removeCurrentSong();
+          else stopAllPlayers();
       }, 2000);
     }
 
     function removeCurrentSong() {
+      // 🛡️ Ý TƯỞNG CỦA ANH: Nếu đang là xe hơi cố định thì chặn đứng, không cho xóa/next
+      if (currentActiveVideoId === WAITING_VIDEO_ID) {
+          console.log("🚗 Đang chạy xe hơi mặc định, bỏ qua lệnh xóa!");
+          return;
+      }
+
       if (playlist.length === 0 || !roomCode) return;
       const currentKey = playlist[0].key;
       db.ref(`rooms/${roomCode}/playlist/${currentKey}`).remove().then(() => {
@@ -236,17 +254,14 @@
       try {
         switch (type) {
           case 'PLAY_NOW': 
-            // Nếu remote ra lệnh phát bài offline -> Dừng ngay YouTube để tránh chồng tiếng
             if (cmdData.typeSource === 'local' || cmdData.localKey) {
               stopYouTubeCompletely();
               break;
             }
 
-            // Nếu phát YouTube online
             if (cmdData.videoId) {
               if (qualityTimer) clearTimeout(qualityTimer);
-              player.loadVideoById(cmdData.videoId);
-              player.playVideo();
+              injectAndPlayVideo(cmdData.videoId); // Chèn video ID bài mới từ Remote
 
               qualityTimer = setTimeout(() => {
                 if (player && player.setPlaybackQuality) {
@@ -262,8 +277,14 @@
             break;
             
           case 'NEXT': 
+            // 🛡️ Ý TƯỞNG CỦA ANH: Khóa cứng nút Next khi đang chạy xe hơi cố định!
+            if (currentActiveVideoId === WAITING_VIDEO_ID) {
+              console.log("🚫 Xe hơi đang chạy, nút Next bị vô hiệu hóa!");
+              break;
+            }
+
             if (playlist.length > 0) {
-              removeCurrentSong();
+              removeCurrentSong(); 
             } else {
               stopAllPlayers();
             }
