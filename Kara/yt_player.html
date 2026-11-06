@@ -56,9 +56,9 @@
     let qualityTimer = null;
     let playlistRef = null;
     let commandRef = null;
-    const WAITING_VIDEO_ID = "6BlfNIfGFfM"; // 🚗 Xe hơi huyền thoại
+    const WAITING_VIDEO_ID = "6BlfNIfGFfM"; // 🚗 Video xe hơi chuẩn gốc
 
-    // 1️⃣ ĐIỂM 1: KHỞI TẠO ĐỘC LẬP - Mở app lên là nạp và chạy xe hơi ngay lập tức
+    // 1️⃣ ĐIỂM VÀNG 1: KHỞI TẠO AUTOPLAY - Mở app lên là xe hơi tự động chạy phà phà ngay lập tức
     function onYouTubeIframeAPIReady() {
       player = new YT.Player('player', {
         height: '100%', 
@@ -66,7 +66,7 @@
         videoId: WAITING_VIDEO_ID, 
         host: 'https://www.youtube.com',
         playerVars: { 
-          'autoplay': 1, 
+          'autoplay': 1,           // Ép bật tự động chạy trên Android WebView
           'controls': 1,
           'modestbranding': 1,
           'rel': 0,                 
@@ -80,28 +80,16 @@
           'onStateChange': onPlayerStateChange,
           'onReady': (event) => {
                isPlayerReady = true;
-               playWaitingCar();
+               if (playlist.length === 0) {
+                 event.target.playVideo(); // Kích hoạt chạy ngay khi sẵn sàng
+               }
           },
           'onError': onPlayerError 
         }
       });
     }
 
-    function playWaitingCar() {
-      currentPlayingKey = null;
-      if (qualityTimer) clearTimeout(qualityTimer);
-      if (isPlayerReady && player && player.loadVideoById) {
-        try {
-          player.loadVideoById(WAITING_VIDEO_ID);
-          player.playVideo();
-          console.log("🚗 Xe hơi đang chạy độc lập mượt mà!");
-        } catch (e) {
-          setTimeout(playWaitingCar, 800);
-        }
-      }
-    }
-
-    // 2️⃣ ĐIỂM 2: MÃ PHÒNG 2 CHIỀU (Nhận từ Android Studio khi khởi động hoặc Đổi mã)
+    // 2️⃣ ĐIỂM VÀNG 2: MÃ PHÒNG 2 CHIỀU (Nhận từ Android Studio / Đổi mã)
     function setRoomCode(code) {
       if (!code || roomCode === code) return;
       roomCode = code;
@@ -116,13 +104,13 @@
       listenToData();
     }
 
-    // 3️⃣ ĐIỂM 3: FIREBASE & ĐIỀU KHIỂN REMOTE (Ăn khớp 100%, phân tách Local/Online tuyệt đối)
+    // 3️⃣ ĐIỂM VÀNG 3: FIREBASE & ĐIỀU KHIỂN REMOTE
     function listenToData() {
       playlistRef.orderByChild('timestamp').on('value', snapshot => {
         playlist = [];
         snapshot.forEach(child => {
           let item = child.val();
-          // 🛡️ Điểm ăn tiền: Lọc bỏ nhạc local để ExoPlayer xử lý độc lập, chống chồng hình/chồng tiếng
+          // 🛡️ ĐIỂM VÀNG 4 (ĐIỂM ĂN TIỀN): Phân tách tuyến âm thanh, lọc bỏ nhạc local để ExoPlayer xử lý độc lập
           if (item.type === 'local' || item.localKey) {
             stopYouTubeCompletely();
           } else {
@@ -131,8 +119,10 @@
         });
         
         if (playlist.length === 0) {
-          // Hết bài / Danh sách rỗng -> Tự động gọi xe hơi chạy rần rần
-          playWaitingCar();
+          if (isPlayerReady && player && player.loadVideoById) {
+            player.loadVideoById(WAITING_VIDEO_ID);
+            player.playVideo();
+          }
           currentPlayingKey = null;
         } else {
           const newFirstKey = playlist[0].key;
@@ -155,7 +145,10 @@
       if (!isPlayerReady || !player) return;
 
       if (playlist.length === 0) {
-        playWaitingCar();
+        if (player.loadVideoById) {
+          player.loadVideoById(WAITING_VIDEO_ID);
+          player.playVideo();
+        }
         return;
       }
       
@@ -171,7 +164,7 @@
       if (topSong.videoId && player.loadVideoById) {
         if (qualityTimer) clearTimeout(qualityTimer);
         player.loadVideoById(topSong.videoId);
-        player.playVideo();
+        player.playVideo(); 
 
         qualityTimer = setTimeout(() => {
           if (player && player.setPlaybackQuality) {
@@ -189,13 +182,16 @@
       }
     }
 
+    // 4️⃣ SỰ KIỆN HẾT BÀI / HẾT DANH SÁCH CHỜ -> Tự động quay về xe hơi chạy tiếp
     function onPlayerStateChange(event) {
       if (event.data === YT.PlayerState.ENDED) {
           if (playlist.length > 0) {
               removeCurrentSong();
           } else {
-              // 🚗 Hát hết danh sách -> Tự động quay về xe hơi chạy tiếp
-              playWaitingCar();
+              if (isPlayerReady && player && player.loadVideoById) {
+                player.loadVideoById(WAITING_VIDEO_ID);
+                player.playVideo();
+              }
           }
       }
     }
@@ -203,7 +199,10 @@
     function onPlayerError(event) {
       setTimeout(() => {
           if(playlist.length > 0) removeCurrentSong();
-          else playWaitingCar();
+          else if (isPlayerReady && player) {
+              player.loadVideoById(WAITING_VIDEO_ID);
+              player.playVideo();
+          }
       }, 2000);
     }
 
@@ -212,8 +211,9 @@
       const currentKey = playlist[0].key;
       db.ref(`rooms/${roomCode}/playlist/${currentKey}`).remove().then(() => {
         setTimeout(() => {
-          if (playlist.length === 0) {
-            playWaitingCar();
+          if (playlist.length === 0 && isPlayerReady && player && player.loadVideoById) {
+            player.loadVideoById(WAITING_VIDEO_ID);
+            player.playVideo();
           }
         }, 300);
       });
@@ -229,7 +229,7 @@
       }
     }
 
-    // 4️⃣ BỘ LỆNH REMOTE & NÚT NEXT THÔNG MINH
+    // 5️⃣ BỘ LỆNH REMOTE & NÚT NEXT THÔNG MINH
     function executeCommand(cmdData) {
       const type = (typeof cmdData === 'object') ? cmdData.type : cmdData;
 
@@ -260,10 +260,13 @@
             break;
             
           case 'NEXT': 
-            // 🛡️ NÚT NEXT THÔNG MINH: Đang chạy xe hơi (danh sách rỗng) -> Khóa an toàn, tiếp tục cho xe chạy
+            // 🛡️ NÚT NEXT THÔNG MINH: Đang chạy xe hơi (danh sách rỗng) -> Khóa an toàn, giữ xe chạy
             if (playlist.length === 0) {
               console.log("🛡️ Đang chạy xe hơi, nút Next bị khóa an toàn!");
-              playWaitingCar();
+              if (isPlayerReady && player && player.loadVideoById) {
+                player.loadVideoById(WAITING_VIDEO_ID);
+                player.playVideo();
+              }
               break;
             }
 
