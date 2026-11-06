@@ -59,16 +59,15 @@
         let isPlayerReady = false;
         let isOfflineMode = false;
         
-        // 🚗 Lấy đúng chuẩn ID xe hơi huyền thoại từ đoạn code anh cung cấp
-        const WAITING_VIDEO_ID = '6BlfNIfGFfM'; 
+        const WAITING_VIDEO_ID = '6BlfNIfGFfM'; // 🚗 Xe hơi huyền thoại
         const localVid = document.getElementById('localPlayer');
 
-        // 1️⃣ KHỞI TẠO PLAYER: Áp dụng chuẩn y hệt đoạn code xe hơi thuần túy (Mở lên là chạy ngay, không bao giờ đen màn hình)
+        // 1️⃣ KHỞI TẠO PLAYER: Chống màn hình đen, tự động phát xe hơi ngay khi sẵn sàng
         function onYouTubeIframeAPIReady() {
             player = new YT.Player('player', {
                 height: '100%',
                 width: '100%',
-                videoId: WAITING_VIDEO_ID, // Nạp sẵn xe hơi từ cấu hình gốc
+                videoId: WAITING_VIDEO_ID,
                 host: 'https://www.youtube.com',
                 playerVars: {
                     'autoplay': 1,
@@ -77,19 +76,33 @@
                     'rel': 0,
                     'enablejsapi': 1,
                     'origin': window.location.origin,
-                    'playsinline': 1
+                    'playsinline': 1,
+                    'vq': 'hd1080'
                 },
                 events: {
                     'onReady': (e) => {
                         isPlayerReady = true;
-                        e.target.playVideo(); // Kích hoạt chạy ngay lập tức khi sẵn sàng
+                        setTimeout(() => {
+                            forcePlayWaitingCar();
+                        }, 300);
                     },
                     'onStateChange': onPlayerStateChange
                 }
             });
         }
 
-        // 2️⃣ MÃ PHÒNG 2 CHIỀU: Nhận mã kết nối từ Android Studio (Giữ nguyên vẹn 100%)
+        // 🚗 Hàm ép phát xe hơi an toàn (Lấy từ bản B)
+        function forcePlayWaitingCar() {
+            if (!player || !isPlayerReady) return;
+            try {
+                player.loadVideoById(WAITING_VIDEO_ID);
+                player.playVideo();
+            } catch (e) {
+                setTimeout(forcePlayWaitingCar, 1000);
+            }
+        }
+
+        // 2️⃣ MÃ PHÒNG 2 CHIỀU: Nhận mã kết nối từ Android Studio
         function setRoomCode(code) {
             if (!code || roomCode === code) return;
             roomCode = code;
@@ -104,7 +117,7 @@
             listenToFirebase();
         }
 
-        // 3️⃣ LẮNG NGHE FIREBASE & PHÂN TÁCH TUYẾN ÂM THANH ONLINE / OFFLINE (Giữ nguyên vẹn cấu trúc anh em mình)
+        // 3️⃣ LẮNG NGHE FIREBASE & PHÂN TÁCH TUYẾN ÂM THANH
         function listenToFirebase() {
             playlistRef.orderByChild('timestamp').on('value', snapshot => {
                 let playlist = [];
@@ -116,15 +129,10 @@
                 if (playlist.length === 0) {
                     currentPlayingKey = null;
                     stopOfflinePlayer();
-                    // Khi danh sách trống -> Đưa player về lại xe hơi chạy tiếp
-                    if (isPlayerReady && player && player.loadVideoById) {
-                        player.loadVideoById(WAITING_VIDEO_ID);
-                        player.playVideo();
-                    }
+                    stopAllPlayers(); // 🛡️ Dùng hàm chuẩn của bản B để ngắt sạch tiếng ngầm
                 } else {
                     let topSong = playlist[0];
 
-                    // Phân tách tuyến âm thanh: Local / Offline vs YouTube Online
                     if (topSong.type === 'local' || topSong.localKey) {
                         stopYouTubeCompletely();
                         playOfflineSong(topSong);
@@ -141,7 +149,6 @@
                 }
             });
 
-            // Lắng nghe lệnh điều khiển từ Remote
             commandRef.on('value', snapshot => {
                 let cmd = snapshot.val();
                 if (!cmd) return;
@@ -178,7 +185,14 @@
         function stopYouTubeCompletely() {
             if (player && player.stopVideo) {
                 player.stopVideo();
+                player.pauseVideo();
             }
+        }
+
+        function stopAllPlayers() {
+            currentPlayingKey = null;
+            stopYouTubeCompletely();
+            forcePlayWaitingCar();
         }
 
         // 5️⃣ XỬ LÝ KHI HẾT BÀI HOẶC NEXT
@@ -190,16 +204,17 @@
         }
 
         function removeCurrentSong() {
-            if (!playlistRef) return;
+            if (!playlistRef || roomCode === null) return;
             playlistRef.orderByChild('timestamp').limitToFirst(1).once('value', snap => {
                 snap.forEach(child => {
                     child.ref.remove().then(() => {
-                        // Sau khi xóa bài, tự động gọi lại xe hơi chạy nếu hết danh sách
                         setTimeout(() => {
-                            if (isPlayerReady && player && player.loadVideoById) {
-                                player.loadVideoById(WAITING_VIDEO_ID);
-                                player.playVideo();
-                            }
+                            // Kiểm tra lại danh sách, nếu thực sự rỗng thì gọi stopAllPlayers
+                            playlistRef.once('value', snapshot => {
+                                if (!snapshot.exists()) {
+                                    stopAllPlayers();
+                                }
+                            });
                         }, 200);
                     });
                 });
@@ -213,6 +228,10 @@
             try {
                 switch (type) {
                     case 'PLAY_NOW':
+                        if (cmdData.typeSource === 'local' || cmdData.localKey) {
+                            stopYouTubeCompletely();
+                            break;
+                        }
                         if (cmdData.videoId && isPlayerReady && player && player.loadVideoById) {
                             stopOfflinePlayer();
                             player.loadVideoById(cmdData.videoId);
@@ -234,6 +253,9 @@
                         }
                         break;
                     case 'NEXT':
+                        if (isOfflineMode) {
+                            stopOfflinePlayer();
+                        }
                         removeCurrentSong();
                         break;
                     case 'VOL_UP':
