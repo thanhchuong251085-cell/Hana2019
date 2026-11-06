@@ -63,7 +63,7 @@
     let qualityTimer = null;
     let playlistRef = null;
     let commandRef = null;
-    const WAITING_VIDEO_ID = "6BlfNIfGFfM"; // 🚗 Video xe hơi mặc định
+    const WAITING_VIDEO_ID = "6BlfNIfGFfM"; // 🚗 Xe hơi mặc định
 
     function onYouTubeIframeAPIReady() {
       player = new YT.Player('player', {
@@ -86,7 +86,7 @@
           'onStateChange': onPlayerStateChange,
           'onReady': (event) => {
                isPlayerReady = true;
-               // 🚗 Vừa mở lên là ép phát ngay video xe hơi không chần chừ
+               // 🚗 Mở lên là ép phát ngay xe hơi sáng màn hình, không bao giờ đen thui
                event.target.loadVideoById(WAITING_VIDEO_ID);
                event.target.playVideo(); 
           },
@@ -95,7 +95,6 @@
       });
     }
 
-    // Nhận mã phòng từ Android Studio gửi xuống (Khởi động hoặc Đổi mã)
     function setRoomCode(code) {
       if (!code || roomCode === code) return;
       roomCode = code;
@@ -115,13 +114,16 @@
         playlist = [];
         snapshot.forEach(child => {
           let item = child.val();
-          if (!item.type || item.type !== 'local') {
+          // Nếu là bài offline (có type='local' hoặc localKey), HTML phải lập tức DỪNG hẳn YouTube để tránh chồng tiếng!
+          if (item.type === 'local' || item.localKey) {
+            stopYouTubeCompletely();
+          } else {
             playlist.push({ key: child.key, ...item });
           }
         });
         
         if (playlist.length === 0) {
-          stopAllPlayers();
+          stopAllPlayers(); // Hết sạch bài -> Quay về xe hơi chạy
           currentPlayingKey = null;
         } else {
           const newFirstKey = playlist[0].key;
@@ -149,11 +151,19 @@
       }
       
       const topSong = playlist[0];
+      
+      // Nếu bài đầu bảng là bài offline -> Dừng YouTube ngay lập tức để không chồng tiếng
+      if (topSong.type === 'local' || topSong.localKey) {
+        stopYouTubeCompletely();
+        return;
+      }
+
       currentPlayingKey = topSong.key;
 
       if (topSong.videoId && player.loadVideoById) {
         if (qualityTimer) clearTimeout(qualityTimer);
         player.loadVideoById(topSong.videoId);
+        player.playVideo();
 
         qualityTimer = setTimeout(() => {
           if (player && player.setPlaybackQuality) {
@@ -163,7 +173,7 @@
       }
     }
 
-    // 🚗 Khi hết bài hoặc danh sách trống -> Tự động quay về xe hơi chạy
+    // 🚗 Hết bài / Hết danh sách chờ -> Ép quay về xe hơi chạy ngay lập tức
     function stopAllPlayers() {
       currentPlayingKey = null;
       if (qualityTimer) clearTimeout(qualityTimer);
@@ -173,13 +183,21 @@
       }
     }
 
+    // 🛑 Dừng hoàn toàn YouTube (Dùng khi chuyển sang phát nhạc offline để triệt tiêu hoàn toàn lỗi chồng tiếng)
+    function stopYouTubeCompletely() {
+      if (qualityTimer) clearTimeout(qualityTimer);
+      if (player && player.stopVideo) {
+        player.stopVideo();
+        player.pauseVideo();
+      }
+    }
+
     function onPlayerStateChange(event) {
-      // Khi phát xong 1 bài YouTube
       if (event.data === YT.PlayerState.ENDED) {
           if (playlist.length > 0) {
-              removeCurrentSong(); // Xóa bài cũ, tự động chuyển bài tiếp theo trong danh sách chờ
+              removeCurrentSong();
           } else {
-              stopAllPlayers(); // Hết sạch bài -> Về xe hơi
+              stopAllPlayers();
           }
       }
     }
@@ -194,7 +212,6 @@
       if (playlist.length === 0 || !roomCode) return;
       const currentKey = playlist[0].key;
       db.ref(`rooms/${roomCode}/playlist/${currentKey}`).remove().then(() => {
-        // Sau khi xóa, nếu playlist trống thì lập tức gọi về xe hơi
         setTimeout(() => {
           if (playlist.length <= 1) {
             stopAllPlayers();
@@ -219,9 +236,17 @@
       try {
         switch (type) {
           case 'PLAY_NOW': 
+            // Nếu remote ra lệnh phát bài offline -> Dừng ngay YouTube để tránh chồng tiếng
+            if (cmdData.typeSource === 'local' || cmdData.localKey) {
+              stopYouTubeCompletely();
+              break;
+            }
+
+            // Nếu phát YouTube online
             if (cmdData.videoId) {
               if (qualityTimer) clearTimeout(qualityTimer);
               player.loadVideoById(cmdData.videoId);
+              player.playVideo();
 
               qualityTimer = setTimeout(() => {
                 if (player && player.setPlaybackQuality) {
