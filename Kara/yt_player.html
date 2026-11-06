@@ -28,7 +28,7 @@
       left: 0;
       width: 100vw;
       height: 100vh;
-      z-index: 0;
+      z-index: 1;
       transform: translateZ(0);
     }
   </style>
@@ -63,13 +63,13 @@
     let qualityTimer = null;
     let playlistRef = null;
     let commandRef = null;
-    const WAITING_VIDEO_ID = "6BlfNIfGFfM"; // 🚗 Xe hơi huyền thoại
+    const WAITING_VIDEO_ID = "6BlfNIfGFfM"; // 🚗 Video xe hơi cố định
 
     function onYouTubeIframeAPIReady() {
       player = new YT.Player('player', {
         height: '100%', 
         width: '100%',
-        videoId: WAITING_VIDEO_ID, 
+        videoId: WAITING_VIDEO_ID, // Mở lên nạp sẵn xe hơi
         host: 'https://www.youtube.com',
         playerVars: { 
           'autoplay': 1, 
@@ -86,28 +86,27 @@
           'onStateChange': onPlayerStateChange,
           'onReady': (event) => {
                isPlayerReady = true;
-               // Vừa mở lên là ép xe hơi chạy ngay lập tức, triệt tiêu màn hình đen
-               setTimeout(() => {
-                   forcePlayWaitingCar();
-               }, 300);
+               // Vừa mở lên: Nếu chưa có bài hát nào, nạp xe hơi và khóa nút Next an toàn
+               if (playlist.length === 0) {
+                   playVideoByIdAuto(WAITING_VIDEO_ID);
+               }
           },
           'onError': onPlayerError 
         }
       });
     }
 
-    // 🚗 HÀM ÉP PHÁT XE HƠI AN TOÀN VÀ QUYẾT LIỆT
-    function forcePlayWaitingCar() {
-      if (!player || !isPlayerReady) return;
+    // 🚗 Hàm bơm Video ID phát tự động
+    function playVideoByIdAuto(videoId) {
+      if (!isPlayerReady || !player || !player.loadVideoById) return;
       
-      if (playlist.length === 0) {
-        try {
-          player.loadVideoById(WAITING_VIDEO_ID);
-          player.playVideo(); // Ép phát ngay lập tức để không bao giờ bị đen
-          console.log("🚗 Xe hơi đã được kích hoạt chạy!");
-        } catch (e) {
-          setTimeout(forcePlayWaitingCar, 1000);
-        }
+      if (qualityTimer) clearTimeout(qualityTimer);
+      try {
+        player.loadVideoById(videoId);
+        player.playVideo();
+        console.log("▶️ Đang phát Video ID: " + videoId);
+      } catch (e) {
+        setTimeout(() => playVideoByIdAuto(videoId), 800);
       }
     }
 
@@ -138,7 +137,8 @@
         });
         
         if (playlist.length === 0) {
-          stopAllPlayers(); 
+          // 🚗 Danh sách trống -> Chạy xe hơi & Nút Next tạm thời bị khóa vô hiệu hóa
+          playVideoByIdAuto(WAITING_VIDEO_ID);
           currentPlayingKey = null;
         } else {
           const newFirstKey = playlist[0].key;
@@ -158,10 +158,10 @@
     }
 
     function checkAndPlayTopSong() {
-      if (!isPlayerReady || !player) return;
+      if (!isPlayerReady) return;
 
       if (playlist.length === 0) {
-        stopAllPlayers();
+        playVideoByIdAuto(WAITING_VIDEO_ID);
         return;
       }
       
@@ -174,24 +174,15 @@
 
       currentPlayingKey = topSong.key;
 
-      if (topSong.videoId && player.loadVideoById) {
-        if (qualityTimer) clearTimeout(qualityTimer);
-        player.loadVideoById(topSong.videoId);
-        player.playVideo();
-
+      if (topSong.videoId) {
+        playVideoByIdAuto(topSong.videoId);
+        
         qualityTimer = setTimeout(() => {
           if (player && player.setPlaybackQuality) {
             player.setPlaybackQuality('hd1080');
           }
         }, 4000);
       }
-    }
-
-    // 🚗 Hết bài / Hết danh sách chờ -> Bắt buộc lôi xe hơi ra chạy và ép phát
-    function stopAllPlayers() {
-      currentPlayingKey = null;
-      if (qualityTimer) clearTimeout(qualityTimer);
-      forcePlayWaitingCar();
     }
 
     function stopYouTubeCompletely() {
@@ -207,7 +198,8 @@
           if (playlist.length > 0) {
               removeCurrentSong();
           } else {
-              stopAllPlayers();
+              // 🚗 Hết bài -> Về xe hơi (Nút Next tự động được khóa an toàn)
+              playVideoByIdAuto(WAITING_VIDEO_ID);
           }
       }
     }
@@ -215,7 +207,7 @@
     function onPlayerError(event) {
       setTimeout(() => {
           if(playlist.length > 0) removeCurrentSong();
-          else stopAllPlayers();
+          else playVideoByIdAuto(WAITING_VIDEO_ID);
       }, 2000);
     }
 
@@ -225,7 +217,7 @@
       db.ref(`rooms/${roomCode}/playlist/${currentKey}`).remove().then(() => {
         setTimeout(() => {
           if (playlist.length === 0) {
-            stopAllPlayers(); // Xóa xong hết bài -> Xe hơi lên sóng ngay lập tức
+            playVideoByIdAuto(WAITING_VIDEO_ID);
           }
         }, 300);
       });
@@ -252,17 +244,8 @@
               break;
             }
 
-            // 🎯 ĐẢM BẢO CHỈ CẦN 1 CÚ BẤM LÀ PHÁT NGAY LẬP TỨC, KHÔNG CẦN BẤM LẦN 2
             if (cmdData.videoId) {
-              if (qualityTimer) clearTimeout(qualityTimer);
-              player.loadVideoById(cmdData.videoId);
-              player.playVideo(); // Ép phát ngay lập tức
-
-              qualityTimer = setTimeout(() => {
-                if (player && player.setPlaybackQuality) {
-                  player.setPlaybackQuality('hd1080');
-                }
-              }, 4000);
+              playVideoByIdAuto(cmdData.videoId); // Phát nhạc online phà phà
             }
             break;
             
@@ -272,10 +255,17 @@
             break;
             
           case 'NEXT': 
+            // 🛡️ KHÓA THÔNG MINH NÚT NEXT: 
+            // Nếu danh sách trống (đang chạy xe hơi lúc mới mở app hoặc lúc vừa hết bài) -> Chặn cứng nút Next!
+            if (playlist.length === 0) {
+              console.log("🛡️ Đang chạy xe hơi, nút Next bị khóa an toàn để tránh màn hình đen!");
+              playVideoByIdAuto(WAITING_VIDEO_ID); // Giữ nguyên xe hơi chạy
+              break;
+            }
+
+            // Nếu có danh sách bài hát -> Cho phép Next bình thường qua bài kế tiếp
             if (playlist.length > 0) {
               removeCurrentSong(); 
-            } else {
-              stopAllPlayers();
             }
             break;
 
