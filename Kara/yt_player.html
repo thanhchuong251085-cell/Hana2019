@@ -84,52 +84,46 @@
       listenToCommands();
     }
 
-    // Hàm phụ trợ để dừng hẳn tiếng và hình YouTube khi chuyển sang nguồn khác
-    function stopYouTubeAudio() {
-      if (player && typeof player.stopVideo === 'function') {
-        try {
-          player.stopVideo();
-          player.clearVideo();
-        } catch (e) {
-          console.log("Lỗi dừng player:", e);
-        }
-      }
+    // 🛑 [LẤY TỪ CODE 2] Hàm dừng hẳn YouTube triệt tiêu hoàn toàn tiếng chạy ngầm
+    function stopYouTubeCompletely() {
       currentPlayingKey = null;
+      if (player && player.stopVideo && player.pauseVideo) {
+        player.stopVideo();
+        player.pauseVideo();
+      }
     }
 
-    // 3️⃣ LẮNG NGHE PLAYLIST & XỬ LÝ XUNG ĐỘT LUỒNG ÂM THANH
+    // 3️⃣ LẮNG NGHE PLAYLIST & ÁP DỤNG CƠ CHẾ LỌC BÀI OFFLINE TỪ CODE 2
     function listenToPlaylist() {
       playlistRef.orderByChild('timestamp').on('value', snapshot => {
         let playlist = [];
-        let hasLocalOrSpotify = false;
-
         snapshot.forEach(child => {
           let item = child.val();
-          // Kiểm tra nếu bài đầu tiên là local hoặc spotify/nguồn khác
-          if (child.key === snapshot.ref.key || playlist.length === 0) {
-            if (item.type === 'local' || item.localKey || item.type === 'spotify' || item.source === 'spotify') {
-              hasLocalOrSpotify = true;
-            }
-          }
-          if (item.type !== 'local' && !item.localKey) {
+          
+          // 🛡️ Bắt bài offline ngay khi quét qua Firebase (y hệt code số 2)
+          if (item.type === 'local' || item.localKey) {
+            stopYouTubeCompletely();
+          } else {
             playlist.push({ key: child.key, ...item });
           }
         });
 
-        // 🛡️ KHẮC PHỤC TRIỆT ĐỂ: Nếu bài đầu tiên là Local / Spotify -> Ép dừng YouTube ngay lập tức để tránh chồng tiếng
-        if (hasLocalOrSpotify) {
-          stopYouTubeAudio();
-          return;
-        }
-
         if (playlist.length === 0) {
           currentPlayingKey = null;
+          // Khi danh sách chờ trống -> Tự động nạp và phát lại xe hơi
           if (player && player.loadVideoById) {
             player.loadVideoById(WAITING_VIDEO_ID);
             player.playVideo();
           }
         } else {
           let topSong = playlist[0];
+          
+          // Kiểm tra thêm lớp chốt ở bài đầu bảng xem có phải local không
+          if (topSong.type === 'local' || topSong.localKey) {
+            stopYouTubeCompletely();
+            return;
+          }
+
           if (topSong.key !== currentPlayingKey) {
             currentPlayingKey = topSong.key;
             if (topSong.videoId && player && player.loadVideoById) {
@@ -151,6 +145,11 @@
         try {
           switch (cmd.type) {
             case 'PLAY_NOW':
+              // 🛡️ Bắt lệnh PLAY_NOW nếu là nhạc offline (y hệt code số 2)
+              if (cmd.typeSource === 'local' || cmd.localKey) {
+                stopYouTubeCompletely();
+                break;
+              }
               if (cmd.videoId && player && player.loadVideoById) {
                 player.loadVideoById(cmd.videoId);
                 player.playVideo();
@@ -161,10 +160,6 @@
               break;
             case 'PAUSE':
               if (player && player.pauseVideo) player.pauseVideo();
-              break;
-            case 'STOP':
-            case 'STOP_YOUTUBE':
-              stopYouTubeAudio();
               break;
             case 'NEXT':
               if (playlistRef) {
