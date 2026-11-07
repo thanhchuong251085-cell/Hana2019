@@ -47,6 +47,10 @@
     let currentPlayingKey = null;
     const WAITING_VIDEO_ID = "6BlfNIfGFfM"; // 🚗 Xe hơi huyền thoại
 
+    // Biến cờ kiểm soát thời điểm nạp mã phòng để không làm gián đoạn xe hơi lúc đầu
+    let isPlayerReady = false;
+    let queuedRoomCode = null;
+
     // 1️⃣ KHỞI TẠO PLAYER
     function onYouTubeIframeAPIReady() {
       player = new YT.Player('player', {
@@ -63,32 +67,47 @@
         events: {
           'onReady': (event) => {
             event.target.playVideo();
+            
+            // Đánh dấu player đã sẵn sàng chạy xe hơi
+            isPlayerReady = true;
+            
+            // Nếu Android đã gửi mã phòng xuống trước đó, bây giờ mới bắt đầu thực thi
+            if (queuedRoomCode) {
+              processSetRoomCode(queuedRoomCode);
+              queuedRoomCode = null;
+            }
           },
           'onStateChange': onPlayerStateChange
         }
       });
     }
 
-    // 2️⃣ MÃ PHÒNG 2 CHIỀU: ĐÃ THÊM ĐỘ TRỄ (DELAY) 5 GIÂY ĐỂ CHỜ RENDER XE HƠI ỔN ĐỊNH
+    // 2️⃣ MÃ PHÒNG 2 CHIỀU: Nhận mã từ Android Studio
     function setRoomCode(code) {
-      if (!code || currentRoomCode === code) return;
+      if (!code) return;
 
-      console.log("Android vừa gửi mã phòng, đang giữ lại 5 giây để đợi xe hơi load hoàn tất...");
+      // Nếu xe hơi chưa load xong, giữ lại mã phòng trong hàng đợi
+      if (!isPlayerReady) {
+        queuedRoomCode = code;
+        return;
+      }
 
-      // Cưỡng chế chờ đúng 5000ms (5 giây) rồi mới thực hiện kết nối Firebase và nhận mã phòng
-      setTimeout(() => {
-        currentRoomCode = code;
-        console.log("Đã chính thức kích hoạt mã phòng sau khi chờ:", currentRoomCode);
+      processSetRoomCode(code);
+    }
 
-        if (playlistRef) playlistRef.off();
-        if (commandRef) commandRef.off();
+    // Hàm xử lý logic mã phòng gốc của anh (giữ nguyên 100%)
+    function processSetRoomCode(code) {
+      if (currentRoomCode === code) return;
+      currentRoomCode = code;
 
-        playlistRef = db.ref(`rooms/${currentRoomCode}/playlist`);
-        commandRef = db.ref(`rooms/${currentRoomCode}/command`);
+      if (playlistRef) playlistRef.off();
+      if (commandRef) commandRef.off();
 
-        listenToPlaylist();
-        listenToCommands();
-      }, 5000); // <- Chỉnh số mili-giây ở đây nếu muốn tăng/giảm thời gian chờ (5000 = 5 giây)
+      playlistRef = db.ref(`rooms/${currentRoomCode}/playlist`);
+      commandRef = db.ref(`rooms/${currentRoomCode}/command`);
+
+      listenToPlaylist();
+      listenToCommands();
     }
 
     // 🛑 [LẤY TỪ CODE 2] Hàm dừng hẳn YouTube triệt tiêu hoàn toàn tiếng chạy ngầm
@@ -170,7 +189,7 @@
               break;
             case 'NEXT':
               if (playlistRef) {
-                playlistRef.orderByChild('timestamp').limitToFirst(1).once('value', snap => {
+                playlistRef.orderByChild('timestamp')->limitToFirst(1).once('value', snap => {
                   snap.forEach(child => {
                     child.ref.remove();
                   });
