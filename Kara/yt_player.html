@@ -47,7 +47,7 @@
     let currentPlayingKey = null;
     const WAITING_VIDEO_ID = "6BlfNIfGFfM"; // 🚗 Xe hơi huyền thoại
 
-    // 1️⃣ KHỞI TẠO PLAYER: Nạp sẵn xe hơi từ đầu và bật autoplay để không bao giờ bị màn hình đen
+    // 1️⃣ KHỞI TẠO PLAYER
     function onYouTubeIframeAPIReady() {
       player = new YT.Player('player', {
         height: '100%',
@@ -84,21 +84,46 @@
       listenToCommands();
     }
 
-    // 3️⃣ LẮNG NGHE PLAYLIST & PHÂN TÁCH TUYẾN ÂM THANH (EXOPLAYER / YOUTUBE)
+    // Hàm phụ trợ để dừng hẳn tiếng và hình YouTube khi chuyển sang nguồn khác
+    function stopYouTubeAudio() {
+      if (player && typeof player.stopVideo === 'function') {
+        try {
+          player.stopVideo();
+          player.clearVideo();
+        } catch (e) {
+          console.log("Lỗi dừng player:", e);
+        }
+      }
+      currentPlayingKey = null;
+    }
+
+    // 3️⃣ LẮNG NGHE PLAYLIST & XỬ LÝ XUNG ĐỘT LUỒNG ÂM THANH
     function listenToPlaylist() {
       playlistRef.orderByChild('timestamp').on('value', snapshot => {
         let playlist = [];
+        let hasLocalOrSpotify = false;
+
         snapshot.forEach(child => {
           let item = child.val();
-          // 🛡️ Điểm ăn tiền: Lọc bỏ nhạc local để ExoPlayer xử lý độc lập, chống chồng hình/chồng tiếng
+          // Kiểm tra nếu bài đầu tiên là local hoặc spotify/nguồn khác
+          if (child.key === snapshot.ref.key || playlist.length === 0) {
+            if (item.type === 'local' || item.localKey || item.type === 'spotify' || item.source === 'spotify') {
+              hasLocalOrSpotify = true;
+            }
+          }
           if (item.type !== 'local' && !item.localKey) {
             playlist.push({ key: child.key, ...item });
           }
         });
 
+        // 🛡️ KHẮC PHỤC TRIỆT ĐỂ: Nếu bài đầu tiên là Local / Spotify -> Ép dừng YouTube ngay lập tức để tránh chồng tiếng
+        if (hasLocalOrSpotify) {
+          stopYouTubeAudio();
+          return;
+        }
+
         if (playlist.length === 0) {
           currentPlayingKey = null;
-          // Khi danh sách chờ trống -> Tự động nạp và phát lại xe hơi
           if (player && player.loadVideoById) {
             player.loadVideoById(WAITING_VIDEO_ID);
             player.playVideo();
@@ -137,6 +162,10 @@
             case 'PAUSE':
               if (player && player.pauseVideo) player.pauseVideo();
               break;
+            case 'STOP':
+            case 'STOP_YOUTUBE':
+              stopYouTubeAudio();
+              break;
             case 'NEXT':
               if (playlistRef) {
                 playlistRef.orderByChild('timestamp').limitToFirst(1).once('value', snap => {
@@ -156,7 +185,6 @@
     // 5️⃣ XỬ LÝ KHI HẾT BÀI
     function onPlayerStateChange(event) {
       if (event.data === YT.PlayerState.ENDED) {
-        // Xóa bài đầu tiên hiện tại khỏi playlist
         if (playlistRef) {
           playlistRef.orderByChild('timestamp').limitToFirst(1).once('value', snap => {
             snap.forEach(child => {
