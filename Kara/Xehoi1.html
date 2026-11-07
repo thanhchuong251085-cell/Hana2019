@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf‑8">
+  <meta charset="utf-8">
   <title>YouTube Player</title>
   <style>
     body, html {
@@ -19,19 +19,20 @@
   </style>
 </head>
 <body>
+
   <div id="player"></div>
 
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase‑app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase‑database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <script src="https://www.youtube.com/iframe_api"></script>
 
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyAIwBqg8EYLU7TQXfOO697C4D5p5_GeghQ",
-      authDomain: "karaoke‑home.firebaseapp.com",
-      databaseURL: "https://karaoke‑home‑default‑rtdb.asia‑southeast1.firebasedatabase.app",
-      projectId: "karaoke‑home",
-      storageBucket: "karaoke‑home.firebasestorage.app",
+      authDomain: "karaoke-home.firebaseapp.com",
+      databaseURL: "https://karaoke-home-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "karaoke-home",
+      storageBucket: "karaoke-home.firebasestorage.app",
       messagingSenderId: "285959719922",
       appId: "1:285959719922:web:6cb594ebb3ef854124796b"
     };
@@ -40,13 +41,13 @@
     const db = firebase.database();
 
     let player;
-    let isPlayerReady = false; // Thêm cờ kiểm tra đã khởi tạo xe hơi chưa
     let currentRoomCode = null;
     let playlistRef = null;
     let commandRef = null;
     let currentPlayingKey = null;
-    const WAITING_VIDEO_ID = "6BlfNIfGFfM";
+    const WAITING_VIDEO_ID = "6BlfNIfGFfM"; // 🚗 Xe hơi huyền thoại
 
+    // 1️⃣ KHỞI TẠO PLAYER
     function onYouTubeIframeAPIReady() {
       player = new YT.Player('player', {
         height: '100%',
@@ -61,7 +62,6 @@
         },
         events: {
           'onReady': (event) => {
-            isPlayerReady = true; // Đánh dấu xe hơi đã sẵn sàng
             event.target.playVideo();
           },
           'onStateChange': onPlayerStateChange
@@ -69,9 +69,9 @@
       });
     }
 
-    // === Điểm sửa chính: Chờ xe hơi sẵn sàng mới nhận mã phòng ===
+    // 2️⃣ MÃ PHÒNG 2 CHIỀU: Nhận mã từ Android Studio
     function setRoomCode(code) {
-      if (!isPlayerReady || !code || currentRoomCode === code) return;
+      if (!code || currentRoomCode === code) return;
       currentRoomCode = code;
 
       if (playlistRef) playlistRef.off();
@@ -84,6 +84,7 @@
       listenToCommands();
     }
 
+    // 🛑 [LẤY TỪ CODE 2] Hàm dừng hẳn YouTube triệt tiêu hoàn toàn tiếng chạy ngầm
     function stopYouTubeCompletely() {
       currentPlayingKey = null;
       if (player && player.stopVideo && player.pauseVideo) {
@@ -92,11 +93,14 @@
       }
     }
 
+    // 3️⃣ LẮNG NGHE PLAYLIST & ÁP DỤNG CƠ CHẾ LỌC BÀI OFFLINE TỪ CODE 2
     function listenToPlaylist() {
       playlistRef.orderByChild('timestamp').on('value', snapshot => {
         let playlist = [];
         snapshot.forEach(child => {
           let item = child.val();
+          
+          // 🛡️ Bắt bài offline ngay khi quét qua Firebase (y hệt code số 2)
           if (item.type === 'local' || item.localKey) {
             stopYouTubeCompletely();
           } else {
@@ -106,16 +110,20 @@
 
         if (playlist.length === 0) {
           currentPlayingKey = null;
+          // Khi danh sách chờ trống -> Tự động nạp và phát lại xe hơi
           if (player && player.loadVideoById) {
             player.loadVideoById(WAITING_VIDEO_ID);
             player.playVideo();
           }
         } else {
           let topSong = playlist[0];
+          
+          // Kiểm tra thêm lớp chốt ở bài đầu bảng xem có phải local không
           if (topSong.type === 'local' || topSong.localKey) {
             stopYouTubeCompletely();
             return;
           }
+
           if (topSong.key !== currentPlayingKey) {
             currentPlayingKey = topSong.key;
             if (topSong.videoId && player && player.loadVideoById) {
@@ -127,15 +135,17 @@
       });
     }
 
+    // 4️⃣ LẮNG NGHE LỆNH REMOTE
     function listenToCommands() {
       commandRef.on('value', snapshot => {
         let cmd = snapshot.val();
         if (!cmd) return;
-        commandRef.remove();
+        commandRef.remove(); // Xử lý xong xóa luôn lệnh
 
         try {
           switch (cmd.type) {
             case 'PLAY_NOW':
+              // 🛡️ Bắt lệnh PLAY_NOW nếu là nhạc offline (y hệt code số 2)
               if (cmd.typeSource === 'local' || cmd.localKey) {
                 stopYouTubeCompletely();
                 break;
@@ -167,6 +177,7 @@
       });
     }
 
+    // 5️⃣ XỬ LÝ KHI HẾT BÀI
     function onPlayerStateChange(event) {
       if (event.data === YT.PlayerState.ENDED) {
         if (playlistRef) {
