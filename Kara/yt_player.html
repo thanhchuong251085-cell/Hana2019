@@ -13,13 +13,26 @@
       overflow: hidden;
     }
 
-    /* 🟢 KHUNG PLAYER GỐC CHUẨN XÁC CỦA ANH EM MÌNH */
-    #player {
-      width: 100%;
-      height: 100%;
+    /* 🟢 KHUNG PLAYER GỐC CỦA ANH EM MÌNH + TÍCH HỢP CSS CROP & FILL TRIỆT TIÊU DẢI ĐEN */
+    #playerContainer {
       position: absolute;
       top: 0;
       left: 0;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      z-index: 0;
+    }
+
+    #player {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 177.77vh; /* Tỷ lệ 16:9 tính theo chiều cao để lấp đầy hai bên */
+      height: 100vh;
+      min-width: 100vw;
+      min-height: 56.25vw;
+      transform: translate(-50%, -50%);
       border: none;
     }
 
@@ -32,6 +45,7 @@
       object-fit: contain;
       background: #000;
       display: none;
+      z-index: 0;
     }
 
     /* 🎨 BẢNG HIỆU CHÀO MỪNG ĐỘNG (TO RÕ, NẰM Ở PHÍA DƯỚI, TRÊN THANH TUA) */
@@ -80,7 +94,11 @@
     <div class="welcome-text">☕️ Chào mừng bạn đến với Karaoke Hana</div>
   </div>
 
-  <div id="player"></div>
+  <!-- Khung bọc chống dải đen cho YouTube -->
+  <div id="playerContainer">
+    <div id="player"></div>
+  </div>
+
   <video id="localPlayer" controls preload="auto" playsinline></video>
 
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
