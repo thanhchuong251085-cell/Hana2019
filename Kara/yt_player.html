@@ -1,39 +1,69 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <base target="_top">
-  <title>Karaoke YouTube Player</title>
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-
+  <meta charset="utf-8">
+  <title>YouTube Player - Karaoke Hana</title>
   <style>
-    * {
-      -webkit-font-smoothing: antialiased;
-      box-sizing: border-box;
-    }
-
-    body {
-      background-color: #000;
-      color: white;
-      font-family: Arial, sans-serif;
+    body, html {
       margin: 0;
       padding: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
       overflow: hidden;
     }
-
     #player {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* 🎨 CSS CHO BẢNG HIỆU CHÀO MỪNG: CHỮ TO RÕ, NẰM Ở PHÍA DƯỚI (TRÊN THANH TUA MỘT CHÚT) */
+    #welcomeBanner {
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      z-index: 0;
-      transform: translateZ(0);
+      bottom: 50px; /* Nằm cách đáy màn hình 50px, ngay trên thanh tua YouTube, không che nút Play */
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 99;
+      background: rgba(0, 0, 0, 0.6); /* Nền đen mờ đậm hơn chút cho chữ cực kỳ nổi bật */
+      padding: 14px 35px;
+      border-radius: 40px;
+      border: 2px solid rgba(255, 221, 0, 0.6);
+      backdrop-filter: blur(6px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.8);
+      
+      /* Hiệu ứng chuyển động ẩn/hiện mượt mà */
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 1.5s ease-in-out, visibility 1.5s ease-in-out;
+      pointer-events: none;
+    }
+
+    .welcome-text {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-size: 32px; /* 🟢 TĂNG CỠ CHỮ TO RÕ HẲN RA, ĐẬM CHẤT ĐẦU KARAOKE CHUYÊN NGHIỆP */
+      font-weight: 900;
+      text-align: center;
+      letter-spacing: 1px;
+      background: linear-gradient(45deg, #ffdd00, #00ffcc, #ff99ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 3px 12px rgba(0,0,0,0.9);
+      animation: waveText 3s infinite ease-in-out;
+    }
+
+    /* Hiệu ứng chữ lượn sóng nhẹ nhàng sinh động */
+    @keyframes waveText {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-5px); }
     }
   </style>
 </head>
 <body>
+
+  <!-- Bảng hiệu chào mừng to rõ ở phía dưới -->
+  <div id="welcomeBanner">
+    <div class="welcome-text">☕️ Chào mừng bạn đến với Karaoke Hana</div>
+  </div>
 
   <div id="player"></div>
 
@@ -56,251 +86,200 @@
     const db = firebase.database();
 
     let player;
-    let currentPlayingKey = null; 
-    let playlist = [];
-    let isPlayerReady = false;
-    let roomCode = null; 
-    let qualityTimer = null;
+    let currentRoomCode = null;
     let playlistRef = null;
     let commandRef = null;
+    let currentPlayingKey = null;
     const WAITING_VIDEO_ID = "6BlfNIfGFfM"; // 🚗 Xe hơi huyền thoại
 
+    let bannerTimer = null;
+
+    // 🌟 QUẢN LÝ HIỂN THỊ BẢNG HIỆU: Chỉ hiện khi ở màn hình xe hơi (Hiện 4 giây, nghỉ 8 giây để ngắm xe)
+    function showWelcomeBanner(show) {
+      const banner = document.getElementById('welcomeBanner');
+      if (!banner) return;
+
+      if (show) {
+        if (bannerTimer) clearInterval(bannerTimer);
+
+        let cycleBanner = () => {
+          banner.style.opacity = '1';
+          banner.style.visibility = 'visible';
+
+          // Hiển thị trong 4 giây rồi ẩn đi
+          setTimeout(() => {
+            banner.style.opacity = '0';
+            banner.style.visibility = 'hidden';
+          }, 4000); 
+        };
+
+        // Chờ 2 giây sau khi về xe hơi mới bắt đầu chu kỳ đầu tiên
+        setTimeout(() => {
+          cycleBanner();
+          // Lặp lại chu kỳ mỗi 12 giây (4s hiện chữ + 8s ngắm xe không bị che)
+          bannerTimer = setInterval(cycleBanner, 12000);
+        }, 2000);
+
+      } else {
+        // Khi phát nhạc thật -> Tắt ngay lập tức và dứt điểm
+        if (bannerTimer) clearInterval(bannerTimer);
+        banner.style.opacity = '0';
+        banner.style.visibility = 'hidden';
+      }
+    }
+
+    // 1️⃣ KHỞI TẠO PLAYER
     function onYouTubeIframeAPIReady() {
       player = new YT.Player('player', {
-        height: '100%', 
+        height: '100%',
         width: '100%',
-        videoId: WAITING_VIDEO_ID, 
-        host: 'https://www.youtube.com',
-        playerVars: { 
-          'autoplay': 1, 
+        videoId: WAITING_VIDEO_ID,
+        playerVars: {
+          'autoplay': 1,
           'controls': 1,
-          'modestbranding': 1,
-          'rel': 0,                 
-          'enablejsapi': 1,         
-          'origin': window.location.origin,
-          'iv_load_policy': 3,
-          'playsinline': 1,
-          'vq': 'hd1080'
+          'rel': 0,
+          'enablejsapi': 1,
+          'playsinline': 1
         },
         events: {
-          'onStateChange': onPlayerStateChange,
           'onReady': (event) => {
-               isPlayerReady = true;
-               // Vừa mở lên là ép xe hơi chạy ngay lập tức, triệt tiêu màn hình đen
-               setTimeout(() => {
-                   forcePlayWaitingCar();
-               }, 300);
+            event.target.playVideo();
+            showWelcomeBanner(true); // Khởi động lên thấy xe hơi -> Bật bảng chào mừng ngắt quãng
           },
-          'onError': onPlayerError 
+          'onStateChange': onPlayerStateChange
         }
       });
     }
 
-    // 🚗 HÀM ÉP PHÁT XE HƠI AN TOÀN VÀ QUYẾT LIỆT
-    function forcePlayWaitingCar() {
-      if (!player || !isPlayerReady) return;
-      
-      if (playlist.length === 0) {
-        try {
-          player.loadVideoById(WAITING_VIDEO_ID);
-          player.playVideo(); // Ép phát ngay lập tức để không bao giờ bị đen
-          console.log("🚗 Xe hơi đã được kích hoạt chạy!");
-        } catch (e) {
-          setTimeout(forcePlayWaitingCar, 1000);
-        }
-      }
-    }
-
+    // 2️⃣ MÃ PHÒNG 2 CHIỀU: Nhận mã từ Android Studio
     function setRoomCode(code) {
-      if (!code || roomCode === code) return;
-      roomCode = code;
-      console.log("Đã đồng bộ mã phòng từ Android: " + roomCode);
+      if (!code || currentRoomCode === code) return;
+      currentRoomCode = code;
 
       if (playlistRef) playlistRef.off();
       if (commandRef) commandRef.off();
 
-      playlistRef = db.ref(`rooms/${roomCode}/playlist`);
-      commandRef = db.ref(`rooms/${roomCode}/command`);
+      playlistRef = db.ref(`rooms/${currentRoomCode}/playlist`);
+      commandRef = db.ref(`rooms/${currentRoomCode}/command`);
 
-      listenToData();
+      listenToPlaylist();
+      listenToCommands();
     }
 
-    function listenToData() {
+    // 🛑 [GIỮ NGUYÊN] Hàm dừng hẳn YouTube triệt tiêu hoàn toàn tiếng chạy ngầm khi dính nhạc offline
+    function stopYouTubeCompletely() {
+      currentPlayingKey = null;
+      if (player && player.stopVideo) {
+        player.stopVideo();
+      }
+      showWelcomeBanner(true); // Về xe hơi -> Bật bảng chào mừng
+    }
+
+    // 3️⃣ LẮNG NGHE PLAYLIST (Giữ nguyên vẹn cơ chế lọc bài offline chuẩn xác)
+    function listenToPlaylist() {
       playlistRef.orderByChild('timestamp').on('value', snapshot => {
-        playlist = [];
+        let playlist = [];
         snapshot.forEach(child => {
           let item = child.val();
+          
           if (item.type === 'local' || item.localKey) {
             stopYouTubeCompletely();
           } else {
             playlist.push({ key: child.key, ...item });
           }
         });
-        
+
         if (playlist.length === 0) {
-          stopAllPlayers(); 
           currentPlayingKey = null;
+          if (player && player.loadVideoById) {
+            player.loadVideoById(WAITING_VIDEO_ID);
+            player.playVideo();
+            showWelcomeBanner(true); 
+          }
         } else {
-          const newFirstKey = playlist[0].key;
-          if (newFirstKey !== currentPlayingKey) {
-            checkAndPlayTopSong();
+          let topSong = playlist[0];
+          
+          if (topSong.type === 'local' || topSong.localKey) {
+            stopYouTubeCompletely();
+            return;
+          }
+
+          if (topSong.key !== currentPlayingKey) {
+            currentPlayingKey = topSong.key;
+            if (topSong.videoId && player && player.loadVideoById) {
+              showWelcomeBanner(false); // Phát nhạc online -> TẮT ngay bảng chào mừng
+              player.loadVideoById(topSong.videoId);
+              player.playVideo();
+            }
           }
         }
       });
+    }
 
+    // 4️⃣ LẮNG NGHE LỆNH REMOTE
+    function listenToCommands() {
       commandRef.on('value', snapshot => {
-        const cmdData = snapshot.val();
-        if (cmdData) {
-          executeCommand(cmdData);
-          commandRef.remove();
+        let cmd = snapshot.val();
+        if (!cmd) return;
+        commandRef.remove();
+
+        try {
+          switch (cmd.type) {
+            case 'PLAY_NOW':
+              if (cmd.typeSource === 'local' || cmd.localKey) {
+                stopYouTubeCompletely();
+                break;
+              }
+              if (cmd.videoId && player && player.loadVideoById) {
+                showWelcomeBanner(false); // Phát nhạc online -> TẮT bảng chào mừng
+                player.loadVideoById(cmd.videoId);
+                player.playVideo();
+              }
+              break;
+            case 'PLAY':
+              if (player && player.playVideo) player.playVideo();
+              break;
+            case 'PAUSE':
+              if (player && player.pauseVideo) player.pauseVideo();
+              break;
+            case 'NEXT':
+              if (player && player.stopVideo) {
+                player.stopVideo();
+              }
+              if (player && player.loadVideoById) {
+                player.loadVideoById(WAITING_VIDEO_ID);
+                player.playVideo();
+                showWelcomeBanner(true); // Về xe hơi -> Bật bảng chào mừng ngắt quãng
+              }
+              if (playlistRef) {
+                playlistRef.orderByChild('timestamp').limitToFirst(1).once('value', snap => {
+                  snap.forEach(child => {
+                    child.ref.remove();
+                  });
+                });
+              }
+              break;
+          }
+        } catch (e) {
+          console.log("Lỗi lệnh:", e);
         }
       });
     }
 
-    function checkAndPlayTopSong() {
-      if (!isPlayerReady || !player) return;
-
-      if (playlist.length === 0) {
-        stopAllPlayers();
-        return;
-      }
-      
-      const topSong = playlist[0];
-      
-      if (topSong.type === 'local' || topSong.localKey) {
-        stopYouTubeCompletely();
-        return;
-      }
-
-      currentPlayingKey = topSong.key;
-
-      if (topSong.videoId && player.loadVideoById) {
-        if (qualityTimer) clearTimeout(qualityTimer);
-        player.loadVideoById(topSong.videoId);
-        player.playVideo();
-
-        qualityTimer = setTimeout(() => {
-          if (player && player.setPlaybackQuality) {
-            player.setPlaybackQuality('hd1080');
-          }
-        }, 4000);
-      }
-    }
-
-    // 🚗 Hết bài / Hết danh sách chờ -> Bắt buộc lôi xe hơi ra chạy và ép phát
-    function stopAllPlayers() {
-      currentPlayingKey = null;
-      if (qualityTimer) clearTimeout(qualityTimer);
-      forcePlayWaitingCar();
-    }
-
-    function stopYouTubeCompletely() {
-      if (qualityTimer) clearTimeout(qualityTimer);
-      if (player && player.stopVideo) {
-        player.stopVideo();
-        player.pauseVideo();
-      }
-    }
-
+    // 5️⃣ XỬ LÝ KHI HẾT BÀI TỰ ĐỘNG
     function onPlayerStateChange(event) {
       if (event.data === YT.PlayerState.ENDED) {
-          if (playlist.length > 0) {
-              removeCurrentSong();
-          } else {
-              stopAllPlayers();
-          }
-      }
-    }
-
-    function onPlayerError(event) {
-      setTimeout(() => {
-          if(playlist.length > 0) removeCurrentSong();
-          else stopAllPlayers();
-      }, 2000);
-    }
-
-    function removeCurrentSong() {
-      if (playlist.length === 0 || !roomCode) return;
-      const currentKey = playlist[0].key;
-      db.ref(`rooms/${roomCode}/playlist/${currentKey}`).remove().then(() => {
-        setTimeout(() => {
-          if (playlist.length === 0) {
-            stopAllPlayers(); // Xóa xong hết bài -> Xe hơi lên sóng ngay lập tức
-          }
-        }, 300);
-      });
-    }
-
-    function togglePlayPause() {
-      if (!player || !isPlayerReady) return;
-      const state = player.getPlayerState();
-      if (state === YT.PlayerState.PLAYING) {
-        player.pauseVideo();
-      } else {
-        player.playVideo();
-      }
-    }
-
-    function executeCommand(cmdData) {
-      const type = (typeof cmdData === 'object') ? cmdData.type : cmdData;
-
-      try {
-        switch (type) {
-          case 'PLAY_NOW': 
-            if (cmdData.typeSource === 'local' || cmdData.localKey) {
-              stopYouTubeCompletely();
-              break;
-            }
-
-            // 🎯 ĐẢM BẢO CHỈ CẦN 1 CÚ BẤM LÀ PHÁT NGAY LẬP TỨC, KHÔNG CẦN BẤM LẦN 2
-            if (cmdData.videoId) {
-              if (qualityTimer) clearTimeout(qualityTimer);
-              player.loadVideoById(cmdData.videoId);
-              player.playVideo(); // Ép phát ngay lập tức
-
-              qualityTimer = setTimeout(() => {
-                if (player && player.setPlaybackQuality) {
-                  player.setPlaybackQuality('hd1080');
-                }
-              }, 4000);
-            }
-            break;
-            
-          case 'PLAY': 
-          case 'PAUSE': 
-            togglePlayPause();
-            break;
-            
-          case 'NEXT': 
-            if (playlist.length > 0) {
-              removeCurrentSong(); 
-            } else {
-              stopAllPlayers();
-            }
-            break;
-
-          case 'SET_HD': 
-            if (player && player.setPlaybackQuality) {
-              player.setPlaybackQuality('hd1080');
-            }
-            break;
-            
-          case 'VOL_UP': 
-            if (player && player.getVolume) {
-              player.setVolume(Math.min(player.getVolume() + 10, 100));
-            }
-            break;
-            
-          case 'VOL_DOWN': 
-            if (player && player.getVolume) {
-              player.setVolume(Math.max(player.getVolume() - 10, 0));
-            }
-            break;
+        if (playlistRef) {
+          playlistRef.orderByChild('timestamp').limitToFirst(1).once('value', snap => {
+            snap.forEach(child => {
+              child.ref.remove();
+            });
+          });
         }
-      } catch (e) { 
-        console.error("Lỗi thực thi lệnh:", e); 
       }
     }
+
+    window.setRoomCode = setRoomCode;
   </script>
 </body>
 </html>
