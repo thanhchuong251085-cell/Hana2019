@@ -2,27 +2,8 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <base target="_top">
   <title>YouTube Player - Karaoke Hana</title>
-  <link rel="manifest" href="./manifest_tv.json">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-
-  <script async="" src="https://www.googletagmanager.com/gtag/js?id=G-JCB7VEJF1Y"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-JCB7VEJF1Y');
-  </script>
   <style>
-    * {
-      -webkit-font-smoothing: antialiased;
-      box-sizing: border-box;
-    }
-
     body, html {
       margin: 0;
       padding: 0;
@@ -32,28 +13,21 @@
       overflow: hidden;
     }
 
-    /* 🟢 ĐIỀU HƯỚNG KÍCH THƯỚC THÔNG MINH THEO HƯỚNG XOAY MÀN HÌNH */
+    /* 🟢 KHUNG PLAYER GỐC CHUẨN XÁC: Giữ nguyên xoay ngang chuẩn, chỉ kìm khung dọc lại vừa khít không bị phóng to */
     #player {
+      width: 100%;
+      height: 100%;
       position: absolute;
       top: 0;
       left: 0;
       border: none;
     }
 
-    /* Khi xoay ngang: Tràn viền mượt mà chuẩn VLC */
-    @media (orientation: landscape) {
-      #player {
-        width: 100vw;
-        height: 100vh;
-      }
-    }
-
-    /* Khi xoay dọc: Khung 16:9 gọn gàng đúng chuẩn y hệt hình mẫu anh vừa gửi */
+    /* Khi xoay dọc: Giới hạn chiều cao và căn giữa để không bị phóng to quá cỡ */
     @media (orientation: portrait) {
       #player {
-        width: 100vw;
-        height: 56.25vw; /* Tỷ lệ 16:9 tính theo chiều rộng */
-        top: 32%;       /* Cân đối vị trí hiển thị dọc vừa khít */
+        height: 56.25vw; /* Đảm bảo tỷ lệ 16:9 chuẩn */
+        top: 28%;       /* Đặt đúng vị trí đẹp, không bị đẩy lung tung */
         transform: translateY(-50%);
       }
     }
@@ -67,10 +41,9 @@
       object-fit: contain;
       background: #000;
       display: none;
-      z-index: 0;
     }
 
-    /* 🎨 BẢNG HIỆU CHÀO MỪNG ĐỘNG (TO RÕ, NẰM Ở PHÍA DƯỚI) */
+    /* 🎨 BẢNG HIỆU CHÀO MỪNG ĐỘNG (TO RÕ, NẰM Ở PHÍA DƯỚI, TRÊN THANH TUA) */
     #welcomeBanner {
       position: absolute;
       bottom: 50px;
