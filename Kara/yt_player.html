@@ -42,7 +42,7 @@
       z-index: 0;
     }
 
-    /* 🟢 1. KHI XOAY NGANG (LANDSCAPE): Lấp đầy tuyệt đối, không co đen hai bên */
+    /* 1. Xoay ngang: Lấp đầy tuyệt đối không co đen hai bên */
     @media (orientation: landscape) {
       #player {
         position: absolute;
@@ -57,7 +57,7 @@
       }
     }
 
-    /* 🟢 2. KHI XOAY DỌC (PORTRAIT): Thu gọn ngay ngắn, chống phóng to */
+    /* 2. Xoay dọc: Thu gọn ngay ngắn ở giữa, chống phóng to */
     @media (orientation: portrait) {
       #player {
         position: absolute;
@@ -82,7 +82,7 @@
       z-index: 0;
     }
 
-    /* 🎨 BẢNG HIỆU CHÀO MỪNG: Nhỏ gọn, không che nút Play và thanh tua */
+    /* 🎨 BẢNG HIỆU CHÀO MỪNG: Nhỏ gọn, chỉ xuất hiện ở màn hình xe hơi */
     #welcomeBanner {
       position: absolute;
       bottom: 45px;
@@ -162,10 +162,21 @@
 
     let bannerTimer = null;
 
-    // 🌟 QUẢN LÝ HIỂN THỊ BẢNG HIỆU: Chỉ hiện đúng khi là màn hình xe hơi
+    // 🌟 CHỐT CHẶN BẢO MẬT TUYỆT ĐỐI: Chỉ cho phép hiện nếu đang phát ĐÚNG video xe hơi!
     function showWelcomeBanner(show) {
       const banner = document.getElementById('welcomeBanner');
       if (!banner) return;
+
+      if (show) {
+        try {
+          if (player && player.getVideoData) {
+            let currentVid = player.getVideoData().video_id;
+            if (currentVid && currentVid !== WAITING_VIDEO_ID) {
+              show = false; // Bắt buộc ép tắt nếu không phải xe hơi
+            }
+          }
+        } catch (e) {}
+      }
 
       if (show) {
         if (bannerTimer) clearInterval(bannerTimer);
@@ -239,7 +250,7 @@
       showWelcomeBanner(false);
     }
 
-    // 3️⃣ LẮNG NGHE PLAYLIST (ĐÃ KHẮC PHỤC TRIỆT ĐỂ LỖI KHỰNG 1 GIÂY KHI THÊM BÀI)
+    // 3️⃣ LẮNG NGHE PLAYLIST (GIỮ TRỌN VẸN CƠ CHẾ CHỐNG KHỰNG 1 GIÂY KHI THÊM BÀI)
     function listenToPlaylist() {
       playlistRef.orderByChild('timestamp').on('value', snapshot => {
         let playlist = [];
@@ -254,14 +265,11 @@
         });
 
         if (playlist.length === 0) {
-          // Nếu danh sách trống -> Quay về xe hơi
-          if (currentPlayingKey !== null) {
-            currentPlayingKey = null;
-            if (player && player.loadVideoById) {
-              player.loadVideoById(WAITING_VIDEO_ID);
-              player.playVideo();
-              showWelcomeBanner(true);
-            }
+          currentPlayingKey = null;
+          if (player && player.loadVideoById) {
+            player.loadVideoById(WAITING_VIDEO_ID);
+            player.playVideo();
+            showWelcomeBanner(true); 
           }
         } else {
           let topSong = playlist[0];
@@ -272,16 +280,14 @@
           }
 
           // 🟢 CHỐT CHẶN CHỐNG KHỰNG: Chỉ load lại video khi bài hát đầu tiên THỰC SỰ thay đổi!
-          // Nếu thêm bài vào danh sách chờ phía sau, topSong.key giữ nguyên -> TUYỆT ĐỐI KHÔNG KHỰNG, VIDEO CHẠY MƯỢT MÀ.
           if (topSong.key !== currentPlayingKey) {
             currentPlayingKey = topSong.key;
             if (topSong.videoId && player && player.loadVideoById) {
               
-              // Kiểm tra nghiêm ngặt: Chỉ hiện bảng chào mừng nếu đúng là xe hơi
               if (topSong.videoId === WAITING_VIDEO_ID) {
                 showWelcomeBanner(true);
               } else {
-                showWelcomeBanner(false); // Đang hát karaoke -> TẮT BỎ TUYỆT ĐỐI
+                showWelcomeBanner(false); // Đang hát karaoke -> TẮT VĨNH VIỄN
               }
               
               player.loadVideoById(topSong.videoId);
@@ -326,13 +332,21 @@
               if (player && player.stopVideo) {
                 player.stopVideo();
               }
-              if (player && player.loadVideoById) {
-                player.loadVideoById(WAITING_VIDEO_ID);
-                player.playVideo();
-                showWelcomeBanner(true);
-              }
               if (playlistRef) {
                 playlistRef.orderByChild('timestamp').limitToFirst(1).once('value', snap => {
+                  let count = 0;
+                  snap.forEach(() => { count++; });
+                  
+                  if (count <= 1) {
+                    if (player && player.loadVideoById) {
+                      player.loadVideoById(WAITING_VIDEO_ID);
+                      player.playVideo();
+                      showWelcomeBanner(true);
+                    }
+                  } else {
+                    showWelcomeBanner(false);
+                  }
+                  
                   snap.forEach(child => {
                     child.ref.remove();
                   });
@@ -351,6 +365,19 @@
       if (event.data === YT.PlayerState.ENDED) {
         if (playlistRef) {
           playlistRef.orderByChild('timestamp').limitToFirst(1).once('value', snap => {
+            let count = 0;
+            snap.forEach(() => { count++; });
+            
+            if (count <= 1) {
+              if (player && player.loadVideoById) {
+                player.loadVideoById(WAITING_VIDEO_ID);
+                player.playVideo();
+                showWelcomeBanner(true);
+              }
+            } else {
+              showWelcomeBanner(false);
+            }
+
             snap.forEach(child => {
               child.ref.remove();
             });
