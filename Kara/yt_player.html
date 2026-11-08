@@ -2,8 +2,27 @@
 <html>
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <base target="_top">
   <title>YouTube Player - Karaoke Hana</title>
+  <link rel="manifest" href="./manifest_tv.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+
+  <script async="" src="https://www.googletagmanager.com/gtag/js?id=G-JCB7VEJF1Y"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-JCB7VEJF1Y');
+  </script>
   <style>
+    * {
+      -webkit-font-smoothing: antialiased;
+      box-sizing: border-box;
+    }
+
     body, html {
       margin: 0;
       padding: 0;
@@ -13,27 +32,30 @@
       overflow: hidden;
     }
 
-    /* 🟢 KHUNG PLAYER GỐC CỦA ANH EM MÌNH + TÍCH HỢP CSS CROP & FILL TRIỆT TIÊU DẢI ĐEN */
-    #playerContainer {
+    /* 🟢 ĐIỀU HƯỚNG KÍCH THƯỚC THÔNG MINH THEO HƯỚNG XOAY MÀN HÌNH */
+    #player {
       position: absolute;
       top: 0;
       left: 0;
-      width: 100vw;
-      height: 100vh;
-      overflow: hidden;
-      z-index: 0;
+      border: none;
     }
 
-    #player {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 177.77vh; /* Tỷ lệ 16:9 tính theo chiều cao để lấp đầy hai bên */
-      height: 100vh;
-      min-width: 100vw;
-      min-height: 56.25vw;
-      transform: translate(-50%, -50%);
-      border: none;
+    /* Khi xoay ngang: Tràn viền mượt mà chuẩn VLC */
+    @media (orientation: landscape) {
+      #player {
+        width: 100vw;
+        height: 100vh;
+      }
+    }
+
+    /* Khi xoay dọc: Khung 16:9 gọn gàng đúng chuẩn y hệt hình mẫu anh vừa gửi */
+    @media (orientation: portrait) {
+      #player {
+        width: 100vw;
+        height: 56.25vw; /* Tỷ lệ 16:9 tính theo chiều rộng */
+        top: 32%;       /* Cân đối vị trí hiển thị dọc vừa khít */
+        transform: translateY(-50%);
+      }
     }
 
     #localPlayer {
@@ -48,7 +70,7 @@
       z-index: 0;
     }
 
-    /* 🎨 BẢNG HIỆU CHÀO MỪNG ĐỘNG (TO RÕ, NẰM Ở PHÍA DƯỚI, TRÊN THANH TUA) */
+    /* 🎨 BẢNG HIỆU CHÀO MỪNG ĐỘNG (TO RÕ, NẰM Ở PHÍA DƯỚI) */
     #welcomeBanner {
       position: absolute;
       bottom: 50px;
@@ -94,11 +116,7 @@
     <div class="welcome-text">☕️ Chào mừng bạn đến với Karaoke Hana</div>
   </div>
 
-  <!-- Khung bọc chống dải đen cho YouTube -->
-  <div id="playerContainer">
-    <div id="player"></div>
-  </div>
-
+  <div id="player"></div>
   <video id="localPlayer" controls preload="auto" playsinline></video>
 
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
