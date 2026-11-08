@@ -42,13 +42,13 @@
       z-index: 0;
     }
 
-    /* 🟢 1. KHI XOAY NGANG (LANDSCAPE): Dùng cơ chế lấp đầy tuyệt đối, không co đen hai bên */
+    /* 🟢 1. KHI XOAY NGANG (LANDSCAPE): Lấp đầy tuyệt đối, không co đen hai bên */
     @media (orientation: landscape) {
       #player {
         position: absolute;
         top: 50%;
         left: 50%;
-        width: 177.77vh; /* Tỷ lệ 16:9 tính theo chiều cao */
+        width: 177.77vh;
         height: 100vh;
         min-width: 100vw;
         min-height: 56.25vw;
@@ -57,7 +57,7 @@
       }
     }
 
-    /* 🟢 2. KHI XOAY DỌC (PORTRAIT): Dùng cơ chế thu gọn ngay ngắn, chống phóng to */
+    /* 🟢 2. KHI XOAY DỌC (PORTRAIT): Thu gọn ngay ngắn, chống phóng to */
     @media (orientation: portrait) {
       #player {
         position: absolute;
@@ -82,7 +82,7 @@
       z-index: 0;
     }
 
-    /* 🎨 BẢNG HIỆU CHÀO MỪNG: Kích thước nhỏ gọn nguyên bản, không che nút Play và thanh tua */
+    /* 🎨 BẢNG HIỆU CHÀO MỪNG: Kích thước nhỏ gọn nguyên bản, chỉ hiện ở màn hình xe hơi */
     #welcomeBanner {
       position: absolute;
       bottom: 45px;
@@ -123,7 +123,7 @@
 </head>
 <body>
 
-  <!-- Bảng hiệu chào mừng động (Kích thước nhỏ gọn chuẩn gốc) -->
+  <!-- Bảng hiệu chào mừng động -->
   <div id="welcomeBanner">
     <div class="welcome-text">☕️ Chào mừng bạn đến với Karaoke Hana</div>
   </div>
@@ -162,7 +162,7 @@
 
     let bannerTimer = null;
 
-    // 🌟 QUẢN LÝ HIỂN THỊ BẢNG HIỆU: Chỉ hiện khi ở màn hình xe hơi (Hiện 4 giây, nghỉ 8 giây)
+    // 🌟 QUẢN LÝ HIỂN THỊ BẢNG HIỆU: CHỈ HIỆN KHI ĐANG PHÁT VIDEO XE HƠI
     function showWelcomeBanner(show) {
       const banner = document.getElementById('welcomeBanner');
       if (!banner) return;
@@ -208,7 +208,7 @@
         events: {
           'onReady': (event) => {
             event.target.playVideo();
-            showWelcomeBanner(true);
+            showWelcomeBanner(true); // Đang ở video xe hơi -> Hiện bảng chào mừng
           },
           'onStateChange': onPlayerStateChange
         }
@@ -236,7 +236,7 @@
       if (player && player.stopVideo) {
         player.stopVideo();
       }
-      showWelcomeBanner(true);
+      showWelcomeBanner(false); // Chuyển sang nhạc offline -> TẮT ngay bảng chào mừng
     }
 
     // 3️⃣ LẮNG NGHE PLAYLIST
@@ -258,7 +258,7 @@
           if (player && player.loadVideoById) {
             player.loadVideoById(WAITING_VIDEO_ID);
             player.playVideo();
-            showWelcomeBanner(true); 
+            showWelcomeBanner(true); // Về màn hình chờ xe hơi -> HIỆN bảng chào mừng
           }
         } else {
           let topSong = playlist[0];
@@ -271,7 +271,13 @@
           if (topSong.key !== currentPlayingKey) {
             currentPlayingKey = topSong.key;
             if (topSong.videoId && player && player.loadVideoById) {
-              showWelcomeBanner(false); // Phát nhạc online -> TẮT ngay bảng chào mừng
+              // 🟢 KIỂM TRA: Nếu bài hát online chuẩn bị phát LÀ VIDEO XE HƠI thì hiện, còn bài karaoke khác thì TẮT GỌN
+              if (topSong.videoId === WAITING_VIDEO_ID) {
+                showWelcomeBanner(true);
+              } else {
+                showWelcomeBanner(false); // ĐANG HÁT KARAOKE -> TẮT TUYỆT ĐỐI KHÔNG HIỆN NỮA
+              }
+              
               player.loadVideoById(topSong.videoId);
               player.playVideo();
             }
@@ -295,7 +301,12 @@
                 break;
               }
               if (cmd.videoId && player && player.loadVideoById) {
-                showWelcomeBanner(false);
+                // Kiểm tra lệnh phát ngay
+                if (cmd.videoId === WAITING_VIDEO_ID) {
+                  showWelcomeBanner(true);
+                } else {
+                  showWelcomeBanner(false); // Đang hát karaoke -> TẮT
+                }
                 player.loadVideoById(cmd.videoId);
                 player.playVideo();
               }
@@ -313,7 +324,7 @@
               if (player && player.loadVideoById) {
                 player.loadVideoById(WAITING_VIDEO_ID);
                 player.playVideo();
-                showWelcomeBanner(true);
+                showWelcomeBanner(true); // Về xe hơi -> Hiện
               }
               if (playlistRef) {
                 playlistRef.orderByChild('timestamp').limitToFirst(1).once('value', snap => {
