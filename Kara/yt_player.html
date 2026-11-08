@@ -12,9 +12,24 @@
       background: #000;
       overflow: hidden;
     }
-    #player {
+
+    /* 🟢 KHUNG CHỨA VÀ IFRAME TRÀN VIỀN 100% TUYỆT ĐỐI KHÔNG VIỀN ĐEN */
+    #playerContainer {
+      position: absolute;
+      top: 0;
+      left: 0;
       width: 100%;
       height: 100%;
+      overflow: hidden;
+    }
+
+    #player {
+      width: 100vw;
+      height: 100vh;
+      position: absolute;
+      top: 0;
+      left: 0;
+      border: none;
     }
 
     /* 🎨 CSS CHO BẢNG HIỆU CHÀO MỪNG: CHỮ TO RÕ, NẰM Ở PHÍA DƯỚI (TRÊN THANH TUA MỘT CHÚT) */
@@ -65,7 +80,9 @@
     <div class="welcome-text">☕️ Chào mừng bạn đến với Karaoke Hana</div>
   </div>
 
-  <div id="player"></div>
+  <div id="playerContainer">
+    <div id="player"></div>
+  </div>
 
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
