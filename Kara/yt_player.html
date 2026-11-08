@@ -2,8 +2,27 @@
 <html>
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <base target="_top">
   <title>YouTube Player - Karaoke Hana</title>
+  <link rel="manifest" href="./manifest_tv.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+
+  <script async="" src="https://www.googletagmanager.com/gtag/js?id=G-JCB7VEJF1Y"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-JCB7VEJF1Y');
+  </script>
   <style>
+    * {
+      -webkit-font-smoothing: antialiased;
+      box-sizing: border-box;
+    }
+
     body, html {
       margin: 0;
       padding: 0;
@@ -12,26 +31,71 @@
       background: #000;
       overflow: hidden;
     }
-    #player {
-      width: 100%;
-      height: 100%;
+
+    #playerContainer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      z-index: 0;
     }
 
-    /* 🎨 CSS CHO BẢNG HIỆU CHÀO MỪNG: CHỮ TO RÕ, NẰM Ở PHÍA DƯỚI (TRÊN THANH TUA MỘT CHÚT) */
+    /* 1. Xoay ngang: Lấp đầy tuyệt đối không co đen hai bên */
+    @media (orientation: landscape) {
+      #player {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 177.77vh;
+        height: 100vh;
+        min-width: 100vw;
+        min-height: 56.25vw;
+        transform: translate(-50%, -50%);
+        border: none;
+      }
+    }
+
+    /* 2. Xoay dọc: Thu gọn ngay ngắn ở giữa, chống phóng to */
+    @media (orientation: portrait) {
+      #player {
+        position: absolute;
+        width: 100vw;
+        height: 56.25vw;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        border: none;
+      }
+    }
+
+    #localPlayer {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      object-fit: contain;
+      background: #000;
+      display: none;
+      z-index: 0;
+    }
+
+    /* 🎨 BẢNG HIỆU CHÀO MỪNG: Nhỏ gọn, chỉ xuất hiện khi đúng video xe hơi */
     #welcomeBanner {
       position: absolute;
-      bottom: 50px; /* Nằm cách đáy màn hình 50px, ngay trên thanh tua YouTube, không che nút Play */
+      bottom: 45px;
       left: 50%;
       transform: translateX(-50%);
       z-index: 99;
-      background: rgba(0, 0, 0, 0.6); /* Nền đen mờ đậm hơn chút cho chữ cực kỳ nổi bật */
-      padding: 14px 35px;
-      border-radius: 40px;
-      border: 2px solid rgba(255, 221, 0, 0.6);
-      backdrop-filter: blur(6px);
-      box-shadow: 0 6px 20px rgba(0,0,0,0.8);
+      background: rgba(0, 0, 0, 0.55);
+      padding: 8px 20px;
+      border-radius: 25px;
+      border: 1.5px solid rgba(255, 221, 0, 0.5);
+      backdrop-filter: blur(4px);
+      box-shadow: 0 3px 10px rgba(0,0,0,0.7);
       
-      /* Hiệu ứng chuyển động ẩn/hiện mượt mà */
       opacity: 0;
       visibility: hidden;
       transition: opacity 1.5s ease-in-out, visibility 1.5s ease-in-out;
@@ -40,32 +104,36 @@
 
     .welcome-text {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      font-size: 32px; /* 🟢 TĂNG CỠ CHỮ TO RÕ HẲN RA, ĐẬM CHẤT ĐẦU KARAOKE CHUYÊN NGHIỆP */
-      font-weight: 900;
+      font-size: 20px;
+      font-weight: 700;
       text-align: center;
-      letter-spacing: 1px;
+      letter-spacing: 0.5px;
       background: linear-gradient(45deg, #ffdd00, #00ffcc, #ff99ff);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      text-shadow: 0 3px 12px rgba(0,0,0,0.9);
+      text-shadow: 0 2px 6px rgba(0,0,0,0.8);
       animation: waveText 3s infinite ease-in-out;
     }
 
-    /* Hiệu ứng chữ lượn sóng nhẹ nhàng sinh động */
     @keyframes waveText {
       0%, 100% { transform: translateY(0px); }
-      50% { transform: translateY(-5px); }
+      50% { transform: translateY(-3px); }
     }
   </style>
 </head>
 <body>
 
-  <!-- Bảng hiệu chào mừng to rõ ở phía dưới -->
+  <!-- Bảng hiệu chào mừng động -->
   <div id="welcomeBanner">
     <div class="welcome-text">☕️ Chào mừng bạn đến với Karaoke Hana</div>
   </div>
 
-  <div id="player"></div>
+  <!-- Khung chứa player -->
+  <div id="playerContainer">
+    <div id="player"></div>
+  </div>
+
+  <video id="localPlayer" controls preload="auto" playsinline></video>
 
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -94,38 +162,42 @@
 
     let bannerTimer = null;
 
-    // 🌟 QUẢN LÝ HIỂN THỊ BẢNG HIỆU: Chỉ hiện khi ở màn hình xe hơi (Hiện 4 giây, nghỉ 8 giây để ngắm xe)
-    function showWelcomeBanner(show) {
+    // 🌟 HÀM QUẢN LÝ BANNER: TỰ ĐỘNG QUÉT VÀ KHÓA CỨNG DỰA TRÊN ID THỰC TẾ CỦA PLAYER
+    function checkAndToggleBanner() {
       const banner = document.getElementById('welcomeBanner');
-      if (!banner) return;
+      if (!banner || !player || !player.getVideoData) return;
 
-      if (show) {
-        if (bannerTimer) clearInterval(bannerTimer);
+      try {
+        let currentVid = player.getVideoData().video_id;
+        
+        // NẾU KHÔNG PHẢI VIDEO XE HƠI -> CẤM TUYỆT ĐỐI, TẮT NGAY LẬP TỨC
+        if (currentVid !== WAITING_VIDEO_ID) {
+          if (bannerTimer) clearInterval(bannerTimer);
+          banner.style.opacity = '0';
+          banner.style.visibility = 'hidden';
+          return;
+        }
 
-        let cycleBanner = () => {
-          banner.style.opacity = '1';
-          banner.style.visibility = 'visible';
+        // NẾU ĐÚNG LÀ VIDEO XE HƠI -> TIẾN HÀNH CHẠY HIỆN 4 GIÂY, NGHỈ 5 GIÂY
+        if (!bannerTimer) {
+          let cycleBanner = () => {
+            // Kiểm tra lại lần nữa trước khi cho hiện
+            let checkVidAgain = player.getVideoData ? player.getVideoData().video_id : '';
+            if (checkVidAgain !== WAITING_VIDEO_ID) return;
 
-          // Hiển thị trong 4 giây rồi ẩn đi
-          setTimeout(() => {
-            banner.style.opacity = '0';
-            banner.style.visibility = 'hidden';
-          }, 4000); 
-        };
+            banner.style.opacity = '1';
+            banner.style.visibility = 'visible';
 
-        // Chờ 2 giây sau khi về xe hơi mới bắt đầu chu kỳ đầu tiên
-        setTimeout(() => {
+            setTimeout(() => {
+              banner.style.opacity = '0';
+              banner.style.visibility = 'hidden';
+            }, 4000); // Hiện 4s
+          };
+
           cycleBanner();
-          // Lặp lại chu kỳ mỗi 12 giây (4s hiện chữ + 8s ngắm xe không bị che)
-          bannerTimer = setInterval(cycleBanner, 12000);
-        }, 2000);
-
-      } else {
-        // Khi phát nhạc thật -> Tắt ngay lập tức và dứt điểm
-        if (bannerTimer) clearInterval(bannerTimer);
-        banner.style.opacity = '0';
-        banner.style.visibility = 'hidden';
-      }
+          bannerTimer = setInterval(cycleBanner, 9000); // Chu kỳ tổng 9s (4s hiện + 5s nghỉ)
+        }
+      } catch (e) {}
     }
 
     // 1️⃣ KHỞI TẠO PLAYER
@@ -144,7 +216,7 @@
         events: {
           'onReady': (event) => {
             event.target.playVideo();
-            showWelcomeBanner(true); // Khởi động lên thấy xe hơi -> Bật bảng chào mừng ngắt quãng
+            setTimeout(checkAndToggleBanner, 1000);
           },
           'onStateChange': onPlayerStateChange
         }
@@ -166,16 +238,22 @@
       listenToCommands();
     }
 
-    // 🛑 [GIỮ NGUYÊN] Hàm dừng hẳn YouTube triệt tiêu hoàn toàn tiếng chạy ngầm khi dính nhạc offline
+    // 🛑 Hàm dừng hẳn YouTube triệt tiêu tiếng chạy ngầm khi dính nhạc offline
     function stopYouTubeCompletely() {
       currentPlayingKey = null;
       if (player && player.stopVideo) {
         player.stopVideo();
       }
-      showWelcomeBanner(true); // Về xe hơi -> Bật bảng chào mừng
+      if (bannerTimer) clearInterval(bannerTimer);
+      bannerTimer = null;
+      const banner = document.getElementById('welcomeBanner');
+      if (banner) {
+        banner.style.opacity = '0';
+        banner.style.visibility = 'hidden';
+      }
     }
 
-    // 3️⃣ LẮNG NGHE PLAYLIST (Giữ nguyên vẹn cơ chế lọc bài offline chuẩn xác)
+    // 3️⃣ LẮNG NGHE PLAYLIST (Giữ nguyên cơ chế chống khựng 1 giây hoàn hảo)
     function listenToPlaylist() {
       playlistRef.orderByChild('timestamp').on('value', snapshot => {
         let playlist = [];
@@ -194,7 +272,7 @@
           if (player && player.loadVideoById) {
             player.loadVideoById(WAITING_VIDEO_ID);
             player.playVideo();
-            showWelcomeBanner(true); 
+            setTimeout(checkAndToggleBanner, 500);
           }
         } else {
           let topSong = playlist[0];
@@ -204,12 +282,24 @@
             return;
           }
 
+          // Chống khựng 1 giây: Chỉ load lại video khi bài hát đầu tiên thay đổi thực sự
           if (topSong.key !== currentPlayingKey) {
             currentPlayingKey = topSong.key;
             if (topSong.videoId && player && player.loadVideoById) {
-              showWelcomeBanner(false); // Phát nhạc online -> TẮT ngay bảng chào mừng
+              // Ngay lập tức tắt banner khi chuẩn bị load bài hát mới
+              if (bannerTimer) clearInterval(bannerTimer);
+              bannerTimer = null;
+              const banner = document.getElementById('welcomeBanner');
+              if (banner) {
+                banner.style.opacity = '0';
+                banner.style.visibility = 'hidden';
+              }
+
               player.loadVideoById(topSong.videoId);
               player.playVideo();
+              
+              // Quét lại sau khi load bài
+              setTimeout(checkAndToggleBanner, 1000);
             }
           }
         }
@@ -231,9 +321,17 @@
                 break;
               }
               if (cmd.videoId && player && player.loadVideoById) {
-                showWelcomeBanner(false); // Phát nhạc online -> TẮT bảng chào mừng
+                if (bannerTimer) clearInterval(bannerTimer);
+                bannerTimer = null;
+                const banner = document.getElementById('welcomeBanner');
+                if (banner) {
+                  banner.style.opacity = '0';
+                  banner.style.visibility = 'hidden';
+                }
+
                 player.loadVideoById(cmd.videoId);
                 player.playVideo();
+                setTimeout(checkAndToggleBanner, 1000);
               }
               break;
             case 'PLAY':
@@ -245,11 +343,6 @@
             case 'NEXT':
               if (player && player.stopVideo) {
                 player.stopVideo();
-              }
-              if (player && player.loadVideoById) {
-                player.loadVideoById(WAITING_VIDEO_ID);
-                player.playVideo();
-                showWelcomeBanner(true); // Về xe hơi -> Bật bảng chào mừng ngắt quãng
               }
               if (playlistRef) {
                 playlistRef.orderByChild('timestamp').limitToFirst(1).once('value', snap => {
@@ -266,8 +359,11 @@
       });
     }
 
-    // 5️⃣ XỬ LÝ KHI HẾT BÀI TỰ ĐỘNG
+    // 5️⃣ XỬ LÝ KHI THẾT BÀI TỰ ĐỘNG HOẶC ĐỔI TRẠNG THÁI
     function onPlayerStateChange(event) {
+      // Khi player bắt đầu chạy hoặc thay đổi trạng thái, kích hoạt quét kiểm tra banner ngay
+      setTimeout(checkAndToggleBanner, 500);
+
       if (event.data === YT.PlayerState.ENDED) {
         if (playlistRef) {
           playlistRef.orderByChild('timestamp').limitToFirst(1).once('value', snap => {
