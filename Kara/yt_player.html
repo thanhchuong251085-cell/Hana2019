@@ -13,35 +13,31 @@
       overflow: hidden;
     }
 
-    /* 🟢 KHUNG CHỨA VÀ KỸ THUẬT PHÓNG TO TRÀN VIỀN TRIỆT TIÊU VIỀN ĐEN */
-    #playerContainer {
+    /* 🟢 KHUNG PLAYER GỐC CHUẨN XÁC CỦA ANH EM MÌNH */
+    #player {
+      width: 100%;
+      height: 100%;
       position: absolute;
       top: 0;
       left: 0;
+      border: none;
+    }
+
+    #localPlayer {
       width: 100%;
       height: 100%;
-      overflow: hidden;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-
-    #player {
-      width: 100vw;
-      height: 100vh;
       position: absolute;
-      top: 50%;
-      left: 50%;
-      /* Phóng to lố khung hình lên để đẩy sạch viền đen ra ngoài, giống cơ chế của VLC */
-      transform: translate(-50%, -50%) scale(1.2);
-      border: none;
-      pointer-events: auto;
+      top: 0;
+      left: 0;
+      object-fit: contain;
+      background: #000;
+      display: none;
     }
 
-    /* 🎨 CSS BẢNG HIỆU CHÀO MỪNG ĐỘNG (TO RÕ, NẰM Ở PHÍA DƯỚI, TRÊN THANH TUA) */
+    /* 🎨 BẢNG HIỆU CHÀO MỪNG ĐỘNG (TO RÕ, NẰM Ở PHÍA DƯỚI, TRÊN THANH TUA) */
     #welcomeBanner {
       position: absolute;
-      bottom: 50px; /* Nằm ngay trên thanh tua YouTube, không che nút Play */
+      bottom: 50px;
       left: 50%;
       transform: translateX(-50%);
       z-index: 99;
@@ -60,7 +56,7 @@
 
     .welcome-text {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      font-size: 32px; /* Chữ to rõ đậm chất đầu karaoke chuyên nghiệp */
+      font-size: 32px;
       font-weight: 900;
       text-align: center;
       letter-spacing: 1px;
@@ -84,9 +80,8 @@
     <div class="welcome-text">☕️ Chào mừng bạn đến với Karaoke Hana</div>
   </div>
 
-  <div id="playerContainer">
-    <div id="player"></div>
-  </div>
+  <div id="player"></div>
+  <video id="localPlayer" controls preload="auto" playsinline></video>
 
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
