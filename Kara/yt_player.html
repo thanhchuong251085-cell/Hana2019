@@ -13,7 +13,7 @@
       overflow: hidden;
     }
 
-    /* 🟢 KHUNG CHỨA VÀ IFRAME TRÀN VIỀN 100% TUYỆT ĐỐI KHÔNG VIỀN ĐEN */
+    /* 🟢 KHUNG CHỨA VÀ KỸ THUẬT PHÓNG TO TRÀN VIỀN TRIỆT TIÊU VIỀN ĐEN */
     #playerContainer {
       position: absolute;
       top: 0;
@@ -21,32 +21,37 @@
       width: 100%;
       height: 100%;
       overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
 
     #player {
       width: 100vw;
       height: 100vh;
       position: absolute;
-      top: 0;
-      left: 0;
+      top: 50%;
+      left: 50%;
+      /* Phóng to lố khung hình lên để đẩy sạch viền đen ra ngoài, giống cơ chế của VLC */
+      transform: translate(-50%, -50%) scale(1.2);
       border: none;
+      pointer-events: auto;
     }
 
-    /* 🎨 CSS CHO BẢNG HIỆU CHÀO MỪNG: CHỮ TO RÕ, NẰM Ở PHÍA DƯỚI (TRÊN THANH TUA MỘT CHÚT) */
+    /* 🎨 CSS BẢNG HIỆU CHÀO MỪNG ĐỘNG (TO RÕ, NẰM Ở PHÍA DƯỚI, TRÊN THANH TUA) */
     #welcomeBanner {
       position: absolute;
-      bottom: 50px; /* Nằm cách đáy màn hình 50px, ngay trên thanh tua YouTube, không che nút Play */
+      bottom: 50px; /* Nằm ngay trên thanh tua YouTube, không che nút Play */
       left: 50%;
       transform: translateX(-50%);
       z-index: 99;
-      background: rgba(0, 0, 0, 0.6); /* Nền đen mờ đậm hơn chút cho chữ cực kỳ nổi bật */
+      background: rgba(0, 0, 0, 0.6);
       padding: 14px 35px;
       border-radius: 40px;
       border: 2px solid rgba(255, 221, 0, 0.6);
       backdrop-filter: blur(6px);
       box-shadow: 0 6px 20px rgba(0,0,0,0.8);
       
-      /* Hiệu ứng chuyển động ẩn/hiện mượt mà */
       opacity: 0;
       visibility: hidden;
       transition: opacity 1.5s ease-in-out, visibility 1.5s ease-in-out;
@@ -55,7 +60,7 @@
 
     .welcome-text {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      font-size: 32px; /* 🟢 TĂNG CỠ CHỮ TO RÕ HẲN RA, ĐẬM CHẤT ĐẦU KARAOKE CHUYÊN NGHIỆP */
+      font-size: 32px; /* Chữ to rõ đậm chất đầu karaoke chuyên nghiệp */
       font-weight: 900;
       text-align: center;
       letter-spacing: 1px;
@@ -66,7 +71,6 @@
       animation: waveText 3s infinite ease-in-out;
     }
 
-    /* Hiệu ứng chữ lượn sóng nhẹ nhàng sinh động */
     @keyframes waveText {
       0%, 100% { transform: translateY(0px); }
       50% { transform: translateY(-5px); }
@@ -75,7 +79,7 @@
 </head>
 <body>
 
-  <!-- Bảng hiệu chào mừng to rõ ở phía dưới -->
+  <!-- Bảng hiệu chào mừng động -->
   <div id="welcomeBanner">
     <div class="welcome-text">☕️ Chào mừng bạn đến với Karaoke Hana</div>
   </div>
@@ -111,7 +115,7 @@
 
     let bannerTimer = null;
 
-    // 🌟 QUẢN LÝ HIỂN THỊ BẢNG HIỆU: Chỉ hiện khi ở màn hình xe hơi (Hiện 4 giây, nghỉ 8 giây để ngắm xe)
+    // 🌟 QUẢN LÝ HIỂN THỊ BẢNG HIỆU: Chỉ hiện khi ở màn hình xe hơi (Hiện 4 giây, nghỉ 8 giây)
     function showWelcomeBanner(show) {
       const banner = document.getElementById('welcomeBanner');
       if (!banner) return;
@@ -123,22 +127,18 @@
           banner.style.opacity = '1';
           banner.style.visibility = 'visible';
 
-          // Hiển thị trong 4 giây rồi ẩn đi
           setTimeout(() => {
             banner.style.opacity = '0';
             banner.style.visibility = 'hidden';
           }, 4000); 
         };
 
-        // Chờ 2 giây sau khi về xe hơi mới bắt đầu chu kỳ đầu tiên
         setTimeout(() => {
           cycleBanner();
-          // Lặp lại chu kỳ mỗi 12 giây (4s hiện chữ + 8s ngắm xe không bị che)
           bannerTimer = setInterval(cycleBanner, 12000);
         }, 2000);
 
       } else {
-        // Khi phát nhạc thật -> Tắt ngay lập tức và dứt điểm
         if (bannerTimer) clearInterval(bannerTimer);
         banner.style.opacity = '0';
         banner.style.visibility = 'hidden';
@@ -161,7 +161,7 @@
         events: {
           'onReady': (event) => {
             event.target.playVideo();
-            showWelcomeBanner(true); // Khởi động lên thấy xe hơi -> Bật bảng chào mừng ngắt quãng
+            showWelcomeBanner(true);
           },
           'onStateChange': onPlayerStateChange
         }
@@ -183,16 +183,16 @@
       listenToCommands();
     }
 
-    // 🛑 [GIỮ NGUYÊN] Hàm dừng hẳn YouTube triệt tiêu hoàn toàn tiếng chạy ngầm khi dính nhạc offline
+    // 🛑 Hàm dừng hẳn YouTube triệt tiêu tiếng chạy ngầm khi dính nhạc offline
     function stopYouTubeCompletely() {
       currentPlayingKey = null;
       if (player && player.stopVideo) {
         player.stopVideo();
       }
-      showWelcomeBanner(true); // Về xe hơi -> Bật bảng chào mừng
+      showWelcomeBanner(true);
     }
 
-    // 3️⃣ LẮNG NGHE PLAYLIST (Giữ nguyên vẹn cơ chế lọc bài offline chuẩn xác)
+    // 3️⃣ LẮNG NGHE PLAYLIST
     function listenToPlaylist() {
       playlistRef.orderByChild('timestamp').on('value', snapshot => {
         let playlist = [];
@@ -248,7 +248,7 @@
                 break;
               }
               if (cmd.videoId && player && player.loadVideoById) {
-                showWelcomeBanner(false); // Phát nhạc online -> TẮT bảng chào mừng
+                showWelcomeBanner(false);
                 player.loadVideoById(cmd.videoId);
                 player.playVideo();
               }
@@ -266,7 +266,7 @@
               if (player && player.loadVideoById) {
                 player.loadVideoById(WAITING_VIDEO_ID);
                 player.playVideo();
-                showWelcomeBanner(true); // Về xe hơi -> Bật bảng chào mừng ngắt quãng
+                showWelcomeBanner(true);
               }
               if (playlistRef) {
                 playlistRef.orderByChild('timestamp').limitToFirst(1).once('value', snap => {
