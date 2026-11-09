@@ -40,6 +40,7 @@
       height: 100vh;
       overflow: hidden;
       z-index: 0;
+      display: block;
     }
 
     /* 1. Xoay ngang: Lấp đầy tuyệt đối không co đen hai bên */
@@ -70,6 +71,7 @@
       }
     }
 
+    /* 🟢 LOCAL PLAYER (Nhạc offline): Nằm đè lên trên khi phát nhạc offline (z-index: 10) */
     #localPlayer {
       width: 100%;
       height: 100%;
@@ -79,7 +81,7 @@
       object-fit: contain;
       background: #000;
       display: none;
-      z-index: 0;
+      z-index: 10;
     }
 
     /* 🎨 BẢNG HIỆU CHÀO MỪNG: Nhỏ gọn, chỉ xuất hiện khi đúng video xe hơi */
@@ -128,11 +130,12 @@
     <div class="welcome-text">☕️ Chào mừng bạn đến với Karaoke Hana</div>
   </div>
 
-  <!-- Khung chứa player -->
+  <!-- Khung chứa YouTube player -->
   <div id="playerContainer">
     <div id="player"></div>
   </div>
 
+  <!-- Trình phát nhạc offline -->
   <video id="localPlayer" controls preload="auto" playsinline></video>
 
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -161,27 +164,27 @@
     const WAITING_VIDEO_ID = "6BlfNIfGFfM"; // 🚗 Xe hơi huyền thoại
 
     let bannerTimer = null;
+    let isLocalPlaying = false; // Cờ bọc thép trạng thái
 
-    // 🌟 HÀM QUẢN LÝ BANNER: TỰ ĐỘNG QUÉT VÀ KHÓA CỨNG DỰA TRÊN ID THỰC TẾ CỦA PLAYER
+    // 🌟 HÀM QUẢN LÝ BANNER: Kiểm tra nghiêm ngặt ID thực tế của Player
     function checkAndToggleBanner() {
       const banner = document.getElementById('welcomeBanner');
-      if (!banner || !player || !player.getVideoData) return;
+      if (!banner || isLocalPlaying || !player || !player.getVideoData) return;
 
       try {
         let currentVid = player.getVideoData().video_id;
         
-        // NẾU KHÔNG PHẢI VIDEO XE HƠI -> CẤM TUYỆT ĐỐI, TẮT NGAY LẬP TỨC
         if (currentVid !== WAITING_VIDEO_ID) {
           if (bannerTimer) clearInterval(bannerTimer);
+          bannerTimer = null;
           banner.style.opacity = '0';
           banner.style.visibility = 'hidden';
           return;
         }
 
-        // NẾU ĐÚNG LÀ VIDEO XE HƠI -> TIẾN HÀNH CHẠY HIỆN 4 GIÂY, NGHỈ 5 GIÂY
         if (!bannerTimer) {
           let cycleBanner = () => {
-            // Kiểm tra lại lần nữa trước khi cho hiện
+            if (isLocalPlaying) return;
             let checkVidAgain = player.getVideoData ? player.getVideoData().video_id : '';
             if (checkVidAgain !== WAITING_VIDEO_ID) return;
 
@@ -191,11 +194,11 @@
             setTimeout(() => {
               banner.style.opacity = '0';
               banner.style.visibility = 'hidden';
-            }, 4000); // Hiện 4s
+            }, 4000);
           };
 
           cycleBanner();
-          bannerTimer = setInterval(cycleBanner, 9000); // Chu kỳ tổng 9s (4s hiện + 5s nghỉ)
+          bannerTimer = setInterval(cycleBanner, 9000);
         }
       } catch (e) {}
     }
@@ -223,7 +226,7 @@
       });
     }
 
-    // 2️⃣ MÃ PHÒNG 2 CHIỀU: Nhận mã từ Android Studio
+    // 2️⃣ MÃ PHÒNG 2 CHIỀU
     function setRoomCode(code) {
       if (!code || currentRoomCode === code) return;
       currentRoomCode = code;
@@ -238,12 +241,10 @@
       listenToCommands();
     }
 
-    // 🛑 Hàm dừng hẳn YouTube triệt tiêu tiếng chạy ngầm khi dính nhạc offline
+    // 🛑 DỪNG VÀ TIÊU DIỆT HOÀN TOÀN YOUTUBE KHI SANG OFFLINE
     function stopYouTubeCompletely() {
-      currentPlayingKey = null;
-      if (player && player.stopVideo) {
-        player.stopVideo();
-      }
+      isLocalPlaying = true;
+
       if (bannerTimer) clearInterval(bannerTimer);
       bannerTimer = null;
       const banner = document.getElementById('welcomeBanner');
@@ -251,24 +252,63 @@
         banner.style.opacity = '0';
         banner.style.visibility = 'hidden';
       }
+
+      if (player) {
+        if (player.stopVideo) player.stopVideo();
+        if (player.mute) player.mute();
+        if (player.loadVideoById) player.loadVideoById("");
+      }
+
+      const pContainer = document.getElementById('playerContainer');
+      if (pContainer) pContainer.style.display = 'none';
+
+      const localVid = document.getElementById('localPlayer');
+      if (localVid) {
+        localVid.style.display = 'block';
+      }
     }
 
-    // 3️⃣ LẮNG NGHE PLAYLIST (Giữ nguyên cơ chế chống khựng 1 giây hoàn hảo)
+    // 🟢 BẬT LẠI YOUTUBE KHI VỀ ONLINE / XE HƠI
+    function resumeYouTube() {
+      isLocalPlaying = false;
+
+      const localVid = document.getElementById('localPlayer');
+      if (localVid) {
+        localVid.pause();
+        localVid.removeAttribute('src');
+        localVid.load();
+        localVid.style.display = 'none';
+      }
+
+      const pContainer = document.getElementById('playerContainer');
+      if (pContainer) {
+        pContainer.style.display = 'block';
+      }
+
+      if (player && player.unMute) {
+        player.unMute();
+      }
+    }
+
+    // 3️⃣ LẮNG NGHE PLAYLIST
     function listenToPlaylist() {
       playlistRef.orderByChild('timestamp').on('value', snapshot => {
         let playlist = [];
         snapshot.forEach(child => {
           let item = child.val();
-          
-          if (item.type === 'local' || item.localKey) {
-            stopYouTubeCompletely();
-          } else {
-            playlist.push({ key: child.key, ...item });
-          }
+          playlist.push({ key: child.key, ...item });
         });
+
+        const localVid = document.getElementById('localPlayer');
 
         if (playlist.length === 0) {
           currentPlayingKey = null;
+          if (localVid) {
+            localVid.pause();
+            localVid.removeAttribute('src');
+            localVid.load();
+          }
+          resumeYouTube();
           if (player && player.loadVideoById) {
             player.loadVideoById(WAITING_VIDEO_ID);
             player.playVideo();
@@ -277,16 +317,32 @@
         } else {
           let topSong = playlist[0];
           
+          // XỬ LÝ NHẠC OFFLINE (LOCAL)
           if (topSong.type === 'local' || topSong.localKey) {
-            stopYouTubeCompletely();
+            if (topSong.key !== currentPlayingKey) {
+              currentPlayingKey = topSong.key;
+              stopYouTubeCompletely();
+              
+              if (localVid && topSong.url) {
+                localVid.src = topSong.url;
+                localVid.load();
+                localVid.play().catch(e => console.log("Lỗi phát offline:", e));
+              }
+            }
             return;
           }
 
-          // Chống khựng 1 giây: Chỉ load lại video khi bài hát đầu tiên thay đổi thực sự
+          // XỬ LÝ NHẠC YOUTUBE ONLINE
+          if (localVid) {
+            localVid.pause();
+            localVid.removeAttribute('src');
+            localVid.load();
+          }
+          resumeYouTube();
+
           if (topSong.key !== currentPlayingKey) {
             currentPlayingKey = topSong.key;
             if (topSong.videoId && player && player.loadVideoById) {
-              // Ngay lập tức tắt banner khi chuẩn bị load bài hát mới
               if (bannerTimer) clearInterval(bannerTimer);
               bannerTimer = null;
               const banner = document.getElementById('welcomeBanner');
@@ -297,8 +353,6 @@
 
               player.loadVideoById(topSong.videoId);
               player.playVideo();
-              
-              // Quét lại sau khi load bài
               setTimeout(checkAndToggleBanner, 1000);
             }
           }
@@ -306,7 +360,7 @@
       });
     }
 
-    // 4️⃣ LẮNG NGHE LỆNH REMOTE
+    // 4️⃣ LẮNG NGHE LỆNH REMOTE (ĐÃ VIẾT TƯỜNG MINH, CÔ LẬP TUYỆT ĐỐI NÚT PLAY/PAUSE/NEXT KHI ĐANG PHÁT OFFLINE)
     function listenToCommands() {
       commandRef.on('value', snapshot => {
         let cmd = snapshot.val();
@@ -314,13 +368,26 @@
         commandRef.remove();
 
         try {
+          const localVid = document.getElementById('localPlayer');
+
           switch (cmd.type) {
             case 'PLAY_NOW':
-              if (cmd.typeSource === 'local' || cmd.localKey) {
+              if (cmd.typeSource === 'local' || cmd.localKey || cmd.url) {
                 stopYouTubeCompletely();
+                if (localVid && cmd.url) {
+                  localVid.src = cmd.url;
+                  localVid.load();
+                  localVid.play().catch(e => {});
+                }
                 break;
               }
               if (cmd.videoId && player && player.loadVideoById) {
+                if (localVid) {
+                  localVid.pause();
+                  localVid.removeAttribute('src');
+                  localVid.load();
+                }
+                resumeYouTube();
                 if (bannerTimer) clearInterval(bannerTimer);
                 bannerTimer = null;
                 const banner = document.getElementById('welcomeBanner');
@@ -334,13 +401,41 @@
                 setTimeout(checkAndToggleBanner, 1000);
               }
               break;
+
             case 'PLAY':
-              if (player && player.playVideo) player.playVideo();
+              // 🟢 RÕ RÀNG VÀ TƯỜNG MINH: Nếu đang phát offline thì CHỈ ĐIỀU KHIỂN OFFLINE, CẤM CHẠM YOUTUBE
+              if (isLocalPlaying) {
+                if (localVid) {
+                  localVid.play().catch(e => {});
+                }
+              } else {
+                if (player && player.playVideo) {
+                  player.playVideo();
+                }
+              }
               break;
+
             case 'PAUSE':
-              if (player && player.pauseVideo) player.pauseVideo();
+              // 🟢 RÕ RÀNG VÀ TƯỜNG MINH: Nếu đang phát offline thì CHỈ TẠM DỪNG OFFLINE, CẤM CHẠM YOUTUBE
+              if (isLocalPlaying) {
+                if (localVid) {
+                  localVid.pause();
+                }
+              } else {
+                if (player && player.pauseVideo) {
+                  player.pauseVideo();
+                }
+              }
               break;
+
             case 'NEXT':
+              if (isLocalPlaying) {
+                if (localVid) {
+                  localVid.pause();
+                  localVid.removeAttribute('src');
+                  localVid.load();
+                }
+              }
               if (player && player.stopVideo) {
                 player.stopVideo();
               }
@@ -359,9 +454,10 @@
       });
     }
 
-    // 5️⃣ XỬ LÝ KHI THẾT BÀI TỰ ĐỘNG HOẶC ĐỔI TRẠNG THÁI
+    // 5️⃣ XỬ LÝ KHI THAY ĐỔI TRẠNG THÁI PLAYER
     function onPlayerStateChange(event) {
-      // Khi player bắt đầu chạy hoặc thay đổi trạng thái, kích hoạt quét kiểm tra banner ngay
+      if (isLocalPlaying) return;
+
       setTimeout(checkAndToggleBanner, 500);
 
       if (event.data === YT.PlayerState.ENDED) {
