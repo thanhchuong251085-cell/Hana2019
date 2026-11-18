@@ -1,0 +1,57 @@
+package com.chuong.karahana
+
+import android.util.Log
+import org.schabi.newpipe.extractor.NewPipe
+import org.schabi.newpipe.extractor.stream.StreamInfo
+
+object YoutubeService {
+
+    private const val TAG = "YoutubeService"
+
+    /**
+     * Dữ liệu trả về chứa đầy đủ link Video-only (hình) và Audio (tiếng) để gộp luồng MergingMediaSource
+     */
+    data class MediaLinks(
+        val title: String,
+        val videoUrl: String,
+        val audioUrl: String
+    )
+
+    /**
+     * Hàm bóc tách link YouTube bất đồng bộ hoặc gọi từ luồng nền (background thread).
+     * Trả về đối tượng MediaLinks gồm cả hình và tiếng, hoặc ném Exception nếu lỗi.
+     */
+    @Throws(Exception::class)
+    fun extractStreamLinks(youtubeUrl: String): MediaLinks {
+        Log.d(TAG, "Đang bóc tách URL: $youtubeUrl")
+
+        // 1. Lấy service tương ứng từ NewPipe theo URL
+        val service = NewPipe.getServiceByUrl(youtubeUrl)
+        
+        // 2. Lấy thông tin chi tiết StreamInfo từ NewPipeExtractor
+        val streamInfo = StreamInfo.getInfo(service, youtubeUrl)
+        val title = streamInfo.name ?: "Unknown Title"
+
+        // 3. Lấy luồng Audio (tiếng)
+        val audioStreams = streamInfo.audioStreams
+        val bestAudioLink = audioStreams?.firstOrNull { !it.content.isNullOrEmpty() }?.content ?: ""
+
+        // 4. Lấy luồng Video-only (hình ảnh chất lượng cao không có tiếng)
+        // Nếu không có videoOnlyStreams thì fallback sang videoStreams thông thường
+        val videoOnlyStreams = streamInfo.videoOnlyStreams
+        val bestVideoLink = videoOnlyStreams?.firstOrNull { !it.content.isNullOrEmpty() }?.content
+            ?: streamInfo.videoStreams?.firstOrNull { !it.content.isNullOrEmpty() }?.content ?: ""
+
+        Log.d(TAG, "Bóc tách hoàn tất - Video: ${bestVideoLink.isNotEmpty()}, Audio: ${bestAudioLink.isNotEmpty()}")
+
+        if (bestVideoLink.isEmpty() || bestAudioLink.isEmpty()) {
+            throw IllegalStateException("Không tìm thấy đủ luồng video hoặc audio hợp lệ từ NewPipe!")
+        }
+
+        return MediaLinks(
+            title = title,
+            videoUrl = bestVideoLink,
+            audioUrl = bestAudioLink
+        )
+    }
+}
