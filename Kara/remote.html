@@ -89,13 +89,58 @@
         display: flex;
         gap: 10px;
         margin-bottom: 10px;
+        align-items: stretch;
+    }
+
+    /* Nhóm ô nhập liệu + nút Micro nằm ngang hàng giống YouTube */
+    .search-input-group {
+        display: flex;
+        flex: 1;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+
+    .search-input-group #searchInput {
+        margin-bottom: 0;
+        flex: 1;
+    }
+
+    /* Nút Micro tròn bên cạnh ô tìm kiếm */
+    #voiceSearchBtn {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: #eaeaea;
+        color: #111;
+        padding: 0;
+        margin: 0;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    }
+
+    #voiceSearchBtn.listening {
+        background: #cc0000;
+        color: #fff;
+        animation: micPulse 1s infinite;
+    }
+
+    @keyframes micPulse {
+        0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(204, 0, 0, 0.6); }
+        70% { transform: scale(1.06); box-shadow: 0 0 0 10px rgba(204, 0, 0, 0); }
+        100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(204, 0, 0, 0); }
     }
     
-    .search-box button {
+    .search-box > button {
         flex-shrink: 0;
         width: 120px; 
         padding: 15px; 
         font-size: 18px; 
+        margin-bottom: 10px;
+        margin-right: 0;
     }
 
     button {
@@ -344,11 +389,20 @@
       }
       .search-box {
           flex-direction: column; 
+          gap: 0;
       }
-      .search-box button {
+      .search-input-group {
+          margin-bottom: 10px;
+      }
+      #voiceSearchBtn {
+          width: 46px;
+          height: 46px;
+      }
+      .search-box > button {
           width: 100%;
           font-size: 16px; 
           padding: 10px;
+          margin-bottom: 0;
       }
       #searchInput, #playlistLinkInput {
         padding: 12px;
@@ -428,7 +482,14 @@
     <input type="text" id="playlistLinkInput" placeholder="Nhập Link/ID Playlist YouTube (list=...)" onblur="savePlaylistLink()">
 
     <div class="search-box">
-      <input type="text" id="searchInput" placeholder="Nhập tên bài hát...">
+      <div class="search-input-group">
+        <input type="text" id="searchInput" placeholder="Nhập tên bài hát...">
+        <button type="button" id="voiceSearchBtn" onclick="startVoiceSearch()" title="Tìm kiếm bằng giọng nói">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.91-3c-.49 0-.9.36-.98.85C16.52 14.2 14.47 16 12 16s-4.52-1.8-4.93-4.15c-.08-.49-.49-.85-.98-.85-.61 0-1.09.54-1 1.14.49 3 2.89 5.35 5.91 5.78V20c0 .55.45 1 1 1s1-.45 1-1v-2.08c3.02-.43 5.42-2.78 5.91-5.78.1-.6-.39-1.14-1-1.14z"/>
+          </svg>
+        </button>
+      </div>
       <button onclick="newSearch()">Tìm kiếm</button>
     </div>
 
@@ -489,6 +550,77 @@
 
     // Lưu trữ tạm danh sách nhạc offline để lấy tiêu đề chính xác, an toàn tuyệt đối với ký tự đặc biệt
     let remoteLocalSongsMap = {};
+
+    // --- TÌM KIẾM BẰNG GIỌNG NÓI ---
+    let voiceRecognition = null;
+    let isVoiceListening = false;
+
+    function startVoiceSearch() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        showToast("⚠️ Trình duyệt/WebView này chưa hỗ trợ tìm kiếm giọng nói!");
+        return;
+      }
+
+      const micBtn = document.getElementById('voiceSearchBtn');
+
+      if (isVoiceListening && voiceRecognition) {
+        voiceRecognition.stop();
+        return;
+      }
+
+      voiceRecognition = new SpeechRecognition();
+      voiceRecognition.lang = 'vi-VN';
+      voiceRecognition.interimResults = true;
+      voiceRecognition.maxAlternatives = 1;
+
+      voiceRecognition.onstart = function () {
+        isVoiceListening = true;
+        micBtn.classList.add('listening');
+        showToast("🎤 Đang nghe... Hãy nói tên bài hát");
+      };
+
+      voiceRecognition.onresult = function (event) {
+        let transcript = '';
+        let isFinal = false;
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          transcript += event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            isFinal = true;
+          }
+        }
+        const searchInput = document.getElementById('searchInput');
+        searchInput.value = transcript;
+
+        if (isFinal && transcript.trim().length > 0) {
+          newSearch();
+        }
+      };
+
+      voiceRecognition.onerror = function (event) {
+        isVoiceListening = false;
+        micBtn.classList.remove('listening');
+        if (event.error === 'no-speech') {
+          showToast("⚠️ Không nghe thấy giọng nói, thử lại nhé!");
+        } else if (event.error === 'not-allowed') {
+          showToast("⚠️ Vui lòng cấp quyền Micro cho ứng dụng/trình duyệt!");
+        } else {
+          showToast("⚠️ Lỗi nhận diện giọng nói: " + event.error);
+        }
+      };
+
+      voiceRecognition.onend = function () {
+        isVoiceListening = false;
+        micBtn.classList.remove('listening');
+      };
+
+      try {
+        voiceRecognition.start();
+      } catch (e) {
+        isVoiceListening = false;
+        micBtn.classList.remove('listening');
+      }
+    }
 
     document.getElementById('searchInput').addEventListener('keypress', function (e) {
       if (e.key === 'Enter') {
