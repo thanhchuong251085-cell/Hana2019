@@ -16,6 +16,16 @@
   <title>YouTube Jukebox Remote</title>
   <style>
     /* --- Base Styles --- */
+    :root {
+      --primary-color: #cc0000;
+      --primary-hover: #a80000;
+    }
+
+    body.source-soundcloud {
+      --primary-color: #e65100;
+      --primary-hover: #bf4200;
+    }
+
     body {
       font-family: sans-serif;
       background: #f7f7f7;
@@ -58,7 +68,7 @@
     }
 
     h1 {
-      color: #cc0000;
+      color: var(--primary-color);
       font-size: 26px;
       text-align: center;
       margin-bottom: 20px;
@@ -123,7 +133,7 @@
     }
 
     #voiceSearchBtn.listening {
-        background: #cc0000;
+        background: var(--primary-color);
         color: #fff;
         animation: micPulse 1s infinite;
     }
@@ -146,7 +156,7 @@
     button {
       padding: 20px; 
       font-size: 20px;
-      background: #cc0000;
+      background: var(--primary-color);
       color: white;
       border: none;
       border-radius: 6px;
@@ -155,8 +165,8 @@
       transition: background 0.2s, transform 0.1s;
     }
     
-    /* --- Modal Kết nối TV --- */
-    #connectModal {
+    /* --- Modal Kết nối TV & Modal Chọn Nguồn --- */
+    #connectModal, #sourceModal {
         display: none;
         position: fixed;
         top: 0; left: 0; width: 100%; height: 100%;
@@ -175,6 +185,27 @@
         display: flex;
         flex-direction: column;
         gap: 10px;
+    }
+    .source-choice-btn {
+        width: 100%;
+        padding: 14px 16px;
+        font-size: 18px;
+        font-weight: bold;
+        border: none;
+        border-radius: 8px;
+        color: #fff;
+        cursor: pointer;
+        margin-right: 0;
+        text-align: center;
+    }
+    .btn-source-yt {
+        background: #cc0000;
+    }
+    .btn-source-sc {
+        background: #ff6600;
+    }
+    .btn-source-close {
+        background: #888888;
     }
     .connect-box input {
         font-size: 20px; 
@@ -215,7 +246,7 @@
       margin: 0;
     }
     .mode-tab.active {
-      background: #cc0000;
+      background: var(--primary-color);
       color: #fff;
     }
     .mode-panel {
@@ -225,13 +256,48 @@
       display: block;
     }
 
+    /* --- Scroll view tích chọn thể loại cho SoundCloud --- */
+    .sc-genre-scroll {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      white-space: nowrap;
+      padding: 10px 8px;
+      margin-bottom: 14px;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      -webkit-overflow-scrolling: touch;
+    }
+    .sc-genre-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: #fff3eb;
+      border: 1px solid #ffb380;
+      font-size: 16px;
+      font-weight: 500;
+      color: #333;
+      cursor: pointer;
+      flex-shrink: 0;
+      user-select: none;
+    }
+    .sc-genre-chip input[type="checkbox"] {
+      transform: scale(1.35);
+      accent-color: #ff6600;
+      cursor: pointer;
+      margin: 0;
+    }
+
     /* --- Thanh điều khiển cố định dưới cùng --- */
     .bottom-control-bar {
       position: fixed;
       bottom: 0;
       left: 0;
       width: 100%;
-      background: #cc0000;
+      background: var(--primary-color);
       display: flex;
       justify-content: space-around;
       align-items: center;
@@ -411,6 +477,10 @@
       .checkbox-label {
         font-size: 16px !important;
       }
+      .sc-genre-chip {
+        font-size: 14px;
+        padding: 6px 10px;
+      }
       .video-item img {
         width: 30%; 
         max-height: 80px; 
@@ -432,14 +502,33 @@
 </head>
 
 <body>
-  <!-- Nút Kết nối TV ở góc trên phải -->
+  <!-- Nút Qua bài / Nguồn nhạc / Kết nối TV ở góc trên phải -->
   <div id="fixedControls" style="position: fixed; top: 10px; right: 10px; z-index: 1000; display: flex; gap: 5px; align-items: center;">
-    <button onclick="sendCommand('NEXT')" style="font-size: 12px; padding: 6px 12px; background-color: #f1c40f; color: black; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-right: 0;">
+    <button onclick="sendCommand('NEXT')" style="font-size: 12px; padding: 6px 10px; background-color: #f1c40f; color: black; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-right: 0;">
       ⏭ Qua bài
     </button>
-    <button onclick="toggleConnectModal()" style="font-size: 12px; padding: 6px 12px; background-color: #3498db; color: white; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-right: 0;">
+    <button onclick="toggleSourceModal()" style="font-size: 12px; padding: 6px 10px; background-color: #9b59b6; color: white; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-right: 0;">
+      🎵 Nguồn nhạc
+    </button>
+    <button onclick="toggleConnectModal()" style="font-size: 12px; padding: 6px 10px; background-color: #3498db; color: white; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-right: 0;">
       📺 Kết nối TV
     </button>
+  </div>
+
+  <!-- Modal Chọn Nguồn Tìm Kiếm (YouTube / SoundCloud) -->
+  <div id="sourceModal" onclick="if(event.target===this) toggleSourceModal()">
+    <div class="modal-content">
+      <h3 style="margin: 0 0 8px 0; color: #222; text-align: center;">Chọn nguồn tìm kiếm</h3>
+      <button type="button" class="source-choice-btn btn-source-yt" onclick="selectMusicSource('youtube')">
+        ▶ YouTube
+      </button>
+      <button type="button" class="source-choice-btn btn-source-sc" onclick="selectMusicSource('soundcloud')">
+        ☁️ SoundCloud
+      </button>
+      <button type="button" class="source-choice-btn btn-source-close" onclick="toggleSourceModal()">
+        Đóng
+      </button>
+    </div>
   </div>
 
   <!-- Modal Nhập mã phòng / Kết nối TV -->
@@ -461,22 +550,44 @@
   <h2>DANH SÁCH CHỜ</h2>
   <ul id="playlist" style="list-style: none; padding: 0;"></ul>
 
-  <!-- Thanh chuyển đổi giữa chế độ Online (YouTube) và Offline (Nhạc trong máy) -->
+  <!-- Thanh chuyển đổi giữa chế độ Online (YouTube/SoundCloud) và Offline (Nhạc trong máy) -->
   <div class="mode-tab-bar">
-    <button class="mode-tab active" onclick="switchMode('online')">▶ YouTube Online</button>
-    <button class="mode-tab" onclick="switchMode('offline')">📂 Nhạc Offline</button>
+    <button id="onlineTabBtn" class="mode-tab active" onclick="switchMode('online')">▶ YouTube Online</button>
+    <button id="offlineTabBtn" class="mode-tab" onclick="switchMode('offline')">📂 Nhạc Offline</button>
   </div>
 
-  <!-- PANEL ONLINE (YOUTUBE) -->
+  <!-- PANEL ONLINE (YOUTUBE / SOUNDCLOUD) -->
   <div id="panel-online" class="mode-panel active">
-    <h1>YouTube Jukebox</h1>
-    <div style="margin-bottom: 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+    <h1 id="mainSourceTitle">YouTube Jukebox</h1>
+
+    <!-- Khung chọn riêng cho YouTube -->
+    <div id="youtubeOptionsBox" style="margin-bottom: 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
       <input type="checkbox" id="karaokeCheckbox" checked="" style="transform: scale(1.5); width: 15px; height: 15px;">
       <label for="karaokeCheckbox" class="checkbox-label">🎤 Tìm Karaoke</label>
       <input type="checkbox" id="suggestionCheckbox" style="transform: scale(1.5); width: 15px; height: 15px; margin-left: 20px;">
       <label for="suggestionCheckbox" class="checkbox-label">💡 Đề xuất</label>
       <input type="checkbox" id="playlistCheckbox" style="transform: scale(1.5); width: 15px; height: 15px; margin-left: 20px;">
       <label for="playlistCheckbox" class="checkbox-label">📃 Playlist</label>
+    </div>
+
+    <!-- Khung chọn thể loại dạng scroll view cho SoundCloud (tích chọn nhiều để trộn tổng hợp) -->
+    <div id="soundcloudOptionsBox" class="sc-genre-scroll" style="display: none;">
+      <label class="sc-genre-chip">
+        <input type="checkbox" class="sc-genre-cb" value="bolero" onchange="onSoundCloudGenreChange()">
+        <span>Bolero</span>
+      </label>
+      <label class="sc-genre-chip">
+        <input type="checkbox" class="sc-genre-cb" value="nhac tre" onchange="onSoundCloudGenreChange()">
+        <span>Nhạc trẻ</span>
+      </label>
+      <label class="sc-genre-chip">
+        <input type="checkbox" class="sc-genre-cb" value="remix" onchange="onSoundCloudGenreChange()">
+        <span>Remix</span>
+      </label>
+      <label class="sc-genre-chip">
+        <input type="checkbox" class="sc-genre-cb" value="phong tra" onchange="onSoundCloudGenreChange()">
+        <span>Phòng trà</span>
+      </label>
     </div>
     
     <input type="text" id="playlistLinkInput" placeholder="Nhập Link/ID Playlist YouTube (list=...)" onblur="savePlaylistLink()">
@@ -532,12 +643,14 @@
     const db = firebase.database();
     
     const YOUTUBE_API_KEY = 'AIzaSyBu2W83cmzz5vhpWQsLvPzWA3F62y-5i-4'; 
+    const SOUNDCLOUD_WORKER_URL = 'https://soundcloud.thanhchuong251085.workers.dev/?q=';
     const RESULTS_PER_PAGE = 50;
     const ONE_MONTH_MS = 30 * 24 * 60 * 60 * 1000; 
     const SUGGESTIONS_PER_LOAD = 100; 
     
     const ADMIN_ROOM_CODE = '99999'; 
     
+    let currentMusicSource = 'youtube'; // 'youtube' | 'soundcloud'
     let currentRoom = null;
     let currentPlaylistId = null;
     let nextPageToken = null; 
@@ -547,6 +660,11 @@
     let allSuggestionsCache = []; 
     let suggestionStartIndex = 0; 
     let isPlayingState = true; 
+
+    // Cache cho SoundCloud
+    let scSuggestionCache = [];
+    let scSuggestionStartIndex = 0;
+    let scCurrentTracksMap = {};
 
     // Lưu trữ tạm danh sách nhạc offline để lấy tiêu đề chính xác, an toàn tuyệt đối với ký tự đặc biệt
     let remoteLocalSongsMap = {};
@@ -627,8 +745,253 @@
         newSearch(); 
       }
     });
+
+    // --- CHỌN NGUỒN NHẠC (YOUTUBE / SOUNDCLOUD) ---
+    function toggleSourceModal() {
+      const modal = document.getElementById('sourceModal');
+      modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
+    }
+
+    function selectMusicSource(source) {
+      currentMusicSource = source;
+      localStorage.setItem("musicSource", source);
+      applyMusicSourceUI();
+      toggleSourceModal();
+      switchMode('online');
+      newSearch();
+    }
+
+    function applyMusicSourceUI() {
+      const isSC = currentMusicSource === 'soundcloud';
+      document.body.classList.toggle('source-soundcloud', isSC);
+
+      const onlineTabBtn = document.getElementById('onlineTabBtn');
+      const mainTitle = document.getElementById('mainSourceTitle');
+      const ytBox = document.getElementById('youtubeOptionsBox');
+      const scBox = document.getElementById('soundcloudOptionsBox');
+      const playlistInput = document.getElementById('playlistLinkInput');
+      const searchInput = document.getElementById('searchInput');
+
+      if (isSC) {
+        onlineTabBtn.textContent = '☁️ SoundCloud';
+        mainTitle.textContent = 'SoundCloud Jukebox';
+        ytBox.style.display = 'none';
+        scBox.style.display = 'flex';
+        playlistInput.style.display = 'none';
+        searchInput.placeholder = 'Nhập tên bài hát SoundCloud...';
+      } else {
+        onlineTabBtn.textContent = '▶ YouTube Online';
+        mainTitle.textContent = 'YouTube Jukebox';
+        ytBox.style.display = 'flex';
+        scBox.style.display = 'none';
+        searchInput.placeholder = 'Nhập tên bài hát...';
+        updateSearchMode(false);
+      }
+    }
+
+    function getSelectedSoundCloudGenres() {
+      const checked = Array.from(document.querySelectorAll('.sc-genre-cb:checked'));
+      return checked.map(cb => cb.value);
+    }
+
+    function onSoundCloudGenreChange() {
+      scSuggestionCache = [];
+      scSuggestionStartIndex = 0;
+      newSearch();
+    }
+
+    function shuffleArray(arr) {
+      const copy = arr.slice();
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    async function fetchSoundCloudQuery(query) {
+      const res = await fetch(SOUNDCLOUD_WORKER_URL + encodeURIComponent(query));
+      const data = await res.json();
+      if (!data || !data.ok || !Array.isArray(data.items)) {
+        return [];
+      }
+      return data.items;
+    }
+
+    async function loadSoundCloudSuggestions(isNewSearch = true) {
+      const container = document.getElementById('searchResults');
+      const loadMoreBtn = document.getElementById('loadMoreBtn');
+      const selectedGenres = getSelectedSoundCloudGenres();
+
+      if (isNewSearch) {
+        container.innerHTML = 'Đang tải gợi ý SoundCloud...';
+        loadMoreBtn.style.display = 'none';
+      }
+
+      try {
+        if (isNewSearch || scSuggestionCache.length === 0) {
+          const queriesToFetch = selectedGenres.length > 0
+            ? selectedGenres
+            : ['bolero', 'nhac tre', 'remix', 'phong tra'];
+
+          const resultsArrays = await Promise.all(
+            queriesToFetch.map(q => fetchSoundCloudQuery(q).catch(() => []))
+          );
+
+          const uniqueMap = new Map();
+          resultsArrays.flat().forEach(item => {
+            if (!item || !item.url) return;
+            if (!uniqueMap.has(item.url)) {
+              uniqueMap.set(item.url, item);
+            }
+          });
+
+          scSuggestionCache = shuffleArray(Array.from(uniqueMap.values())).slice(0, 100);
+          scSuggestionStartIndex = 0;
+        }
+
+        const start = scSuggestionStartIndex;
+        const end = Math.min(start + SUGGESTIONS_PER_LOAD, scSuggestionCache.length);
+        const batch = scSuggestionCache.slice(start, end);
+        scSuggestionStartIndex = end;
+
+        renderSoundCloudResults(batch, isNewSearch);
+
+        if (scSuggestionStartIndex < scSuggestionCache.length) {
+          loadMoreBtn.style.display = 'block';
+          loadMoreBtn.innerText = 'TẢI TIẾP';
+        } else {
+          loadMoreBtn.style.display = 'none';
+        }
+      } catch (e) {
+        container.innerHTML = 'LỖI: Không thể tải dữ liệu SoundCloud.';
+        showToast("⚠️ Lỗi SoundCloud: " + e.message);
+      }
+    }
+
+    async function searchSoundCloud(query) {
+      const container = document.getElementById('searchResults');
+      const loadMoreBtn = document.getElementById('loadMoreBtn');
+      loadMoreBtn.style.display = 'none';
+      container.innerHTML = 'Đang tìm kiếm trên SoundCloud...';
+
+      const selectedGenres = getSelectedSoundCloudGenres();
+      const finalQuery = selectedGenres.length > 0
+        ? `${query} ${selectedGenres.join(' ')}`
+        : query;
+
+      try {
+        const items = await fetchSoundCloudQuery(finalQuery);
+        renderSoundCloudResults(items, true);
+      } catch (e) {
+        container.innerHTML = 'LỖI tìm kiếm SoundCloud.';
+        showToast("⚠️ Lỗi: " + e.message);
+      }
+    }
+
+    function renderSoundCloudResults(items, isNewLoad) {
+      const container = document.getElementById('searchResults');
+      if (isNewLoad) {
+        container.innerHTML = '';
+        scCurrentTracksMap = {};
+      }
+
+      if (!items || items.length === 0) {
+        if (isNewLoad) container.innerHTML = 'Không tìm thấy bài hát SoundCloud nào.';
+        return;
+      }
+
+      items.forEach((item, idx) => {
+        if (!item || !item.url) return;
+        const trackKey = 'sc_' + Date.now() + '_' + idx + '_' + Math.random().toString(36).slice(2, 6);
+        scCurrentTracksMap[trackKey] = {
+          url: item.url,
+          title: item.title || 'Bài hát SoundCloud',
+          artist: item.artist || '',
+          thumbnail: item.thumbnail || ''
+        };
+
+        const displayTitle = item.artist ? `${item.title} - ${item.artist}` : item.title;
+        const imgSrc = item.thumbnail || '';
+
+        const videoDiv = document.createElement('div');
+        videoDiv.className = 'video-item';
+        videoDiv.innerHTML = `
+          <img src="${imgSrc}" onerror="this.style.display='none'">
+          <div class="video-info">
+            <div class="video-title">${displayTitle}</div>
+            <div class="action-buttons-row">
+              <button class="btn-action" onclick="submitSoundCloudSong('${trackKey}')">Gửi bài</button>
+              <button class="btn-action btn-priority" onclick="submitSoundCloudPrioritySong('${trackKey}')">Ưu tiên</button>
+              <button class="btn-action btn-playnow" onclick="submitSoundCloudPlayNow('${trackKey}')">Play Now</button>
+            </div>
+          </div>
+        `;
+        container.appendChild(videoDiv);
+      });
+    }
+
+    function submitSoundCloudSong(trackKey) {
+      if (!currentRoom) return showToast("⚠️ Bạn chưa kết nối!");
+      const track = scCurrentTracksMap[trackKey];
+      if (!track) return;
+      const song = {
+        type: 'soundcloud',
+        url: track.url,
+        title: track.title,
+        artist: track.artist,
+        thumbnail: track.thumbnail,
+        priority: false,
+        prioritySeq: 0,
+        timestamp: Date.now(),
+        status: 'waiting'
+      };
+      db.ref(`rooms/${currentRoom}/playlist`).push(song)
+        .then(() => showToast("✅ Đã thêm bài SoundCloud vào hàng đợi"));
+    }
+
+    function submitSoundCloudPrioritySong(trackKey) {
+      if (!currentRoom) return showToast("⚠️ Bạn chưa kết nối!");
+      const track = scCurrentTracksMap[trackKey];
+      if (!track) return;
+      const now = Date.now();
+      const song = {
+        type: 'soundcloud',
+        url: track.url,
+        title: track.title,
+        artist: track.artist,
+        thumbnail: track.thumbnail,
+        priority: true,
+        prioritySeq: now,
+        timestamp: now,
+        status: 'waiting'
+      };
+      db.ref(`rooms/${currentRoom}/playlist`).push(song)
+        .then(() => showToast("⭐ Đã ưu tiên bài SoundCloud lên vị trí số 1"));
+    }
+
+    function submitSoundCloudPlayNow(trackKey) {
+      if (!currentRoom) return showToast("⚠️ Bạn chưa kết nối!");
+      const track = scCurrentTracksMap[trackKey];
+      if (!track) return;
+      db.ref(`rooms/${currentRoom}/command`).set({
+        type: 'PLAY_NOW',
+        typeSource: 'soundcloud',
+        url: track.url,
+        title: track.title,
+        artist: track.artist,
+        thumbnail: track.thumbnail,
+        time: Date.now()
+      });
+      showToast("⚡ Lệnh: Phát ngay bài SoundCloud!");
+    }
     
     window.onload = function () {
+      const savedSource = localStorage.getItem("musicSource");
+      if (savedSource === 'soundcloud' || savedSource === 'youtube') {
+        currentMusicSource = savedSource;
+      }
+
       const storedCode = localStorage.getItem("lastRoom");
       if (storedCode && /^\d{5}$/i.test(storedCode)) {
         document.getElementById('userCodeInput').value = storedCode;
@@ -670,7 +1033,7 @@
         updateSearchMode(true);
       });
 
-      updateSearchMode(); 
+      applyMusicSourceUI();
       
       const storedPlaylistLink = localStorage.getItem("playlistLink");
       if (storedPlaylistLink) {
@@ -679,7 +1042,11 @@
       }
       
       if (currentSearchQuery.length === 0) {
-          loadInitialSuggestions();
+          if (currentMusicSource === 'soundcloud') {
+            loadSoundCloudSuggestions(true);
+          } else {
+            loadInitialSuggestions();
+          }
       }
     };
     
@@ -725,7 +1092,6 @@
           
           const thumbIcon = item.title.endsWith('.mp4') || item.title.endsWith('.mkv') ? '🎬' : '🎵';
 
-          // Thay vì truyền trực tiếp chuỗi tiêu đề có dấu nháy gây lỗi, ta chỉ truyền vào localKey duy nhất
           videoDiv.innerHTML = `
             <div style="width: 35%; max-width: 150px; height: 90px; background: #222; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 28px; flex-shrink: 0;">
               <span>${thumbIcon}</span>
@@ -746,42 +1112,38 @@
       });
     }
 
-    // Gửi bài offline vào hàng đợi dựa trên localKey an toàn
     function submitLocalSong(localKey) {
       if (!currentRoom) return showToast("⚠️ Bạn chưa kết nối!");
       const title = remoteLocalSongsMap[localKey] || "Bài offline";
-      const song = { type: 'local', localKey: localKey, title: title, timestamp: Date.now() };
+      const song = {
+        type: 'local',
+        localKey: localKey,
+        title: title,
+        priority: false,
+        prioritySeq: 0,
+        timestamp: Date.now()
+      };
       db.ref(`rooms/${currentRoom}/playlist`).push(song)
         .then(() => showToast("✅ Đã thêm bài offline vào hàng đợi"));
     }
 
-    // Ưu tiên bài offline dựa trên localKey an toàn
     function submitLocalPrioritySong(localKey) {
       if (!currentRoom) return showToast("⚠️ Bạn chưa kết nối!");
       const title = remoteLocalSongsMap[localKey] || "Bài offline";
-      const playlistRef = db.ref(`rooms/${currentRoom}/playlist`);
-      
-      playlistRef.orderByChild('timestamp').limitToFirst(2).once('value', snapshot => {
-        let songs = [];
-        snapshot.forEach(child => { songs.push(child.val()); });
-
-        let priorityTimestamp;
-        const now = Date.now();
-
-        if (songs.length === 0) {
-          priorityTimestamp = now;
-        } else if (songs.length === 1) {
-          priorityTimestamp = songs[0].timestamp + 1000;
-        } else {
-          priorityTimestamp = (songs[0].timestamp + songs[1].timestamp) / 2;
-        }
-
-        const song = { type: 'local', localKey: localKey, title: title, timestamp: priorityTimestamp };
-        playlistRef.push(song).then(() => showToast("⭐ Đã ưu tiên bài offline lên vị trí 2"));
-      });
+      const now = Date.now();
+      const song = {
+        type: 'local',
+        localKey: localKey,
+        title: title,
+        priority: true,
+        prioritySeq: now,
+        timestamp: now,
+        status: "waiting"
+      };
+      db.ref(`rooms/${currentRoom}/playlist`).push(song)
+        .then(() => showToast("⭐ Đã ưu tiên bài offline lên vị trí số 1"));
     }
 
-    // Play Now bài offline ngay lập tức dựa trên localKey an toàn
     function submitLocalPlayNow(localKey) {
       if (!currentRoom) return showToast("⚠️ Bạn chưa kết nối!");
       const title = remoteLocalSongsMap[localKey] || "Bài offline";
@@ -795,7 +1157,6 @@
       showToast("⚡ Lệnh: Phát ngay bài offline!");
     }
 
-    // Xóa bài nhạc offline dựa trên localKey an toàn
     function removeLocalSong(localKey) {
       if (!currentRoom) return showToast("⚠️ Bạn chưa kết nối!");
       const title = remoteLocalSongsMap[localKey] || "Bài này";
@@ -834,6 +1195,10 @@
     }
 
     function updateSearchMode(initSearch = false) {
+        if (currentMusicSource === 'soundcloud') {
+          if (initSearch) newSearch();
+          return;
+        }
         const playlistChecked = document.getElementById("playlistCheckbox").checked;
         const suggestionChecked = document.getElementById("suggestionCheckbox").checked;
         const input = document.getElementById("playlistLinkInput");
@@ -892,7 +1257,11 @@
       toggleConnectModal(); 
       
       if (currentSearchQuery.length === 0) {
-          loadInitialSuggestions();
+          if (currentMusicSource === 'soundcloud') {
+            loadSoundCloudSuggestions(true);
+          } else {
+            loadInitialSuggestions();
+          }
       }
       updateSearchMode();
     }
@@ -923,7 +1292,11 @@
       showToast("🚪 Đã đăng xuất");
       document.getElementById('playlist').innerHTML = '';
       toggleConnectModal();
-      loadInitialSuggestions();
+      if (currentMusicSource === 'soundcloud') {
+        loadSoundCloudSuggestions(true);
+      } else {
+        loadInitialSuggestions();
+      }
       updateSearchMode();
     }
     
@@ -954,7 +1327,14 @@
           songs.push({ key: child.key, ...child.val() });
         });
         
-        songs.sort((a, b) => a.timestamp - b.timestamp);
+        songs.sort((a, b) => {
+          const pa = a.priority === true;
+          const pb = b.priority === true;
+          if (pa && !pb) return -1;
+          if (!pa && pb) return 1;
+          if (pa && pb) return (b.prioritySeq || b.timestamp || 0) - (a.prioritySeq || a.timestamp || 0);
+          return (a.timestamp || 0) - (b.timestamp || 0);
+        });
 
         songs.forEach((s, index) => {
           const shortTitle = s.title; 
@@ -963,7 +1343,8 @@
           li.setAttribute("data-key", s.key);
 
           const titleSpan = document.createElement("span");
-          const prefix = index === 0 ? "▶️ Đang phát: " : `${index + 1}. `;
+          const prioBadge = s.priority === true ? "⭐ [Ưu tiên] " : "";
+          const prefix = index === 0 ? `▶️ Đang phát: ${prioBadge}` : `${index + 1}. ${prioBadge}`;
           titleSpan.textContent = `${prefix}${shortTitle}`;
 
           const removeBtn = document.createElement("button");
@@ -1023,6 +1404,15 @@
         document.getElementById('loadMoreBtn').style.display = 'none';
         nextPageToken = null; 
         playlistCache = []; 
+
+        if (currentMusicSource === 'soundcloud') {
+          if (currentSearchQuery.length > 0) {
+            searchSoundCloud(currentSearchQuery);
+          } else {
+            loadSoundCloudSuggestions(true);
+          }
+          return;
+        }
         
         const playlistChecked = document.getElementById("playlistCheckbox").checked;
         const suggestionChecked = document.getElementById("suggestionCheckbox").checked;
@@ -1068,6 +1458,10 @@
     }
 
     function loadMore() {
+        if (currentMusicSource === 'soundcloud') {
+          loadSoundCloudSuggestions(false);
+          return;
+        }
         if (currentSearchMode === 'search') {
             if (!nextPageToken) return showToast("⚠️ Không còn kết quả!");
             searchYouTube(currentSearchQuery, true, false, nextPageToken); 
@@ -1378,33 +1772,31 @@
 
     function submitSong(videoId, title) {
       if (!currentRoom) return showToast("⚠️ Bạn chưa kết nối!");
-      const song = { videoId: videoId, title: title, timestamp: Date.now(), status: "waiting" };
+      const song = {
+        videoId: videoId,
+        title: title,
+        priority: false,
+        prioritySeq: 0,
+        timestamp: Date.now(),
+        status: "waiting"
+      };
       db.ref(`rooms/${currentRoom}/playlist`).push(song)
         .then(() => showToast("✅ Đã thêm vào hàng đợi"));
     }
 
     function submitPrioritySong(videoId, title) {
       if (!currentRoom) return showToast("⚠️ Bạn chưa kết nối!");
-      const playlistRef = db.ref(`rooms/${currentRoom}/playlist`);
-      
-      playlistRef.orderByChild('timestamp').limitToFirst(2).once('value', snapshot => {
-        let songs = [];
-        snapshot.forEach(child => { songs.push(child.val()); });
-
-        let priorityTimestamp;
-        const now = Date.now();
-
-        if (songs.length === 0) {
-          priorityTimestamp = now;
-        } else if (songs.length === 1) {
-          priorityTimestamp = songs[0].timestamp + 1000;
-        } else {
-          priorityTimestamp = (songs[0].timestamp + songs[1].timestamp) / 2;
-        }
-
-        const song = { videoId: videoId, title: title, timestamp: priorityTimestamp, status: "waiting" };
-        playlistRef.push(song).then(() => showToast("⭐ Đã ưu tiên vị trí thứ 2"));
-      });
+      const now = Date.now();
+      const song = {
+        videoId: videoId,
+        title: title,
+        priority: true,
+        prioritySeq: now,
+        timestamp: now,
+        status: "waiting"
+      };
+      db.ref(`rooms/${currentRoom}/playlist`).push(song)
+        .then(() => showToast("⭐ Đã ưu tiên lên vị trí số 1"));
     }
 
     function submitPrioritySong2(videoId, title) {
