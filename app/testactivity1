@@ -1,0 +1,2776 @@
+package com.chuong.karahana
+
+import android.app.Dialog
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.ColorFilter
+import android.graphics.LinearGradient
+import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.PixelFormat
+import android.graphics.Shader
+import android.graphics.Typeface
+import android.graphics.drawable.Drawable
+import android.graphics.drawable.GradientDrawable
+import android.media.AudioManager
+import android.net.Uri
+import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.os.Process
+import android.text.TextUtils
+import android.util.AttributeSet
+import android.util.Log
+import android.view.Gravity
+import android.view.View
+import android.view.ViewGroup
+import android.view.Window
+import android.widget.EditText
+import android.widget.FrameLayout
+import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import android.widget.SeekBar
+import android.widget.TextView
+import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.media3.common.AudioAttributes
+import androidx.media3.common.C
+import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
+import androidx.media3.exoplayer.DefaultLoadControl
+import androidx.media3.exoplayer.DefaultRenderersFactory
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
+import androidx.media3.ui.AspectRatioFrameLayout
+import androidx.media3.ui.PlayerView
+import com.chuong.karahana.iptvmanager
+import com.google.firebase.database.*
+import org.schabi.newpipe.extractor.NewPipe
+import org.schabi.newpipe.extractor.ServiceList
+import org.schabi.newpipe.extractor.downloader.Downloader
+import org.schabi.newpipe.extractor.downloader.Request
+import org.schabi.newpipe.extractor.downloader.Response
+import org.schabi.newpipe.extractor.exceptions.ReCaptchaException
+import org.schabi.newpipe.extractor.stream.AudioStream
+import java.io.BufferedReader
+import java.io.IOException
+import java.io.InputStreamReader
+import java.io.OutputStreamWriter
+import java.net.HttpURLConnection
+import java.net.URL
+import java.util.Locale
+import kotlin.random.Random
+
+typealias SongData = Map<String, Any>
+
+class MarqueeTextView @JvmOverloads constructor(
+    context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = android.R.attr.textViewStyle
+) : androidx.appcompat.widget.AppCompatTextView(context, attrs, defStyleAttr) {
+    init {
+        isSingleLine = true
+        ellipsize = TextUtils.TruncateAt.MARQUEE
+        marqueeRepeatLimit = -1
+        isFocusable = true
+        isFocusableInTouchMode = true
+        isSelected = true
+    }
+    override fun isFocused(): Boolean = true
+}
+
+/**
+ * Icon Play (tam giác) / Pause (hai gạch) nhỏ gọn, sắc nét.
+ */
+class PlayPauseIconDrawable(private val density: Float) : Drawable() {
+    var isPlayingState: Boolean = true
+        set(value) {
+            if (field != value) {
+                field = value
+                invalidateSelf()
+            }
+        }
+
+    private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.WHITE
+        style = Paint.Style.FILL
+    }
+
+    override fun draw(canvas: Canvas) {
+        val b = bounds
+        if (b.width() <= 0 || b.height() <= 0) return
+
+        val w = b.width().toFloat()
+        val h = b.height().toFloat()
+        val cy = h / 2f
+
+        if (isPlayingState) {
+            val barW = (2.6f * density).coerceAtLeast(3f)
+            val barH = h * 0.56f
+            val gap = (3.2f * density).coerceAtLeast(4f)
+            val totalW = barW * 2f + gap
+            val left1 = (w - totalW) / 2f
+            val top = cy - barH / 2f
+            val bottom = cy + barH / 2f
+            val corner = 1.2f * density
+
+            canvas.drawRoundRect(left1, top, left1 + barW, bottom, corner, corner, paint)
+            canvas.drawRoundRect(left1 + barW + gap, top, left1 + barW * 2f + gap, bottom, corner, corner, paint)
+        } else {
+            val triW = w * 0.52f
+            val triH = h * 0.58f
+            val left = (w - triW) / 2f + (1.2f * density)
+            val top = cy - triH / 2f
+            val bottom = cy + triH / 2f
+
+            val path = Path().apply {
+                moveTo(left, top)
+                lineTo(left + triW, cy)
+                lineTo(left, bottom)
+                close()
+            }
+            canvas.drawPath(path, paint)
+        }
+    }
+
+    override fun setAlpha(alpha: Int) {
+        paint.alpha = alpha
+        invalidateSelf()
+    }
+
+    override fun setColorFilter(colorFilter: ColorFilter?) {
+        paint.colorFilter = colorFilter
+        invalidateSelf()
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun getOpacity(): Int = PixelFormat.TRANSLUCENT
+}
+
+/**
+ * Icon Fullscreen 4 móc góc kiểu YouTube nhỏ gọn.
+ */
+class YouTubeFullscreenIconDrawable(private val density: Float) : Drawable() {
+    var isExpanded: Boolean = false
+        set(value) {
+            if (field != value) {
+                field = value
+                invalidateSelf()
+            }
+        }
+
+    private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.WHITE
+        style = Paint.Style.STROKE
+        strokeWidth = (1.9f * density).coerceAtLeast(2.2f)
+        strokeCap = Paint.Cap.SQUARE
+        strokeJoin = Paint.Join.MITER
+    }
+
+    override fun draw(canvas: Canvas) {
+        val b = bounds
+        if (b.width() <= 0 || b.height() <= 0) return
+
+        val pad = (6.5f * density)
+        val left = b.left + pad
+        val top = b.top + pad
+        val right = b.right - pad
+        val bottom = b.bottom - pad
+        if (right <= left || bottom <= top) return
+
+        val hook = ((right - left).coerceAtMost(bottom - top) * 0.34f).coerceAtLeast(3.5f * density)
+
+        if (!isExpanded) {
+            canvas.drawLine(left, top + hook, left, top, paint)
+            canvas.drawLine(left, top, left + hook, top, paint)
+
+            canvas.drawLine(right - hook, top, right, top, paint)
+            canvas.drawLine(right, top, right, top + hook, paint)
+
+            canvas.drawLine(left, bottom - hook, left, bottom, paint)
+            canvas.drawLine(left, bottom, left + hook, bottom, paint)
+
+            canvas.drawLine(right - hook, bottom, right, bottom, paint)
+            canvas.drawLine(right, bottom, right, bottom - hook, paint)
+        } else {
+            canvas.drawLine(left + hook, top, left + hook, top + hook, paint)
+            canvas.drawLine(left, top + hook, left + hook, top + hook, paint)
+
+            canvas.drawLine(right - hook, top, right - hook, top + hook, paint)
+            canvas.drawLine(right - hook, top + hook, right, top + hook, paint)
+
+            canvas.drawLine(left + hook, bottom - hook, left + hook, bottom, paint)
+            canvas.drawLine(left, bottom - hook, left + hook, bottom - hook, paint)
+
+            canvas.drawLine(right - hook, bottom - hook, right - hook, bottom, paint)
+            canvas.drawLine(right - hook, bottom - hook, right, bottom - hook, paint)
+        }
+    }
+
+    override fun setAlpha(alpha: Int) {
+        paint.alpha = alpha
+        invalidateSelf()
+    }
+
+    override fun setColorFilter(colorFilter: ColorFilter?) {
+        paint.colorFilter = colorFilter
+        invalidateSelf()
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun getOpacity(): Int = PixelFormat.TRANSLUCENT
+}
+
+/**
+ * Downloader nhẹ dùng HttpURLConnection cho NewPipeExtractor.
+ */
+class SimpleHttpDownloader : Downloader() {
+    @Throws(IOException::class, ReCaptchaException::class)
+    override fun execute(request: Request): Response {
+        val httpMethod = request.httpMethod()
+        val urlString = request.url()
+        val headers = request.headers()
+        val dataToSend = request.dataToSend()
+
+        val url = URL(urlString)
+        val conn = (url.openConnection() as HttpURLConnection).apply {
+            requestMethod = httpMethod
+            connectTimeout = 15000
+            readTimeout = 20000
+            instanceFollowRedirects = true
+            setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+            headers.forEach { (key, values) ->
+                values.forEach { v -> addRequestProperty(key, v) }
+            }
+        }
+
+        if (dataToSend != null && dataToSend.isNotEmpty()) {
+            conn.doOutput = true
+            OutputStreamWriter(conn.outputStream, Charsets.UTF_8).use { writer ->
+                writer.write(String(dataToSend, Charsets.UTF_8))
+                writer.flush()
+            }
+        }
+
+        val responseCode = conn.responseCode
+        val responseMessage = conn.responseMessage ?: ""
+        val inputStream = if (responseCode in 200..299) conn.inputStream else conn.errorStream
+
+        val bodyBuilder = StringBuilder()
+        if (inputStream != null) {
+            BufferedReader(InputStreamReader(inputStream, Charsets.UTF_8)).use { reader ->
+                var line: String?
+                while (reader.readLine().also { line = it } != null) {
+                    bodyBuilder.append(line).append('\n')
+                }
+            }
+        }
+
+        val responseHeaders = mutableMapOf<String, MutableList<String>>()
+        conn.headerFields.forEach { (k, v) ->
+            if (k != null && v != null) {
+                responseHeaders[k] = v.toMutableList()
+            }
+        }
+
+        return Response(
+            responseCode,
+            responseMessage,
+            responseHeaders,
+            bodyBuilder.toString(),
+            conn.url.toString()
+        )
+    }
+}
+
+@androidx.media3.common.util.UnstableApi
+class KarahanaTestActivity : ComponentActivity() {
+    companion object {
+        private const val WELCOME_BLINK_TEXT = "Chào mừng bạn đến karaoke Hana"
+        private const val BLINK_INTERVAL_MS = 650L
+        private const val CONTROLLER_AUTO_HIDE_MS = 3500L
+        private const val PROGRESS_TICK_MS = 500L
+
+        private const val CLEAN_LINEAR_AUDIO_VOLUME = 0.80f
+
+        private val VIDEO_EXTS = setOf(
+            "mp4", "mkv", "webm", "avi", "mov", "flv", "3gp", "m4v", "ts", "mpg", "mpeg", "vob"
+        )
+    }
+
+    private lateinit var database: FirebaseDatabase
+    private lateinit var currentRoomId: String
+    private lateinit var tvRoomCode: TextView
+    private lateinit var tvStatus: MarqueeTextView
+    private lateinit var tvWelcomeBlink: TextView
+    private lateinit var topLeftContainer: LinearLayout
+    private lateinit var uiContainer: LinearLayout
+    private lateinit var layoutPlaylist: LinearLayout
+    private lateinit var audioManager: AudioManager
+
+    private var roomValueEventListener: ValueEventListener? = null
+    private var commandEventListener: ValueEventListener? = null
+    private var localSongsEventListener: ValueEventListener? = null
+    private var iptvCommandEventListener: ValueEventListener? = null
+    private var lastIptvCommandTimestamp: Long = 0L
+    private var roomRef: DatabaseReference? = null
+
+    private val playlist = ArrayList<SongData>()
+    private val offlinePlaylist = ArrayList<SongData>()
+    private val localSongsMap = HashMap<String, String>()
+    private val localIsVideoMap = HashMap<String, Boolean>()
+    private var isPlaying = true
+    private var isOfflineActive = false
+    private var isSoundCloudSession = false
+    private var hasActiveSongPlaying = false
+    private var isFullScreenOnly = false
+    private var isExitingApp = false
+    private var currentOfflineUrl: String? = null
+
+    private var offlineFolderDialog: Dialog? = null
+    private var tvAndOfflineDialog: Dialog? = null
+    private var savedIptvPlaylistUrl: String = ""
+    private var cachedIptvChannels: List<iptvmanager.KenhIptv> = emptyList()
+    private val logoBitmapCache = HashMap<String, Bitmap>()
+    private var refreshOfflineTabCallback: (() -> Unit)? = null
+
+    private val externalFilePickerLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val data = result.data
+            val uris = ArrayList<Uri>()
+            data?.clipData?.let { clip ->
+                for (i in 0 until clip.itemCount) {
+                    clip.getItemAt(i)?.uri?.let { uris.add(it) }
+                }
+            }
+            if (uris.isEmpty()) {
+                data?.data?.let { uris.add(it) }
+            }
+
+            val pickedItems = OfflineFolderPicker.parsePickedUris(this, uris)
+            if (pickedItems.isNotEmpty()) {
+                try {
+                    offlineFolderDialog?.dismiss()
+                } catch (_: Exception) {}
+                offlineFolderDialog = null
+                sendSelectedOfflineSongsToFirebase(pickedItems)
+            } else {
+                showToast("⚠️ Không lấy được tệp nhạc/video nào")
+            }
+        }
+    }
+
+    private var exoPlayer: ExoPlayer? = null
+    private var exoHostContainer: FrameLayout? = null
+    private var playerView: PlayerView? = null
+    private var scArtworkView: ImageView? = null
+
+    private var customControlBar: LinearLayout? = null
+    private var btnCustomPlayPause: ImageView? = null
+    private var playPauseIconDrawable: PlayPauseIconDrawable? = null
+    private var seekCustomProgress: SeekBar? = null
+    private var tvCustomTime: TextView? = null
+    private var btnExoFullscreen: ImageView? = null
+    private var fullscreenIconDrawable: YouTubeFullscreenIconDrawable? = null
+    private var isCustomBarVisible = false
+    private var isUserSeeking = false
+
+    private var play1080: Play1080? = null
+
+    private var activeDisplayTitle: String = "🕒 Chờ bài hát..."
+    private var lastDispatchedVideoId: String? = null
+    private var lastDispatchedSoundCloudUrl: String? = null
+
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private val blinkHandler = Handler(Looper.getMainLooper())
+    private var shouldBlinkWelcome = false
+    private var blinkStateVisible = true
+
+    private val autoHideCustomBarRunnable = Runnable {
+        if (isOfflineActive) {
+            hideCustomControlBar()
+        }
+    }
+
+    private val progressTickRunnable = object : Runnable {
+        override fun run() {
+            if (isOfflineActive && exoPlayer != null && !isExitingApp) {
+                updateCustomSeekAndTime()
+                mainHandler.postDelayed(this, PROGRESS_TICK_MS)
+            }
+        }
+    }
+
+    private val blinkRunnable = object : Runnable {
+        override fun run() {
+            if (shouldBlinkWelcome && !isFullScreenOnly && !isExitingApp) {
+                blinkStateVisible = !blinkStateVisible
+                tvWelcomeBlink.visibility = View.VISIBLE
+                tvWelcomeBlink.alpha = if (blinkStateVisible) 1f else 0f
+                blinkHandler.postDelayed(this, BLINK_INTERVAL_MS)
+            } else {
+                tvWelcomeBlink.visibility = View.GONE
+                tvWelcomeBlink.alpha = 0f
+            }
+        }
+    }
+
+    private fun Int.dp(): Int = (this * resources.displayMetrics.density).toInt()
+    private fun Float.dp(): Int = (this * resources.displayMetrics.density).toInt()
+
+    private fun prepareHostForIptvPlayback(kenh: iptvmanager.KenhIptv) {
+        stopExoCompletely(hideHost = false, keepArtwork = false)
+        pauseAndSilencePlay1080()
+        lastDispatchedVideoId = null
+        lastDispatchedSoundCloudUrl = null
+
+        hasActiveSongPlaying = true
+        isOfflineActive = true
+        isSoundCloudSession = false
+        isPlaying = true
+        currentOfflineUrl = kenh.streamUrl
+        setWelcomeBlinking(false)
+
+        hideArtworkView()
+        exoHostContainer?.visibility = View.VISIBLE
+        exoHostContainer?.setBackgroundColor(Color.BLACK)
+        playerView?.visibility = View.VISIBLE
+        playerView?.useController = false
+        playerView?.bringToFront()
+
+        activeDisplayTitle = "📺 ${kenh.soKenh}. ${kenh.tenKenh}"
+        tvStatus.text = activeDisplayTitle
+        tvStatus.isSelected = true
+        updateOfflineKeepScreenOn(true)
+        showCustomControlBar()
+    }
+
+    /**
+     * Đẩy toàn bộ danh sách kênh IPTV (kèm logo, clearKey, thông tin luồng...) xuống nhánh phòng hiện tại trên Firebase.
+     */
+    private fun pushIptvChannelsToFirebase(dsKenh: List<iptvmanager.KenhIptv>) {
+        val targetRef = roomRef ?: database.getReference("rooms/$currentRoomId")
+        val mapChannels = LinkedHashMap<String, Any>()
+        dsKenh.forEach { kenh ->
+            mapChannels[kenh.index.toString()] = mapOf<String, Any>(
+                "index" to kenh.index,
+                "number" to kenh.soKenh,
+                "name" to kenh.tenKenh,
+                "logo" to kenh.logo,
+                "url" to kenh.streamUrl,
+                "group" to kenh.nhom,
+                "clearKey" to kenh.clearKey,
+                "date" to kenh.date,
+                "userAgent" to kenh.userAgent,
+                "referer" to kenh.referer,
+                "proxyUrl" to kenh.proxyUrl,
+                "hasClearKey" to kenh.clearKey.isNotBlank()
+            )
+        }
+
+        targetRef.child("iptv_channels")
+            .setValue(mapChannels)
+            .addOnFailureListener { err ->
+                Log.e("KARA_IPTV", "Lỗi đẩy iptv_channels lên Firebase: ${err.message}")
+            }
+    }
+
+    /**
+     * Lắng nghe lệnh điều khiển IPTV từ Remote ngay tại Activity chung mã phòng.
+     */
+    private fun bindIptvRemoteListener() {
+        val targetRef = roomRef ?: database.getReference("rooms/$currentRoomId")
+        iptvCommandEventListener?.let {
+            try {
+                targetRef.child("iptv_command").removeEventListener(it)
+            } catch (_: Exception) {}
+        }
+
+        lastIptvCommandTimestamp = 0L
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if (isExitingApp || !snapshot.exists()) return
+
+                val timestamp = snapshot.child("timestamp").getValue(Long::class.java) ?: 0L
+                if (timestamp <= lastIptvCommandTimestamp) return
+                lastIptvCommandTimestamp = timestamp
+
+                val action = snapshot.child("action").getValue(String::class.java).orEmpty().ifBlank { "play" }
+                val indexRemote = snapshot.child("index").getValue(Int::class.java) ?: -1
+                val numberRemote = snapshot.child("number").getValue(Int::class.java) ?: -1
+
+                when (action) {
+                    "channel_up" -> {
+                        iptvmanager.phatKenhTruocDo(
+                            exoPlayer = exoPlayer,
+                            onBatDauPhat = { kenh -> prepareHostForIptvPlayback(kenh) },
+                            onLoi = { errMsg -> showToast("⚠️ $errMsg") }
+                        )
+                    }
+                    "channel_down" -> {
+                        iptvmanager.phatKenhKeTiep(
+                            exoPlayer = exoPlayer,
+                            onBatDauPhat = { kenh -> prepareHostForIptvPlayback(kenh) },
+                            onLoi = { errMsg -> showToast("⚠️ $errMsg") }
+                        )
+                    }
+                    else -> {
+                        val kenhTimThay = iptvmanager.timKenhTheoViTriHoacSo(indexRemote, numberRemote)
+                        if (kenhTimThay != null) {
+                            playIptvChannelImmediately(kenhTimThay)
+                        } else {
+                            val urlFallback = snapshot.child("url").getValue(String::class.java).orEmpty()
+                            if (urlFallback.isNotBlank()) {
+                                val kenhTam = iptvmanager.KenhIptv(
+                                    index = if (indexRemote >= 0) indexRemote else 0,
+                                    soKenh = if (numberRemote >= 1) numberRemote else 1,
+                                    tenKenh = snapshot.child("name").getValue(String::class.java).orEmpty().ifBlank { "Kênh IPTV" },
+                                    streamUrl = urlFallback,
+                                    nhom = snapshot.child("group").getValue(String::class.java).orEmpty().ifBlank { "Truyền hình" },
+                                    logo = snapshot.child("logo").getValue(String::class.java).orEmpty(),
+                                    clearKey = snapshot.child("clearKey").getValue(String::class.java).orEmpty(),
+                                    date = snapshot.child("date").getValue(String::class.java).orEmpty(),
+                                    userAgent = snapshot.child("userAgent").getValue(String::class.java).orEmpty(),
+                                    referer = snapshot.child("referer").getValue(String::class.java).orEmpty(),
+                                    proxyUrl = snapshot.child("proxyUrl").getValue(String::class.java).orEmpty()
+                                )
+                                playIptvChannelImmediately(kenhTam)
+                            }
+                        }
+                    }
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("KARA_IPTV", "Lỗi lắng nghe iptv_command: ${error.message}")
+            }
+        }
+
+        iptvCommandEventListener = listener
+        targetRef.child("iptv_command").addValueEventListener(listener)
+    }
+
+    /**
+     * Tải ảnh logo kênh bất đồng bộ (có cache theo URL) để hiển thị trên ô kênh IPTV.
+     */
+    private fun bindChannelLogo(imageView: ImageView, rawLogoUrl: String) {
+        val cleanUrl = rawLogoUrl.trim()
+        if (cleanUrl.isBlank()) {
+            imageView.visibility = View.GONE
+            imageView.setImageDrawable(null)
+            return
+        }
+
+        val cached = logoBitmapCache[cleanUrl]
+        if (cached != null && !cached.isRecycled) {
+            imageView.setImageBitmap(cached)
+            imageView.visibility = View.VISIBLE
+            return
+        }
+
+        imageView.visibility = View.GONE
+        imageView.tag = cleanUrl
+
+        Thread {
+            if (isExitingApp) return@Thread
+            try {
+                val safeUrl = if (cleanUrl.startsWith("http://")) {
+                    cleanUrl.replaceFirst("http://", "https://")
+                } else {
+                    cleanUrl
+                }
+                val conn = (URL(safeUrl).openConnection() as HttpURLConnection).apply {
+                    connectTimeout = 8000
+                    readTimeout = 8000
+                    instanceFollowRedirects = true
+                    setRequestProperty("User-Agent", "Mozilla/5.0")
+                }
+                val bmp = conn.inputStream.use { input -> BitmapFactory.decodeStream(input) }
+                conn.disconnect()
+
+                if (bmp != null && !isExitingApp) {
+                    logoBitmapCache[cleanUrl] = bmp
+                    runOnUiThread {
+                        if (!isExitingApp && imageView.tag == cleanUrl) {
+                            imageView.setImageBitmap(bmp)
+                            imageView.visibility = View.VISIBLE
+                        }
+                    }
+                }
+            } catch (_: Exception) {
+            }
+        }.start()
+    }
+
+    /**
+     * Phát trực tiếp một kênh IPTV lên ExoPlayer của giao diện karaoke.
+     */
+    private fun playIptvChannelImmediately(kenh: iptvmanager.KenhIptv) {
+        if (isExitingApp) return
+        prepareHostForIptvPlayback(kenh)
+
+        iptvmanager.phatKenhTrucTiep(
+            kenh = kenh,
+            exoPlayer = exoPlayer,
+            onBatDauPhat = { started ->
+                runOnUiThread {
+                    showToast("📺 Đang phát ${started.tenKenh}")
+                }
+            },
+            onLoi = { errMsg ->
+                runOnUiThread {
+                    showToast("⚠️ $errMsg")
+                }
+            }
+        )
+    }
+
+    /**
+     * Gom nhóm danh sách kênh theo từng dòng ngang từ trên xuống dưới
+     * (ví dụ hàng VTV1, VTV2, VTV3...; hàng SCTV...; hàng VTVCab...; hàng HBO...).
+     */
+    private fun groupChannelsIntoHorizontalRows(channels: List<iptvmanager.KenhIptv>): List<Pair<String, List<iptvmanager.KenhIptv>>> {
+        val groups = LinkedHashMap<String, MutableList<iptvmanager.KenhIptv>>()
+
+        for (channel in channels) {
+            val rawName = channel.tenKenh.trim().uppercase(Locale.US)
+            val rawGroup = channel.nhom.trim()
+            val rowKey = when {
+                rawName.startsWith("VTV") && !rawName.startsWith("VTVCAB") -> "VTV"
+                rawName.startsWith("VTVCAB") || rawName.startsWith("VTV CAB") -> "VTVcab"
+                rawName.startsWith("SCTV") -> "SCTV"
+                rawName.startsWith("HTV") -> "HTV"
+                rawName.startsWith("THVL") -> "THVL"
+                rawName.startsWith("HBO") -> "HBO"
+                rawGroup.isNotBlank() && !rawGroup.equals("Truyền hình", ignoreCase = true) -> rawGroup
+                else -> rawName.split(" ", "-", "_", ":").firstOrNull()?.takeIf { it.isNotBlank() } ?: "Khác"
+            }
+            groups.getOrPut(rowKey) { mutableListOf() }.add(channel)
+        }
+
+        return groups.map { it.key to it.value }
+    }
+
+    /**
+     * Mở cửa sổ 2 tab:
+     * - Tab 1: Nhạc offline (xếp lưới ngang tự xuống dòng, bấm phát ngay).
+     * - Tab 2: Truyền hình (nhập link + nút Kết nối, xếp từng hàng ngang từ trên xuống dưới, bấm phát ngay).
+     */
+    private fun openTvAndOfflineDialog() {
+        if (isExitingApp || isFinishing || isDestroyed) return
+        try {
+            tvAndOfflineDialog?.dismiss()
+        } catch (_: Exception) {}
+
+        val dialog = Dialog(this).apply {
+            requestWindowFeature(Window.FEATURE_NO_TITLE)
+            setCancelable(true)
+            setCanceledOnTouchOutside(true)
+        }
+
+        val rootLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(12.dp(), 12.dp(), 12.dp(), 12.dp())
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 12.dp().toFloat()
+                setColor(Color.parseColor("#F2121622"))
+                setStroke(1.dp(), Color.parseColor("#33FFFFFF"))
+            }
+        }
+
+        val tabBar = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, 0, 0, 10.dp())
+        }
+
+        val btnTabOffline = TextView(this).apply {
+            text = "🎵 Nhạc offline"
+            textSize = 13f
+            setTypeface(null, Typeface.BOLD)
+            gravity = Gravity.CENTER
+            setPadding(12.dp(), 7.dp(), 12.dp(), 7.dp())
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { rightMargin = 8.dp() }
+        }
+
+        val btnTabIptv = TextView(this).apply {
+            text = "📺 Truyền hình"
+            textSize = 13f
+            setTypeface(null, Typeface.BOLD)
+            gravity = Gravity.CENTER
+            setPadding(12.dp(), 7.dp(), 12.dp(), 7.dp())
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        }
+
+        val spacerView = View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(0, 1, 1f)
+        }
+
+        val btnClose = TextView(this).apply {
+            text = "✕"
+            setTextColor(Color.WHITE)
+            textSize = 13f
+            setTypeface(null, Typeface.BOLD)
+            gravity = Gravity.CENTER
+            setPadding(10.dp(), 5.dp(), 10.dp(), 5.dp())
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 6.dp().toFloat()
+                setColor(Color.parseColor("#33FFFFFF"))
+            }
+            setOnClickListener { dialog.dismiss() }
+        }
+
+        tabBar.addView(btnTabOffline)
+        tabBar.addView(btnTabIptv)
+        tabBar.addView(spacerView)
+        tabBar.addView(btnClose)
+        rootLayout.addView(tabBar)
+
+        val contentHost = FrameLayout(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                340.dp()
+            )
+        }
+
+        // --- TAB 1: NHẠC OFFLINE ---
+        val offlineTabContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
+        }
+
+        val offlineHeaderRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, 0, 0, 8.dp())
+        }
+
+        val tvOfflineCount = TextView(this).apply {
+            text = "Danh sách nhạc offline (${offlinePlaylist.size} bài)"
+            setTextColor(Color.parseColor("#00FFCC"))
+            textSize = 12.5f
+            setTypeface(null, Typeface.BOLD)
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+
+        val btnAddOfflineInDialog = TextView(this).apply {
+            text = "+ Thêm nhạc"
+            setTextColor(Color.BLACK)
+            textSize = 12f
+            setTypeface(null, Typeface.BOLD)
+            setPadding(10.dp(), 5.dp(), 10.dp(), 5.dp())
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 6.dp().toFloat()
+                setColor(Color.parseColor("#FFDD00"))
+            }
+            setOnClickListener {
+                openOfflineFolderViaPicker()
+            }
+        }
+
+        offlineHeaderRow.addView(tvOfflineCount)
+        offlineHeaderRow.addView(btnAddOfflineInDialog)
+        offlineTabContainer.addView(offlineHeaderRow)
+
+        val offlineScroll = ScrollView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                0,
+                1f
+            )
+        }
+        val offlineGridContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        }
+        offlineScroll.addView(offlineGridContainer)
+        offlineTabContainer.addView(offlineScroll)
+
+        fun renderOfflineTabGrid() {
+            offlineGridContainer.removeAllViews()
+            tvOfflineCount.text = "Danh sách nhạc offline (${offlinePlaylist.size} bài)"
+
+            if (offlinePlaylist.isEmpty()) {
+                val emptyTv = TextView(this).apply {
+                    text = "Chưa có bài nhạc offline nào. Nhấn \"+ Thêm nhạc\" để chọn từ máy/thư mục."
+                    setTextColor(Color.parseColor("#B0BEC5"))
+                    textSize = 12.5f
+                    setPadding(4.dp(), 12.dp(), 4.dp(), 12.dp())
+                }
+                offlineGridContainer.addView(emptyTv)
+                return
+            }
+
+            val cardWidthPx = 88.dp()
+            val cardMarginPx = 6.dp()
+            val availableWidthPx = (resources.displayMetrics.widthPixels * 0.72f).toInt() - 48.dp()
+            val columns = (availableWidthPx / (cardWidthPx + cardMarginPx)).coerceAtLeast(3)
+
+            var currentRow: LinearLayout? = null
+            offlinePlaylist.forEachIndexed { idx, song ->
+                if (idx % columns == 0) {
+                    currentRow = LinearLayout(this).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        gravity = Gravity.START
+                        layoutParams = LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.MATCH_PARENT,
+                            LinearLayout.LayoutParams.WRAP_CONTENT
+                        ).apply { bottomMargin = 8.dp() }
+                    }
+                    offlineGridContainer.addView(currentRow)
+                }
+
+                val songName = (song["title"] ?: song["name"] ?: "Bài ${idx + 1}").toString()
+                val songUrl = (song["url"] ?: "").toString()
+                val lKey = (song["localKey"] ?: "").toString()
+                val iconSymbol = if (isVideoMedia(song, songUrl, songName, lKey)) "🎬" else "🎵"
+
+                val itemCard = LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    gravity = Gravity.CENTER
+                    setPadding(6.dp(), 6.dp(), 6.dp(), 6.dp())
+                    layoutParams = LinearLayout.LayoutParams(cardWidthPx, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                        rightMargin = cardMarginPx
+                    }
+                    background = GradientDrawable().apply {
+                        shape = GradientDrawable.RECTANGLE
+                        cornerRadius = 8.dp().toFloat()
+                        setColor(Color.parseColor("#26FFFFFF"))
+                        setStroke(1, Color.parseColor("#44FFFFFF"))
+                    }
+                    setOnClickListener {
+                        playOfflineSongImmediately(song)
+                        dialog.dismiss()
+                    }
+                }
+
+                val tvNumIcon = TextView(this).apply {
+                    text = "$iconSymbol Bài ${idx + 1}"
+                    setTextColor(Color.parseColor("#FFDD00"))
+                    textSize = 10.5f
+                    setTypeface(null, Typeface.BOLD)
+                    maxLines = 1
+                }
+
+                val tvName = MarqueeTextView(this).apply {
+                    text = songName
+                    setTextColor(Color.WHITE)
+                    textSize = 11f
+                    gravity = Gravity.CENTER
+                    setPadding(0, 3.dp(), 0, 0)
+                }
+
+                itemCard.addView(tvNumIcon)
+                itemCard.addView(tvName)
+                currentRow?.addView(itemCard)
+            }
+        }
+
+        refreshOfflineTabCallback = { renderOfflineTabGrid() }
+        renderOfflineTabGrid()
+
+        // --- TAB 2: TRUYỀN HÌNH (IPTV) ---
+        val iptvTabContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            visibility = View.GONE
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
+        }
+
+        val inputRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, 0, 0, 8.dp())
+        }
+
+        val etPlaylistLink = EditText(this).apply {
+            hint = "Nhập link danh sách IPTV (.m3u / .m3u8)..."
+            setText(savedIptvPlaylistUrl)
+            setTextColor(Color.WHITE)
+            setHintTextColor(Color.parseColor("#88FFFFFF"))
+            textSize = 12.5f
+            isSingleLine = true
+            setPadding(10.dp(), 7.dp(), 10.dp(), 7.dp())
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                rightMargin = 8.dp()
+            }
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 6.dp().toFloat()
+                setColor(Color.parseColor("#1AFFFFFF"))
+                setStroke(1, Color.parseColor("#44FFFFFF"))
+            }
+        }
+
+        val btnConnectIptv = TextView(this).apply {
+            text = "Kết nối"
+            setTextColor(Color.BLACK)
+            textSize = 12.5f
+            setTypeface(null, Typeface.BOLD)
+            gravity = Gravity.CENTER
+            setPadding(14.dp(), 8.dp(), 14.dp(), 8.dp())
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 6.dp().toFloat()
+                setColor(Color.parseColor("#00E699"))
+            }
+        }
+
+        inputRow.addView(etPlaylistLink)
+        inputRow.addView(btnConnectIptv)
+        iptvTabContainer.addView(inputRow)
+
+        val tvIptvStatus = TextView(this).apply {
+            text = if (cachedIptvChannels.isNotEmpty()) {
+                "Đã tải ${cachedIptvChannels.size} kênh — bấm vào kênh để phát ngay"
+            } else {
+                "Nhập link IPTV rồi bấm Kết nối để tải danh sách kênh"
+            }
+            setTextColor(Color.parseColor("#B0BEC5"))
+            textSize = 11.5f
+            setPadding(0, 0, 0, 6.dp())
+        }
+        iptvTabContainer.addView(tvIptvStatus)
+
+        val iptvScroll = ScrollView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                0,
+                1f
+            )
+        }
+        val iptvRowsContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        }
+        iptvScroll.addView(iptvRowsContainer)
+        iptvTabContainer.addView(iptvScroll)
+
+        fun renderIptvChannelRows(channels: List<iptvmanager.KenhIptv>) {
+            iptvRowsContainer.removeAllViews()
+            if (channels.isEmpty()) return
+
+            val groupedRows = groupChannelsIntoHorizontalRows(channels)
+            for ((groupTitle, groupItems) in groupedRows) {
+                val groupBlock = LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply { bottomMargin = 8.dp() }
+                }
+
+                val tvGroupLabel = TextView(this).apply {
+                    text = "▸ $groupTitle (${groupItems.size})"
+                    setTextColor(Color.parseColor("#FFDD00"))
+                    textSize = 11.5f
+                    setTypeface(null, Typeface.BOLD)
+                    setPadding(0, 0, 0, 4.dp())
+                }
+                groupBlock.addView(tvGroupLabel)
+
+                val chWidthPx = 96.dp()
+                val chMarginPx = 6.dp()
+                val availableWidthPx = (resources.displayMetrics.widthPixels * 0.72f).toInt() - 48.dp()
+                val cols = (availableWidthPx / (chWidthPx + chMarginPx)).coerceAtLeast(3)
+
+                var rowView: LinearLayout? = null
+                groupItems.forEachIndexed { i, kenh ->
+                    if (i % cols == 0) {
+                        rowView = LinearLayout(this).apply {
+                            orientation = LinearLayout.HORIZONTAL
+                            gravity = Gravity.START
+                            layoutParams = LinearLayout.LayoutParams(
+                                LinearLayout.LayoutParams.MATCH_PARENT,
+                                LinearLayout.LayoutParams.WRAP_CONTENT
+                            ).apply { bottomMargin = 6.dp() }
+                        }
+                        groupBlock.addView(rowView)
+                    }
+
+                    val channelBtn = LinearLayout(this).apply {
+                        orientation = LinearLayout.VERTICAL
+                        gravity = Gravity.CENTER_VERTICAL
+                        setPadding(7.dp(), 6.dp(), 7.dp(), 6.dp())
+                        layoutParams = LinearLayout.LayoutParams(chWidthPx, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                            rightMargin = chMarginPx
+                        }
+                        background = GradientDrawable().apply {
+                            shape = GradientDrawable.RECTANGLE
+                            cornerRadius = 7.dp().toFloat()
+                            setColor(Color.parseColor("#24FFFFFF"))
+                            setStroke(1, Color.parseColor("#40FFFFFF"))
+                        }
+                        setOnClickListener {
+                            playIptvChannelImmediately(kenh)
+                            dialog.dismiss()
+                        }
+                    }
+
+                    val headerTopRow = LinearLayout(this).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        gravity = Gravity.CENTER_VERTICAL
+                    }
+
+                    val ivLogo = ImageView(this).apply {
+                        scaleType = ImageView.ScaleType.FIT_CENTER
+                        visibility = View.GONE
+                        layoutParams = LinearLayout.LayoutParams(18.dp(), 14.dp()).apply {
+                            rightMargin = 4.dp()
+                        }
+                    }
+
+                    val tvChannelNum = TextView(this).apply {
+                        text = "#${kenh.soKenh}"
+                        setTextColor(Color.parseColor("#00FFCC"))
+                        textSize = 10f
+                        setTypeface(null, Typeface.BOLD)
+                    }
+
+                    headerTopRow.addView(ivLogo)
+                    headerTopRow.addView(tvChannelNum)
+                    bindChannelLogo(ivLogo, kenh.logo)
+
+                    val tvChannelName = MarqueeTextView(this).apply {
+                        text = kenh.tenKenh
+                        setTextColor(Color.WHITE)
+                        textSize = 11.5f
+                        setTypeface(null, Typeface.BOLD)
+                        setPadding(0, 2.dp(), 0, 0)
+                    }
+
+                    channelBtn.addView(headerTopRow)
+                    channelBtn.addView(tvChannelName)
+                    rowView?.addView(channelBtn)
+                }
+
+                iptvRowsContainer.addView(groupBlock)
+            }
+        }
+
+        if (cachedIptvChannels.isNotEmpty()) {
+            renderIptvChannelRows(cachedIptvChannels)
+        }
+
+        btnConnectIptv.setOnClickListener {
+            val urlInput = etPlaylistLink.text?.toString()?.trim().orEmpty()
+            if (urlInput.isBlank()) {
+                showToast("⚠️ Vui lòng nhập link IPTV")
+                return@setOnClickListener
+            }
+            savedIptvPlaylistUrl = urlInput
+            tvIptvStatus.text = "⏳ Đang tải & giải mã danh sách IPTV..."
+            btnConnectIptv.isEnabled = false
+
+            bindIptvRemoteListener()
+            iptvmanager.taiDanhSachKenh(
+                playlistUrl = urlInput,
+                onThanhCong = { dsKenh ->
+                    btnConnectIptv.isEnabled = true
+                    cachedIptvChannels = dsKenh
+                    pushIptvChannelsToFirebase(dsKenh)
+                    tvIptvStatus.text = "✅ Đã tải ${dsKenh.size} kênh (đã đồng bộ Remote)"
+                    renderIptvChannelRows(dsKenh)
+                },
+                onLoi = { loi ->
+                    btnConnectIptv.isEnabled = true
+                    tvIptvStatus.text = "⚠️ $loi"
+                }
+            )
+        }
+
+        fun selectTab(isOfflineTab: Boolean) {
+            if (isOfflineTab) {
+                btnTabOffline.background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = 7.dp().toFloat()
+                    setColor(Color.parseColor("#00CC99"))
+                }
+                btnTabOffline.setTextColor(Color.BLACK)
+
+                btnTabIptv.background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = 7.dp().toFloat()
+                    setColor(Color.parseColor("#26FFFFFF"))
+                }
+                btnTabIptv.setTextColor(Color.WHITE)
+
+                offlineTabContainer.visibility = View.VISIBLE
+                iptvTabContainer.visibility = View.GONE
+                renderOfflineTabGrid()
+            } else {
+                btnTabIptv.background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = 7.dp().toFloat()
+                    setColor(Color.parseColor("#00CC99"))
+                }
+                btnTabIptv.setTextColor(Color.BLACK)
+
+                btnTabOffline.background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = 7.dp().toFloat()
+                    setColor(Color.parseColor("#26FFFFFF"))
+                }
+                btnTabOffline.setTextColor(Color.WHITE)
+
+                offlineTabContainer.visibility = View.GONE
+                iptvTabContainer.visibility = View.VISIBLE
+            }
+        }
+
+        btnTabOffline.setOnClickListener { selectTab(true) }
+        btnTabIptv.setOnClickListener { selectTab(false) }
+        selectTab(true)
+
+        contentHost.addView(offlineTabContainer)
+        contentHost.addView(iptvTabContainer)
+        rootLayout.addView(contentHost)
+
+        dialog.setContentView(rootLayout)
+        dialog.setOnDismissListener {
+            refreshOfflineTabCallback = null
+            if (tvAndOfflineDialog === dialog) {
+                tvAndOfflineDialog = null
+            }
+        }
+
+        dialog.show()
+        dialog.window?.apply {
+            setBackgroundDrawableResource(android.R.color.transparent)
+            val w = (resources.displayMetrics.widthPixels * 0.74f).toInt().coerceAtLeast(320.dp())
+            val h = (resources.displayMetrics.heightPixels * 0.80f).toInt().coerceAtLeast(280.dp())
+            setLayout(w, h)
+        }
+        tvAndOfflineDialog = dialog
+    }
+
+    /**
+     * Mở cửa sổ chọn nhạc/video offline từ file độc lập OfflineFolderPicker.kt.
+     */
+    private fun openOfflineFolderViaPicker() {
+        if (isExitingApp || isFinishing || isDestroyed) return
+        OfflineFolderPicker.showFullscreenPicker(
+            activity = this,
+            currentDialogRef = offlineFolderDialog,
+            onDialogCreated = { created -> offlineFolderDialog = created },
+            onOpenFileManager = {
+                OfflineFolderPicker.launchExternalFileManagerChooser(
+                    activity = this,
+                    launcher = externalFilePickerLauncher,
+                    onUnavailable = {
+                        showToast("⚠️ Thiết bị không có trình quản lý file hỗ trợ")
+                    }
+                )
+            },
+            onShowToast = { msg -> showToast(msg) },
+            onConfirmSelection = { pickedList ->
+                sendSelectedOfflineSongsToFirebase(pickedList)
+            }
+        )
+    }
+
+    private fun syncPlayerKeepScreenOn() {
+        runOnUiThread {
+            if (isExitingApp) {
+                playerView?.keepScreenOn = false
+                scArtworkView?.keepScreenOn = false
+                exoHostContainer?.keepScreenOn = false
+                play1080?.keepScreenOn = false
+                return@runOnUiThread
+            }
+
+            val activeMediaPlaying = isPlaying && (hasActiveSongPlaying || isOfflineActive || isSoundCloudSession)
+            val exoAwake = isOfflineActive && isPlaying
+            playerView?.keepScreenOn = exoAwake
+            scArtworkView?.keepScreenOn = exoAwake
+            exoHostContainer?.keepScreenOn = exoAwake
+
+            val ytAwake = !isOfflineActive && !isSoundCloudSession && activeMediaPlaying
+            play1080?.keepScreenOn = ytAwake
+        }
+    }
+
+    private fun formatTimeMs(ms: Long): String {
+        val totalSec = (ms.coerceAtLeast(0L)) / 1000L
+        val mins = totalSec / 60L
+        val secs = totalSec % 60L
+        return String.format(Locale.US, "%02d:%02d", mins, secs)
+    }
+
+    private fun updateCustomPlayPauseIcon(playingNow: Boolean) {
+        playPauseIconDrawable?.isPlayingState = playingNow
+        btnCustomPlayPause?.invalidate()
+    }
+
+    private fun updateCustomSeekAndTime() {
+        val player = exoPlayer ?: return
+        val duration = player.duration.takeIf { it > 0L } ?: 0L
+        val position = player.currentPosition.coerceAtLeast(0L).coerceAtMost(if (duration > 0L) duration else Long.MAX_VALUE)
+
+        if (!isUserSeeking && seekCustomProgress != null) {
+            val maxSeek = duration.coerceAtLeast(1L).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+            seekCustomProgress?.max = maxSeek
+            seekCustomProgress?.progress = position.coerceAtMost(maxSeek.toLong()).toInt()
+        }
+
+        tvCustomTime?.text = "${formatTimeMs(position)} / ${formatTimeMs(duration)}"
+        updateCustomPlayPauseIcon(player.isPlaying)
+    }
+
+    private fun startProgressTicker() {
+        mainHandler.removeCallbacks(progressTickRunnable)
+        mainHandler.post(progressTickRunnable)
+    }
+
+    private fun stopProgressTicker() {
+        mainHandler.removeCallbacks(progressTickRunnable)
+    }
+
+    private fun hideCustomControlBar() {
+        mainHandler.removeCallbacks(autoHideCustomBarRunnable)
+        isCustomBarVisible = false
+        customControlBar?.visibility = View.GONE
+    }
+
+    private fun showCustomControlBar() {
+        if (!isOfflineActive || isExitingApp) return
+        isCustomBarVisible = true
+        updateCustomSeekAndTime()
+        customControlBar?.visibility = View.VISIBLE
+        customControlBar?.bringToFront()
+        startProgressTicker()
+        mainHandler.removeCallbacks(autoHideCustomBarRunnable)
+        mainHandler.postDelayed(autoHideCustomBarRunnable, CONTROLLER_AUTO_HIDE_MS)
+    }
+
+    private fun toggleCustomControlBar() {
+        if (!isOfflineActive) return
+        if (isCustomBarVisible) {
+            hideCustomControlBar()
+        } else {
+            showCustomControlBar()
+        }
+    }
+
+    private fun isPrioritySong(song: SongData): Boolean {
+        val flagKeys = listOf("priority", "isPriority", "urgent", "isUrgent", "topQueue", "isTop")
+        for (k in flagKeys) {
+            val v = song[k]
+            if (v is Boolean && v) return true
+            if (v is Number && v.toInt() > 0) return true
+            if (v is String && (v.equals("true", true) || v.equals("priority", true) || v == "1")) return true
+        }
+        val mode = (song["mode"] ?: song["queueMode"] ?: song["action"] ?: song["typeSend"] ?: "")
+            .toString().lowercase(Locale.US)
+        if (mode == "priority" || mode == "prioritize" || mode == "top" || mode == "uu_tien") return true
+
+        val prioSeq = (song["prioritySeq"] as? Number)?.toLong() ?: 0L
+        return prioSeq > 0L
+    }
+
+    private fun extractLongValue(map: SongData, vararg keys: String): Long {
+        for (k in keys) {
+            val v = map[k]
+            if (v is Number) {
+                val l = v.toLong()
+                if (l != 0L) return l
+            }
+        }
+        return 0L
+    }
+
+    private fun sortQueueItems(items: MutableList<SongData>) {
+        items.sortWith { a, b ->
+            val pa = isPrioritySong(a)
+            val pb = isPrioritySong(b)
+            when {
+                pa && !pb -> -1
+                !pa && pb -> 1
+                pa && pb -> {
+                    val seqA = extractLongValue(a, "prioritySeq", "priorityTime", "clientTimestamp", "timestamp")
+                    val seqB = extractLongValue(b, "prioritySeq", "priorityTime", "clientTimestamp", "timestamp")
+                    seqB.compareTo(seqA)
+                }
+                else -> {
+                    val timeA = extractLongValue(a, "clientTimestamp", "timestamp")
+                    val timeB = extractLongValue(b, "clientTimestamp", "timestamp")
+                    timeA.compareTo(timeB)
+                }
+            }
+        }
+    }
+
+    private fun isVideoMedia(song: SongData, url: String, title: String, localKey: String): Boolean {
+        val explicitFlag = song["isVideo"]
+        if (explicitFlag is Boolean) return explicitFlag
+        if (explicitFlag is String && explicitFlag.isNotBlank()) {
+            return explicitFlag.equals("true", ignoreCase = true)
+        }
+        val mediaType = (song["mediaType"] ?: "").toString().lowercase(Locale.US)
+        if (mediaType == "video") return true
+        if (mediaType == "audio") return false
+
+        if (localKey.isNotEmpty() && localIsVideoMap.containsKey(localKey)) {
+            return localIsVideoMap[localKey] == true
+        }
+
+        val lowerUrl = url.lowercase(Locale.US)
+        if (lowerUrl.contains("/video/")) return true
+        if (lowerUrl.contains("/audio/")) return false
+
+        val lowerTitle = title.lowercase(Locale.US)
+        return VIDEO_EXTS.any { ext ->
+            lowerUrl.endsWith(".$ext") || lowerUrl.contains(".$ext?") || lowerTitle.endsWith(".$ext")
+        }
+    }
+
+    private fun hideArtworkView() {
+        isSoundCloudSession = false
+        runOnUiThread {
+            scArtworkView?.keepScreenOn = false
+            scArtworkView?.setImageBitmap(null)
+            scArtworkView?.alpha = 0f
+            scArtworkView?.visibility = View.GONE
+        }
+    }
+
+    private fun createAudioDefaultArtworkBitmap(songTitle: String): Bitmap {
+        val width = 1280
+        val height = 720
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+
+        val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            shader = LinearGradient(
+                0f, 0f, width.toFloat(), height.toFloat(),
+                intArrayOf(
+                    Color.parseColor("#0D1321"),
+                    Color.parseColor("#1D2D44"),
+                    Color.parseColor("#121826")
+                ),
+                null,
+                Shader.TileMode.CLAMP
+            )
+        }
+        canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), bgPaint)
+
+        val cleanTitle = songTitle.trim().ifEmpty { "Nhạc Audio" }
+        val titlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.parseColor("#00FFCC")
+            textSize = 42f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            textAlign = Paint.Align.CENTER
+        }
+
+        val maxTextWidth = width - 160f
+        val displayTitle = if (titlePaint.measureText(cleanTitle) > maxTextWidth) {
+            var s = cleanTitle
+            while (s.isNotEmpty() && titlePaint.measureText("$s...") > maxTextWidth) {
+                s = s.dropLast(1)
+            }
+            "$s..."
+        } else {
+            cleanTitle
+        }
+
+        val titleY = height * 0.36f
+        canvas.drawText(displayTitle, width / 2f, titleY, titlePaint)
+
+        val notePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.parseColor("#FFEB3B")
+            style = Paint.Style.FILL
+        }
+        val noteCenterX = width / 2f
+        val noteBaseY = height * 0.66f
+
+        canvas.drawOval(noteCenterX - 58f, noteBaseY - 18f, noteCenterX - 10f, noteBaseY + 24f, notePaint)
+        canvas.drawOval(noteCenterX + 18f, noteBaseY - 30f, noteCenterX + 66f, noteBaseY + 12f, notePaint)
+
+        val stemTopY = noteBaseY - 125f
+        canvas.drawRect(noteCenterX - 20f, stemTopY, noteCenterX - 10f, noteBaseY + 2f, notePaint)
+        canvas.drawRect(noteCenterX + 56f, stemTopY - 12f, noteCenterX + 66f, noteBaseY - 10f, notePaint)
+
+        val beamPath = Path().apply {
+            moveTo(noteCenterX - 20f, stemTopY)
+            lineTo(noteCenterX + 66f, stemTopY - 12f)
+            lineTo(noteCenterX + 66f, stemTopY + 10f)
+            lineTo(noteCenterX - 20f, stemTopY + 22f)
+            close()
+        }
+        canvas.drawPath(beamPath, notePaint)
+
+        return bitmap
+    }
+
+    private fun loadAudioCoverArt(thumbnailUrl: String, songTitle: String, isVideoStream: Boolean) {
+        if (isVideoStream || isExitingApp) {
+            hideArtworkView()
+            return
+        }
+
+        runOnUiThread {
+            if (isExitingApp) return@runOnUiThread
+            exoHostContainer?.visibility = View.VISIBLE
+            exoHostContainer?.setBackgroundColor(Color.BLACK)
+            playerView?.visibility = View.GONE
+            scArtworkView?.keepScreenOn = isPlaying
+        }
+
+        val cleanUrl = thumbnailUrl.trim()
+        if (cleanUrl.isBlank()) {
+            val fallbackBmp = createAudioDefaultArtworkBitmap(songTitle)
+            runOnUiThread {
+                if (isOfflineActive && !isExitingApp) {
+                    scArtworkView?.setImageBitmap(fallbackBmp)
+                    scArtworkView?.visibility = View.VISIBLE
+                    scArtworkView?.alpha = 1f
+                    scArtworkView?.keepScreenOn = isPlaying
+                    if (isCustomBarVisible) {
+                        customControlBar?.visibility = View.VISIBLE
+                        customControlBar?.bringToFront()
+                    }
+                }
+            }
+            return
+        }
+
+        Thread {
+            if (isExitingApp) return@Thread
+            var loadedBitmap: Bitmap? = null
+            try {
+                val safeUrl = if (cleanUrl.startsWith("http://")) {
+                    cleanUrl.replaceFirst("http://", "https://")
+                } else {
+                    cleanUrl
+                }
+                val conn = (URL(safeUrl).openConnection() as HttpURLConnection).apply {
+                    connectTimeout = 10000
+                    readTimeout = 10000
+                    instanceFollowRedirects = true
+                    setRequestProperty("User-Agent", "Mozilla/5.0")
+                }
+                conn.inputStream.use { input ->
+                    loadedBitmap = BitmapFactory.decodeStream(input)
+                }
+            } catch (e: Exception) {
+                Log.e("KARA_AUDIO_ART", "Lỗi tải ảnh bìa: ${e.message}")
+            }
+
+            if (isExitingApp) return@Thread
+            val finalBitmap = loadedBitmap ?: createAudioDefaultArtworkBitmap(songTitle)
+            runOnUiThread {
+                if (isOfflineActive && !isExitingApp) {
+                    scArtworkView?.setImageBitmap(finalBitmap)
+                    scArtworkView?.visibility = View.VISIBLE
+                    scArtworkView?.alpha = 1f
+                    scArtworkView?.keepScreenOn = isPlaying
+                    if (isCustomBarVisible) {
+                        customControlBar?.visibility = View.VISIBLE
+                        customControlBar?.bringToFront()
+                    }
+                }
+            }
+        }.start()
+    }
+
+    private fun stopExoCompletely(hideHost: Boolean, keepArtwork: Boolean = false) {
+        stopProgressTicker()
+        hideCustomControlBar()
+        currentOfflineUrl = null
+        playerView?.keepScreenOn = false
+        scArtworkView?.keepScreenOn = false
+        exoHostContainer?.keepScreenOn = false
+        exoPlayer?.let { player ->
+            try {
+                player.playWhenReady = false
+                player.pause()
+                player.stop()
+                player.clearMediaItems()
+            } catch (_: Exception) {}
+        }
+        playerView?.apply {
+            useController = false
+            visibility = View.GONE
+        }
+        if (!keepArtwork) {
+            hideArtworkView()
+        }
+        if (hideHost) {
+            exoHostContainer?.visibility = View.GONE
+        }
+        syncPlayerKeepScreenOn()
+    }
+
+    private fun pauseAndSilencePlay1080() {
+        play1080?.let { view ->
+            try { view.keepScreenOn = false } catch (_: Exception) {}
+            try { view.setPaused(true) } catch (_: Exception) {}
+            try { view.stopForOffline() } catch (_: Exception) {}
+        }
+    }
+
+    private fun releasePlay1080Completely() {
+        val view = play1080 ?: return
+        try {
+            view.keepScreenOn = false
+        } catch (_: Exception) {}
+        try {
+            view.setPaused(true)
+        } catch (_: Exception) {}
+        try {
+            view.stopForOffline()
+        } catch (_: Exception) {}
+        try {
+            view.visibility = View.GONE
+        } catch (_: Exception) {}
+
+        for (methodName in listOf("release", "destroy", "onDestroy", "stopPlayback")) {
+            try {
+                val method = view.javaClass.getMethod(methodName)
+                method.invoke(view)
+            } catch (_: NoSuchMethodException) {
+            } catch (_: Exception) {}
+        }
+        try {
+            (view.parent as? ViewGroup)?.removeView(view)
+        } catch (_: Exception) {}
+        play1080 = null
+    }
+
+    private fun initNewPipeIfNeeded() {
+        try {
+            if (NewPipe.getDownloader() == null) {
+                NewPipe.init(SimpleHttpDownloader())
+            }
+        } catch (e: Exception) {
+            Log.e("KARA_SC", "Lỗi khởi tạo NewPipeExtractor: ${e.message}")
+        }
+    }
+
+    private fun pickBestSoundCloudStream(audioStreams: List<AudioStream>): AudioStream? {
+        val valid = audioStreams.filter { !it.content.isNullOrBlank() }
+        if (valid.isEmpty()) return null
+        return valid.maxWithOrNull(
+            compareBy<AudioStream> { it.averageBitrate }
+                .thenBy { stream ->
+                    val fmt = (stream.format?.name ?: stream.getFormat()?.name ?: "").lowercase(Locale.US)
+                    when {
+                        fmt.contains("opus") -> 3
+                        fmt.contains("m4a") || fmt.contains("aac") || fmt.contains("mp4") -> 2
+                        fmt.contains("mp3") -> 1
+                        else -> 0
+                    }
+                }
+        )
+    }
+
+    private fun playSoundCloud(soundCloudPageUrl: String, title: String = "", thumbnailUrl: String = "") {
+        if (isExitingApp) return
+        initNewPipeIfNeeded()
+
+        runOnUiThread {
+            if (isExitingApp) return@runOnUiThread
+            stopExoCompletely(hideHost = false, keepArtwork = true)
+            pauseAndSilencePlay1080()
+            hasActiveSongPlaying = true
+            isOfflineActive = true
+            isSoundCloudSession = true
+            isPlaying = true
+            setWelcomeBlinking(false)
+            if (title.isNotEmpty()) {
+                activeDisplayTitle = "☁️ $title"
+                tvStatus.text = activeDisplayTitle
+                tvStatus.isSelected = true
+            }
+            exoHostContainer?.visibility = View.VISIBLE
+            exoHostContainer?.setBackgroundColor(Color.BLACK)
+            loadAudioCoverArt(thumbnailUrl, title, isVideoStream = false)
+            syncPlayerKeepScreenOn()
+            showCustomControlBar()
+        }
+        showToast("☁️ Đang bóc tách SoundCloud...")
+
+        Thread {
+            if (isExitingApp) return@Thread
+            try {
+                val extractor = ServiceList.SoundCloud.getStreamExtractor(soundCloudPageUrl)
+                extractor.fetchPage()
+
+                val resolvedThumb = if (thumbnailUrl.isNotBlank()) {
+                    thumbnailUrl
+                } else {
+                    extractor.thumbnails.maxByOrNull { it.height * it.width }?.url.orEmpty()
+                }
+
+                val bestStream = pickBestSoundCloudStream(extractor.audioStreams)
+                val streamUrl = bestStream?.content
+                if (streamUrl.isNullOrBlank()) {
+                    runOnUiThread {
+                        if (!isExitingApp) showToast("⚠️ Không lấy được luồng nhạc SoundCloud")
+                    }
+                    return@Thread
+                }
+
+                runOnUiThread {
+                    if (!isSoundCloudSession || isExitingApp) return@runOnUiThread
+                    lastDispatchedVideoId = null
+                    playMediaExo(
+                        url = streamUrl,
+                        title = title,
+                        thumbnailUrl = resolvedThumb,
+                        isVideoStream = false
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e("KARA_SC", "Lỗi bóc tách SoundCloud ($soundCloudPageUrl): ${e.message}")
+                runOnUiThread {
+                    if (!isExitingApp) {
+                        showToast("⚠️ Lỗi bóc tách SoundCloud: ${e.message ?: "Không xác định"}")
+                    }
+                }
+            }
+        }.start()
+    }
+
+    private fun setWelcomeBlinking(enabled: Boolean) {
+        shouldBlinkWelcome = enabled
+        blinkHandler.removeCallbacks(blinkRunnable)
+        if (enabled && !isFullScreenOnly && !isExitingApp) {
+            blinkStateVisible = true
+            tvWelcomeBlink.visibility = View.VISIBLE
+            tvWelcomeBlink.alpha = 1f
+            blinkHandler.postDelayed(blinkRunnable, BLINK_INTERVAL_MS)
+        } else {
+            tvWelcomeBlink.visibility = View.GONE
+            tvWelcomeBlink.alpha = 0f
+        }
+    }
+
+    private fun updateOfflineKeepScreenOn(keepOn: Boolean) {
+        val activeAwake = isOfflineActive && keepOn && !isExitingApp
+        playerView?.keepScreenOn = activeAwake
+        scArtworkView?.keepScreenOn = activeAwake
+        exoHostContainer?.keepScreenOn = activeAwake
+        syncPlayerKeepScreenOn()
+    }
+
+    private fun clearOfflinePlayerState(hideView: Boolean) {
+        stopExoCompletely(hideHost = hideView, keepArtwork = false)
+    }
+
+    private fun applyFullScreenOnly(fullscreen: Boolean) {
+        isFullScreenOnly = fullscreen
+        play1080?.setFullscreenState(fullscreen)
+        fullscreenIconDrawable?.isExpanded = fullscreen
+        btnExoFullscreen?.invalidate()
+        val overlayVisibility = if (fullscreen) View.GONE else View.VISIBLE
+        topLeftContainer.visibility = overlayVisibility
+        uiContainer.visibility = overlayVisibility
+        setWelcomeBlinking(shouldBlinkWelcome && !fullscreen)
+    }
+
+    private fun sendSelectedOfflineSongsToFirebase(selectedItems: List<ScannedLocalMedia>) {
+        if (selectedItems.isEmpty()) {
+            showToast("⚠️ Bạn chưa chọn bài nào")
+            return
+        }
+
+        val baseTime = System.currentTimeMillis()
+        val localSongsUpdates = HashMap<String, Any>()
+        val nextOfflineList = ArrayList<SongData>()
+
+        selectedItems.forEachIndexed { idx, media ->
+            val localKey = "song_${baseTime}_${idx}_${(1000..9999).random()}"
+            val localEntry = mapOf<String, Any>(
+                "localKey" to localKey,
+                "title" to media.title,
+                "name" to media.title,
+                "url" to media.url,
+                "isVideo" to media.isVideo,
+                "mediaType" to if (media.isVideo) "video" else "audio"
+            )
+            localSongsMap[localKey] = media.url
+            localIsVideoMap[localKey] = media.isVideo
+            localSongsUpdates[localKey] = localEntry
+            nextOfflineList.add(localEntry)
+        }
+
+        if (localSongsUpdates.isNotEmpty()) {
+            roomRef?.child("localSongs")?.updateChildren(localSongsUpdates)
+        }
+
+        offlinePlaylist.clear()
+        offlinePlaylist.addAll(nextOfflineList)
+        refreshOfflineTabCallback?.invoke()
+
+        showToast("✅ Đã gửi ${selectedItems.size} bài xuống danh sách offline cho remote!")
+    }
+
+    private fun exitApplicationCompletely() {
+        if (isExitingApp) return
+        isExitingApp = true
+
+        try {
+            offlineFolderDialog?.dismiss()
+        } catch (_: Exception) {}
+        offlineFolderDialog = null
+
+        try {
+            tvAndOfflineDialog?.dismiss()
+        } catch (_: Exception) {}
+        tvAndOfflineDialog = null
+
+        stopProgressTicker()
+        mainHandler.removeCallbacksAndMessages(null)
+        blinkHandler.removeCallbacksAndMessages(null)
+        shouldBlinkWelcome = false
+
+        try {
+            roomValueEventListener?.let { roomRef?.child("playlist")?.removeEventListener(it) }
+            commandEventListener?.let { roomRef?.child("command")?.removeEventListener(it) }
+            localSongsEventListener?.let { roomRef?.child("localSongs")?.removeEventListener(it) }
+            iptvCommandEventListener?.let { roomRef?.child("iptv_command")?.removeEventListener(it) }
+        } catch (_: Exception) {}
+        roomValueEventListener = null
+        commandEventListener = null
+        localSongsEventListener = null
+        iptvCommandEventListener = null
+
+        hasActiveSongPlaying = false
+        isOfflineActive = false
+        isSoundCloudSession = false
+        isPlaying = false
+
+        stopExoCompletely(hideHost = true, keepArtwork = false)
+        releasePlay1080Completely()
+
+        exoPlayer?.let { player ->
+            try {
+                player.release()
+            } catch (_: Exception) {}
+        }
+        exoPlayer = null
+        playerView?.player = null
+
+        try {
+            finishAndRemoveTask()
+        } catch (_: Exception) {
+            try {
+                finishAffinity()
+            } catch (_: Exception) {
+                finish()
+            }
+        }
+
+        Process.killProcess(Process.myPid())
+        System.exit(0)
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+
+        com.google.firebase.FirebaseApp.initializeApp(this)
+        database = FirebaseDatabase.getInstance("https://karaoke-home-default-rtdb.asia-southeast1.firebasedatabase.app")
+
+        initNewPipeIfNeeded()
+
+        val trackSelector = DefaultTrackSelector(this).apply {
+            parameters = buildUponParameters()
+                .setTunnelingEnabled(false)
+                .build()
+        }
+
+        val renderersFactory = DefaultRenderersFactory(this).apply {
+            setEnableDecoderFallback(true)
+        }
+
+        val loadControl = DefaultLoadControl.Builder()
+            .setBufferDurationsMs(5000, 15000, 800, 1500)
+            .build()
+
+        val musicAudioAttributes = AudioAttributes.Builder()
+            .setUsage(C.USAGE_MEDIA)
+            .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+            .build()
+
+        exoPlayer = ExoPlayer.Builder(this, renderersFactory)
+            .setTrackSelector(trackSelector)
+            .setLoadControl(loadControl)
+            .setHandleAudioBecomingNoisy(true)
+            .build().apply {
+                setAudioAttributes(musicAudioAttributes, /* handleAudioFocus = */ true)
+                volume = CLEAN_LINEAR_AUDIO_VOLUME
+                addListener(object : Player.Listener {
+                    override fun onIsPlayingChanged(playing: Boolean) {
+                        if (isOfflineActive && !isExitingApp) {
+                            this@KarahanaTestActivity.isPlaying = playing
+                            updateOfflineKeepScreenOn(playing)
+                            updateCustomPlayPauseIcon(playing)
+                        }
+                    }
+
+                    override fun onPlaybackStateChanged(playbackState: Int) {
+                        if (isOfflineActive && !isExitingApp) {
+                            updateCustomSeekAndTime()
+                            syncPlayerKeepScreenOn()
+                        }
+                        if (playbackState == Player.STATE_ENDED && !isExitingApp) {
+                            stopProgressTicker()
+                            hideCustomControlBar()
+                            updateOfflineKeepScreenOn(false)
+                            removeCurrentSongSilently()
+                        }
+                    }
+
+                    override fun onPlayerError(error: PlaybackException) {
+                        Log.e("KARA_MEDIA", "Lỗi phát ExoPlayer (${error.errorCodeName}): ${error.message}")
+                        if (isOfflineActive) {
+                            updateOfflineKeepScreenOn(false)
+                        }
+                    }
+                })
+            }
+
+        currentRoomId = getOrCreateRoomId()
+
+        val frameContainer = FrameLayout(this).apply {
+            setBackgroundColor(Color.BLACK)
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
+        }
+
+        exoHostContainer = FrameLayout(this).apply {
+            setBackgroundColor(Color.BLACK)
+            visibility = View.GONE
+            keepScreenOn = false
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
+        }
+
+        playerView = PlayerView(this).apply {
+            player = exoPlayer
+            useController = false
+            keepScreenOn = false
+            visibility = View.GONE
+            setBackgroundColor(Color.TRANSPARENT)
+            setShutterBackgroundColor(Color.TRANSPARENT)
+            resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
+            setOnClickListener {
+                if (isOfflineActive) {
+                    toggleCustomControlBar()
+                }
+            }
+        }
+        exoHostContainer?.addView(playerView)
+
+        scArtworkView = ImageView(this).apply {
+            setBackgroundColor(Color.BLACK)
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            keepScreenOn = false
+            visibility = View.GONE
+            alpha = 1f
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
+            setOnClickListener {
+                if (isOfflineActive) {
+                    toggleCustomControlBar()
+                }
+            }
+        }
+        exoHostContainer?.addView(scArtworkView)
+
+        val density = resources.displayMetrics.density
+
+        customControlBar = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            visibility = View.GONE
+            setPadding(10.dp(), 5.dp(), 10.dp(), 5.dp())
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 10.dp().toFloat()
+                setColor(Color.parseColor("#B8141414"))
+            }
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                gravity = Gravity.BOTTOM
+                leftMargin = 16.dp()
+                rightMargin = 16.dp()
+                bottomMargin = 10.dp()
+            }
+        }
+
+        playPauseIconDrawable = PlayPauseIconDrawable(density).apply {
+            isPlayingState = true
+        }
+        btnCustomPlayPause = ImageView(this).apply {
+            setImageDrawable(playPauseIconDrawable)
+            scaleType = ImageView.ScaleType.CENTER_INSIDE
+            setPadding(5.dp(), 5.dp(), 5.dp(), 5.dp())
+            layoutParams = LinearLayout.LayoutParams(30.dp(), 30.dp())
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 6.dp().toFloat()
+                setColor(Color.parseColor("#00B88A"))
+            }
+            setOnClickListener {
+                togglePlayPause()
+                showCustomControlBar()
+            }
+        }
+        customControlBar?.addView(btnCustomPlayPause)
+
+        seekCustomProgress = SeekBar(this).apply {
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                leftMargin = 10.dp()
+                rightMargin = 10.dp()
+            }
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                    if (fromUser) {
+                        val duration = exoPlayer?.duration?.takeIf { it > 0L } ?: 0L
+                        tvCustomTime?.text = "${formatTimeMs(progress.toLong())} / ${formatTimeMs(duration)}"
+                    }
+                }
+
+                override fun onStartTrackingTouch(seekBar: SeekBar?) {
+                    isUserSeeking = true
+                    mainHandler.removeCallbacks(autoHideCustomBarRunnable)
+                }
+
+                override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                    isUserSeeking = false
+                    val targetPos = (seekBar?.progress ?: 0).toLong()
+                    exoPlayer?.seekTo(targetPos)
+                    showCustomControlBar()
+                }
+            })
+        }
+        customControlBar?.addView(seekCustomProgress)
+
+        tvCustomTime = TextView(this).apply {
+            text = "00:00 / 00:00"
+            setTextColor(Color.WHITE)
+            textSize = 11f
+            setTypeface(Typeface.MONOSPACE, Typeface.BOLD)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                rightMargin = 10.dp()
+            }
+        }
+        customControlBar?.addView(tvCustomTime)
+
+        fullscreenIconDrawable = YouTubeFullscreenIconDrawable(density).apply {
+            isExpanded = isFullScreenOnly
+        }
+        btnExoFullscreen = ImageView(this).apply {
+            setImageDrawable(fullscreenIconDrawable)
+            scaleType = ImageView.ScaleType.CENTER_INSIDE
+            layoutParams = LinearLayout.LayoutParams(30.dp(), 30.dp())
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 6.dp().toFloat()
+                setColor(Color.parseColor("#33FFFFFF"))
+            }
+            setOnClickListener {
+                applyFullScreenOnly(!isFullScreenOnly)
+                showCustomControlBar()
+            }
+        }
+        customControlBar?.addView(btnExoFullscreen)
+
+        exoHostContainer?.addView(customControlBar)
+        frameContainer.addView(exoHostContainer)
+
+        play1080 = Play1080(this).apply {
+            keepScreenOn = false
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
+            onSongEnded = {
+                removeCurrentSongSilently()
+            }
+            onToggleFullscreen = { fullscreen ->
+                applyFullScreenOnly(fullscreen)
+            }
+            onSongTitleReady = { title ->
+                if (!isOfflineActive && !hasActiveSongPlaying && activeDisplayTitle == "🕒 Chờ bài hát...") {
+                    activeDisplayTitle = "🎵 $title"
+                    tvStatus.text = activeDisplayTitle
+                    tvStatus.isSelected = true
+                }
+            }
+            onIdleStateChanged = { isIdle ->
+                setWelcomeBlinking(isIdle && !isOfflineActive && !hasActiveSongPlaying)
+                if (isIdle && !isOfflineActive && !hasActiveSongPlaying) {
+                    keepScreenOn = false
+                    syncPlayerKeepScreenOn()
+                }
+            }
+        }
+        frameContainer.addView(play1080)
+
+        tvWelcomeBlink = TextView(this).apply {
+            text = WELCOME_BLINK_TEXT
+            setTextColor(Color.parseColor("#FFEB3B"))
+            textSize = 24f
+            setTypeface(null, Typeface.BOLD)
+            setShadowLayer(8f, 2f, 2f, Color.BLACK)
+            visibility = View.GONE
+            alpha = 0f
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+                bottomMargin = 28.dp()
+            }
+        }
+        frameContainer.addView(tvWelcomeBlink)
+
+        topLeftContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(10.dp(), 10.dp(), 10.dp(), 10.dp())
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                gravity = Gravity.TOP or Gravity.START
+                topMargin = 10.dp()
+                leftMargin = 10.dp()
+            }
+        }
+
+        val qrCafeTextMain = TextView(this).apply {
+            text = "Karaoke Hana ☕️"
+            setTextColor(Color.parseColor("#ffdd00"))
+            textSize = 15f
+            setPadding(0, 0, 0, 5.dp())
+        }
+        topLeftContainer.addView(qrCafeTextMain)
+
+        val btnTvAndOffline = TextView(this).apply {
+            text = "📺 Tivi + Nhạc offline"
+            setTextColor(Color.WHITE)
+            textSize = 11.5f
+            setTypeface(null, Typeface.BOLD)
+            gravity = Gravity.CENTER
+            setPadding(8.dp(), 4.dp(), 8.dp(), 4.dp())
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 5.dp().toFloat()
+                setColor(Color.parseColor("#333333"))
+                setStroke(1, Color.parseColor("#44FFFFFF"))
+            }
+            setOnClickListener { openTvAndOfflineDialog() }
+        }
+        topLeftContainer.addView(btnTvAndOffline)
+        frameContainer.addView(topLeftContainer)
+
+        uiContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(10.dp(), 10.dp(), 10.dp(), 10.dp())
+            layoutParams = FrameLayout.LayoutParams(385.dp(), FrameLayout.LayoutParams.WRAP_CONTENT).apply {
+                gravity = Gravity.TOP or Gravity.END
+                topMargin = 10.dp()
+                rightMargin = 10.dp()
+            }
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 10.dp().toFloat()
+                setColor(Color.parseColor("#8C000000"))
+            }
+        }
+
+        val roomCodeDisplay = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, 0, 0, 8.dp())
+        }
+
+        tvRoomCode = TextView(this).apply {
+            text = "Mã kết nối: "
+            setTextColor(Color.parseColor("#FFFF00"))
+            textSize = 15.5f
+        }
+
+        val codeSpan = TextView(this).apply {
+            text = currentRoomId
+            setTextColor(Color.parseColor("#f1c40f"))
+            textSize = 20.5f
+            setTypeface(null, Typeface.BOLD)
+        }
+        roomCodeDisplay.addView(tvRoomCode)
+        roomCodeDisplay.addView(codeSpan)
+
+        val btnResetCode = TextView(this).apply {
+            text = "🔄 Đổi mã"
+            setTextColor(Color.WHITE)
+            textSize = 12f
+            gravity = Gravity.CENTER
+            setPadding(7.dp(), 3.5f.dp(), 7.dp(), 3.5f.dp())
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 5.dp().toFloat()
+                setColor(Color.parseColor("#333333"))
+            }
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { leftMargin = 8.dp() }
+            setOnClickListener { resetRoomCode() }
+        }
+        roomCodeDisplay.addView(btnResetCode)
+        uiContainer.addView(roomCodeDisplay)
+
+        val controls = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, 0, 0, 8.dp())
+        }
+
+        fun createControlBox(symbol: String, bgColor: String = "#333333", onClick: () -> Unit): TextView {
+            return TextView(this).apply {
+                text = symbol
+                setTextColor(Color.WHITE)
+                textSize = 15f
+                gravity = Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(40.dp(), 40.dp()).apply { rightMargin = 5.dp() }
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = 6.dp().toFloat()
+                    setColor(Color.parseColor(bgColor))
+                }
+                setOnClickListener { onClick() }
+            }
+        }
+
+        val btnFolder = createControlBox("📁", "#333333") {
+            openOfflineFolderViaPicker()
+        }
+
+        val btnPlayPause = createControlBox("⏯", "#00CC99") { togglePlayPause() }
+        val btnNext = createControlBox("⏭", "#333333") {
+            showToast("⏭ Đang chuyển bài...")
+            removeCurrentSong()
+        }
+
+        val currentTitle = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutParams = LinearLayout.LayoutParams(0, 40.dp(), 1f).apply { leftMargin = 2.dp() }
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 6.dp().toFloat()
+                setColor(Color.parseColor("#66000000"))
+            }
+        }
+
+        tvStatus = MarqueeTextView(this).apply {
+            text = "🕒 Chờ bài hát..."
+            setTextColor(Color.parseColor("#00ffcc"))
+            textSize = 12.5f
+            setTypeface(null, Typeface.BOLD)
+            isSelected = true
+        }
+        currentTitle.addView(tvStatus)
+
+        controls.addView(btnFolder)
+        controls.addView(btnPlayPause)
+        controls.addView(btnNext)
+        controls.addView(currentTitle)
+        uiContainer.addView(controls)
+
+        val nextSongsLayout = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val h4Title = TextView(this).apply {
+            text = "🎶 Tiếp theo:"
+            setTextColor(Color.parseColor("#00ffff"))
+            textSize = 13f
+            setTypeface(null, Typeface.BOLD)
+            setPadding(0, 0, 0, 4.dp())
+        }
+        nextSongsLayout.addView(h4Title)
+
+        layoutPlaylist = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        nextSongsLayout.addView(layoutPlaylist)
+        uiContainer.addView(nextSongsLayout)
+
+        frameContainer.addView(uiContainer)
+        setContentView(frameContainer)
+
+        hasActiveSongPlaying = false
+        isPlaying = false
+        syncPlayerKeepScreenOn()
+        lastDispatchedVideoId = Play1080.IDLE_CAR_VIDEO_ID
+        setWelcomeBlinking(true)
+        play1080?.playIdleCar()
+
+        listenToData()
+        listenToLocalSongs()
+        bindIptvRemoteListener()
+
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (tvAndOfflineDialog?.isShowing == true) {
+                    tvAndOfflineDialog?.dismiss()
+                } else if (offlineFolderDialog?.isShowing == true) {
+                    offlineFolderDialog?.dismiss()
+                } else if (isFullScreenOnly) {
+                    applyFullScreenOnly(false)
+                } else {
+                    exitApplicationCompletely()
+                }
+            }
+        })
+    }
+
+    private fun getOrCreateRoomId(): String {
+        var roomId = getSharedPreferences("KaraokePrefs", Context.MODE_PRIVATE).getString("roomCode", null)
+        if (roomId.isNullOrEmpty()) {
+            roomId = Random.nextInt(10000, 99999).toString()
+            getSharedPreferences("KaraokePrefs", Context.MODE_PRIVATE).edit().putString("roomCode", roomId).apply()
+        }
+        return roomId
+    }
+
+    private fun resetRoomCode() {
+        database.getReference("rooms/$currentRoomId/localSongs").removeValue()
+        database.getReference("rooms/$currentRoomId/iptv_channels").removeValue()
+        getSharedPreferences("KaraokePrefs", Context.MODE_PRIVATE).edit().remove("roomCode").apply()
+
+        currentRoomId = getOrCreateRoomId()
+        recreate()
+    }
+
+    private fun listenToData() {
+        roomRef = database.getReference("rooms/$currentRoomId")
+        roomRef?.child("localSongs")?.onDisconnect()?.removeValue()
+
+        roomValueEventListener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if (isExitingApp) return
+                val tempList = ArrayList<SongData>()
+                snapshot.children.forEach { child ->
+                    val map = child.value as? SongData
+                    if (map != null) {
+                        val mutableMap = map.toMutableMap()
+                        mutableMap["key"] = child.key ?: ""
+
+                        val type = (mutableMap["type"] ?: "").toString()
+                        val localKey = (mutableMap["localKey"] ?: "").toString()
+                        if ((type == "local" || localKey.isNotEmpty()) && !mutableMap.containsKey("url")) {
+                            if (localSongsMap.containsKey(localKey)) {
+                                mutableMap["url"] = localSongsMap[localKey]!!
+                            }
+                        }
+                        if (localKey.isNotEmpty() && localIsVideoMap.containsKey(localKey) && !mutableMap.containsKey("isVideo")) {
+                            mutableMap["isVideo"] = localIsVideoMap[localKey] == true
+                        }
+
+                        tempList.add(mutableMap)
+                    }
+                }
+
+                sortQueueItems(tempList)
+                playlist.clear()
+                playlist.addAll(tempList)
+                updateUI()
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        }
+        roomRef!!.child("playlist").addValueEventListener(roomValueEventListener as ValueEventListener)
+
+        commandEventListener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if (isExitingApp) return
+                val cmdData = snapshot.value
+                if (cmdData != null) {
+                    executeCommand(cmdData)
+                    roomRef!!.child("command").removeValue()
+                }
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        }
+        roomRef!!.child("command").addValueEventListener(commandEventListener as ValueEventListener)
+    }
+
+    private fun listenToLocalSongs() {
+        localSongsEventListener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if (isExitingApp) return
+                offlinePlaylist.clear()
+                localSongsMap.clear()
+                localIsVideoMap.clear()
+
+                val songsData = snapshot.value as? Map<*, *>
+                songsData?.forEach { (k, v) ->
+                    val map = v as? SongData
+                    if (map != null) {
+                        offlinePlaylist.add(map)
+                        val lKey = (map["localKey"] ?: k).toString()
+                        val urlVal = (map["url"] ?: "").toString()
+                        val titleVal = (map["title"] ?: map["name"] ?: "").toString()
+                        if (urlVal.isNotEmpty()) {
+                            localSongsMap[lKey] = urlVal
+                            localIsVideoMap[lKey] = isVideoMedia(map, urlVal, titleVal, lKey)
+                        }
+                    }
+                }
+                refreshOfflineTabCallback?.invoke()
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        }
+        roomRef!!.child("localSongs").addValueEventListener(localSongsEventListener as ValueEventListener)
+    }
+
+    private fun launchSongItem(song: SongData, consumeFromPlaylistIfPresent: Boolean) {
+        if (isExitingApp) return
+
+        val songTitle = (song["title"] ?: song["name"] ?: "Không rõ").toString()
+        val songType = (song["type"] ?: "").toString()
+        val videoId = (song["videoId"] ?: "").toString()
+        val directUrl = (song["url"] ?: song["videoUrl"] ?: "").toString()
+        val localKey = (song["localKey"] ?: "").toString()
+        val thumbUrl = (song["thumbnail"] ?: song["artwork"] ?: song["thumb"] ?: "").toString()
+        val resolvedUrl = if (directUrl.isNotEmpty()) directUrl else (localSongsMap[localKey] ?: "")
+
+        if (consumeFromPlaylistIfPresent) {
+            val songKey = song["key"]?.toString()
+            if (!songKey.isNullOrEmpty()) {
+                playlist.removeAll { it["key"]?.toString() == songKey }
+                roomRef?.child("playlist")?.child(songKey)?.removeValue()
+            }
+        }
+
+        hasActiveSongPlaying = true
+        isPlaying = true
+        activeDisplayTitle = if (songType == "soundcloud") "☁️ $songTitle" else "🎵 $songTitle"
+        tvStatus.text = activeDisplayTitle
+        tvStatus.isSelected = true
+
+        if (songType == "soundcloud" && resolvedUrl.isNotEmpty()) {
+            lastDispatchedVideoId = null
+            lastDispatchedSoundCloudUrl = "NOW|$resolvedUrl|${System.currentTimeMillis()}"
+            playSoundCloud(resolvedUrl, songTitle, thumbUrl)
+        } else if (resolvedUrl.isNotEmpty()) {
+            lastDispatchedVideoId = null
+            lastDispatchedSoundCloudUrl = null
+            val isVid = isVideoMedia(song, resolvedUrl, songTitle, localKey)
+            playMediaExo(
+                url = resolvedUrl,
+                title = songTitle,
+                thumbnailUrl = if (isVid) "" else thumbUrl,
+                isVideoStream = isVid
+            )
+        } else if (videoId.isNotEmpty()) {
+            lastDispatchedSoundCloudUrl = null
+            lastDispatchedVideoId = "NOW|$videoId|${System.currentTimeMillis()}"
+            playYouTube1080(videoId)
+        }
+    }
+
+    private fun updateUI() {
+        if (isExitingApp) return
+
+        if (!hasActiveSongPlaying) {
+            if (playlist.isNotEmpty()) {
+                launchSongItem(playlist[0], consumeFromPlaylistIfPresent = true)
+            } else {
+                lastDispatchedSoundCloudUrl = null
+                activeDisplayTitle = "🕒 Chờ bài hát..."
+                if (isOfflineActive || lastDispatchedVideoId != Play1080.IDLE_CAR_VIDEO_ID) {
+                    lastDispatchedVideoId = Play1080.IDLE_CAR_VIDEO_ID
+                    stopPlayer()
+                } else {
+                    isPlaying = false
+                    syncPlayerKeepScreenOn()
+                }
+            }
+        }
+
+        tvStatus.text = activeDisplayTitle
+        tvStatus.isSelected = true
+
+        layoutPlaylist.removeAllViews()
+        for (i in 0 until minOf(playlist.size, 11)) {
+            val song = playlist[i]
+            val li = TextView(this).apply {
+                text = "${i + 1}. ${song["title"] ?: song["name"] ?: ""}"
+                setTextColor(Color.parseColor("#F2FFFFFF"))
+                textSize = 13f
+                maxLines = 1
+                ellipsize = TextUtils.TruncateAt.END
+                setPadding(0, 2.dp(), 0, 2.dp())
+            }
+            layoutPlaylist.addView(li)
+        }
+    }
+
+    private fun playOfflineSongImmediately(song: SongData) {
+        if (isExitingApp) return
+        val directTitle = (song["title"] ?: song["name"] ?: "Bài hát offline").toString()
+        val directUrl = (song["url"] ?: "").toString()
+        val localKey = (song["localKey"] ?: "").toString()
+        val thumbUrl = (song["thumbnail"] ?: song["artwork"] ?: song["thumb"] ?: "").toString()
+
+        val finalUrl = if (directUrl.isNotEmpty()) directUrl else (localSongsMap[localKey] ?: "")
+        val isVid = isVideoMedia(song, finalUrl, directTitle, localKey)
+
+        hasActiveSongPlaying = true
+        isPlaying = true
+        activeDisplayTitle = "🎵 $directTitle"
+        tvStatus.text = activeDisplayTitle
+        tvStatus.isSelected = true
+
+        if (finalUrl.isNotEmpty()) {
+            lastDispatchedVideoId = null
+            lastDispatchedSoundCloudUrl = null
+            playMediaExo(
+                url = finalUrl,
+                title = directTitle,
+                thumbnailUrl = if (isVid) "" else thumbUrl,
+                isVideoStream = isVid
+            )
+        }
+
+        val nowMs = System.currentTimeMillis()
+        val songKey = "song_$nowMs"
+        val songDataWithTime = mapOf(
+            "type" to "local",
+            "localKey" to localKey,
+            "title" to directTitle,
+            "name" to directTitle,
+            "url" to finalUrl,
+            "isVideo" to isVid,
+            "mediaType" to if (isVid) "video" else "audio",
+            "priority" to false,
+            "prioritySeq" to 0L,
+            "clientTimestamp" to nowMs,
+            "timestamp" to nowMs
+        )
+        roomRef?.child("playlist")?.child(songKey)?.setValue(songDataWithTime)
+    }
+
+    private fun playMediaExo(
+        url: String,
+        title: String = "",
+        thumbnailUrl: String = "",
+        isVideoStream: Boolean = false
+    ) {
+        if (isExitingApp) return
+        try {
+            runOnUiThread {
+                if (isExitingApp) return@runOnUiThread
+                pauseAndSilencePlay1080()
+
+                if (isVideoStream) {
+                    hideArtworkView()
+                } else {
+                    loadAudioCoverArt(thumbnailUrl, title, isVideoStream = false)
+                }
+
+                if (isOfflineActive && currentOfflineUrl == url) {
+                    if (isVideoStream) {
+                        hideArtworkView()
+                        playerView?.visibility = View.VISIBLE
+                        playerView?.bringToFront()
+                    }
+                    exoHostContainer?.visibility = View.VISIBLE
+                    playerView?.useController = false
+                    isPlaying = true
+                    exoPlayer?.volume = CLEAN_LINEAR_AUDIO_VOLUME
+                    exoPlayer?.playWhenReady = true
+                    exoPlayer?.play()
+                    updateOfflineKeepScreenOn(true)
+                    showCustomControlBar()
+                    return@runOnUiThread
+                }
+
+                exoPlayer?.stop()
+                exoPlayer?.clearMediaItems()
+
+                hasActiveSongPlaying = true
+                isOfflineActive = true
+                isPlaying = true
+                currentOfflineUrl = url
+                setWelcomeBlinking(false)
+
+                exoHostContainer?.visibility = View.VISIBLE
+                if (isVideoStream) {
+                    hideArtworkView()
+                    playerView?.visibility = View.VISIBLE
+                    playerView?.bringToFront()
+                } else {
+                    playerView?.visibility = View.GONE
+                }
+                playerView?.useController = false
+                updateOfflineKeepScreenOn(true)
+                showCustomControlBar()
+
+                exoPlayer?.let { player ->
+                    player.volume = CLEAN_LINEAR_AUDIO_VOLUME
+                    player.playWhenReady = true
+                    player.setMediaItem(MediaItem.fromUri(Uri.parse(url)))
+                    player.prepare()
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("KARA_MEDIA", "Lỗi phát ExoPlayer: ${e.message}")
+            updateOfflineKeepScreenOn(false)
+        }
+    }
+
+    private fun playYouTube1080(videoId: String) {
+        if (isExitingApp) return
+        runOnUiThread {
+            if (isExitingApp) return@runOnUiThread
+            val isIdleCar = videoId == Play1080.IDLE_CAR_VIDEO_ID
+            hasActiveSongPlaying = !isIdleCar
+            isOfflineActive = false
+            clearOfflinePlayerState(hideView = true)
+            setWelcomeBlinking(isIdleCar)
+            isPlaying = !isIdleCar
+            play1080?.keepScreenOn = !isIdleCar && isPlaying
+            syncPlayerKeepScreenOn()
+            play1080?.playVideoId(videoId)
+        }
+    }
+
+    private fun advanceToNextFromQueue() {
+        hasActiveSongPlaying = false
+        if (playlist.isNotEmpty()) {
+            launchSongItem(playlist[0], consumeFromPlaylistIfPresent = true)
+            updateUI()
+        } else {
+            stopPlayer()
+            updateUI()
+        }
+    }
+
+    private fun removeCurrentSong() {
+        advanceToNextFromQueue()
+    }
+
+    private fun removeCurrentSongSilently() {
+        if (isExitingApp) return
+        advanceToNextFromQueue()
+    }
+
+    private fun stopPlayer() {
+        if (isExitingApp) return
+        hasActiveSongPlaying = false
+        isOfflineActive = false
+        isPlaying = false
+        clearOfflinePlayerState(hideView = true)
+
+        activeDisplayTitle = "🕒 Chờ bài hát..."
+        tvStatus.text = activeDisplayTitle
+        tvStatus.isSelected = true
+
+        lastDispatchedVideoId = Play1080.IDLE_CAR_VIDEO_ID
+        lastDispatchedSoundCloudUrl = null
+        setWelcomeBlinking(true)
+        play1080?.keepScreenOn = false
+        syncPlayerKeepScreenOn()
+        play1080?.playIdleCar()
+    }
+
+    private fun togglePlayPause() {
+        if (isOfflineActive) {
+            val player = exoPlayer ?: return
+            val nextPlayState = !player.isPlaying
+            isPlaying = nextPlayState
+            player.playWhenReady = nextPlayState
+            if (nextPlayState) {
+                player.play()
+            } else {
+                player.pause()
+            }
+            updateOfflineKeepScreenOn(nextPlayState)
+            updateCustomPlayPauseIcon(nextPlayState)
+        } else {
+            isPlaying = !isPlaying
+            play1080?.setPaused(!isPlaying)
+            play1080?.keepScreenOn = hasActiveSongPlaying && isPlaying
+            syncPlayerKeepScreenOn()
+        }
+        showToast(if (isPlaying) "▶️ Tiếp tục" else "⏸ Tạm dừng")
+    }
+
+    private fun adjustVolumeSmooth(isUp: Boolean) {
+        try {
+            val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+            var currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+            if (isUp) { if (currentVolume < maxVolume) currentVolume += 1 }
+            else { if (currentVolume > 0) currentVolume -= 1 }
+            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, currentVolume, 0)
+        } catch (_: Exception) {
+            val direction = if (isUp) AudioManager.ADJUST_RAISE else AudioManager.ADJUST_LOWER
+            audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, direction, 0)
+        }
+    }
+
+    private fun executeCommand(cmdData: Any) {
+        if (isExitingApp) return
+        if (cmdData is Map<*, *>) {
+            val type = cmdData["type"] as? String
+            val typeSource = (cmdData["typeSource"] ?: "").toString()
+            val ytTitle = (cmdData["title"] ?: cmdData["name"] ?: "").toString()
+            val videoId = (cmdData["videoId"] ?: "").toString()
+            val remoteUrl = (cmdData["url"] ?: cmdData["videoUrl"] ?: "").toString()
+            val localKey = (cmdData["localKey"] ?: "").toString()
+            val thumbUrl = (cmdData["thumbnail"] ?: cmdData["artwork"] ?: cmdData["thumb"] ?: "").toString()
+
+            @Suppress("UNCHECKED_CAST")
+            val cmdMap = cmdData as SongData
+
+            if (ytTitle.isNotEmpty() && !hasActiveSongPlaying) {
+                activeDisplayTitle = "🎵 $ytTitle"
+                tvStatus.text = activeDisplayTitle
+                tvStatus.isSelected = true
+            }
+
+            when (type) {
+                "PRIORITY", "PRIORITIZE", "ADD_PRIORITY", "PRIORITY_SONG" -> {
+                    val nowMs = System.currentTimeMillis()
+                    val songKey = "song_$nowMs"
+                    val prioEntry = HashMap<String, Any>(cmdMap)
+                    prioEntry["priority"] = true
+                    prioEntry["prioritySeq"] = nowMs
+                    prioEntry["priorityTime"] = nowMs
+                    prioEntry["clientTimestamp"] = nowMs
+                    prioEntry["timestamp"] = nowMs
+                    roomRef?.child("playlist")?.child(songKey)?.setValue(prioEntry)
+                }
+                "PLAY_NOW" -> {
+                    hasActiveSongPlaying = true
+                    isPlaying = true
+                    if (ytTitle.isNotEmpty()) {
+                        activeDisplayTitle = "🎵 $ytTitle"
+                        tvStatus.text = activeDisplayTitle
+                        tvStatus.isSelected = true
+                    }
+                    if (typeSource == "soundcloud" && remoteUrl.isNotEmpty()) {
+                        lastDispatchedVideoId = null
+                        lastDispatchedSoundCloudUrl = "NOW|$remoteUrl|${System.currentTimeMillis()}"
+                        playSoundCloud(remoteUrl, ytTitle, thumbUrl)
+                    } else if (remoteUrl.isNotEmpty()) {
+                        lastDispatchedVideoId = null
+                        lastDispatchedSoundCloudUrl = null
+                        val isVid = isVideoMedia(cmdMap, remoteUrl, ytTitle, localKey)
+                        playMediaExo(
+                            url = remoteUrl,
+                            title = ytTitle,
+                            thumbnailUrl = if (isVid) "" else thumbUrl,
+                            isVideoStream = isVid
+                        )
+                    } else if (localKey.isNotEmpty() && localSongsMap.containsKey(localKey)) {
+                        lastDispatchedVideoId = null
+                        lastDispatchedSoundCloudUrl = null
+                        val resolvedUrl = localSongsMap[localKey]!!
+                        val isVid = isVideoMedia(cmdMap, resolvedUrl, ytTitle, localKey)
+                        playMediaExo(
+                            url = resolvedUrl,
+                            title = ytTitle,
+                            thumbnailUrl = if (isVid) "" else thumbUrl,
+                            isVideoStream = isVid
+                        )
+                    } else if (videoId.isNotEmpty()) {
+                        lastDispatchedSoundCloudUrl = null
+                        lastDispatchedVideoId = "NOW|$videoId|${System.currentTimeMillis()}"
+                        playYouTube1080(videoId)
+                    }
+                }
+                "PLAY", "PAUSE" -> togglePlayPause()
+                "NEXT" -> removeCurrentSong()
+                "VOL_UP" -> adjustVolumeSmooth(true)
+                "VOL_DOWN" -> adjustVolumeSmooth(false)
+                "SET_HD" -> showToast("🎥 Đã tối ưu chất lượng luồng")
+            }
+        }
+    }
+
+    private fun showToast(message: String) {
+        if (isExitingApp) return
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+    }
+
+    override fun onDestroy() {
+        isPlaying = false
+        syncPlayerKeepScreenOn()
+        try {
+            offlineFolderDialog?.dismiss()
+        } catch (_: Exception) {}
+        offlineFolderDialog = null
+
+        try {
+            tvAndOfflineDialog?.dismiss()
+        } catch (_: Exception) {}
+        tvAndOfflineDialog = null
+
+        stopProgressTicker()
+        mainHandler.removeCallbacksAndMessages(null)
+        blinkHandler.removeCallbacksAndMessages(null)
+        roomValueEventListener?.let { roomRef?.child("playlist")?.removeEventListener(it) }
+        commandEventListener?.let { roomRef?.child("command")?.removeEventListener(it) }
+        localSongsEventListener?.let { roomRef?.child("localSongs")?.removeEventListener(it) }
+        iptvCommandEventListener?.let { roomRef?.child("iptv_command")?.removeEventListener(it) }
+        hideArtworkView()
+        playerView?.keepScreenOn = false
+        try {
+            exoPlayer?.release()
+        } catch (_: Exception) {}
+        exoPlayer = null
+        if (isExitingApp) {
+            releasePlay1080Completely()
+        }
+        super.onDestroy()
+    }
+}
