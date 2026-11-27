@@ -1,0 +1,228 @@
+ if (showToastAfter) {
+                            onShowToast("🔍 Đã quét ${allMedia.size} tệp (${buildSourceButtonLabel(snapshotSources)})")
+                        }
+                        if (dialog.isShowing) {
+                            gridContainer.post {
+                                if (dialog.isShowing && !activity.isFinishing && !activity.isDestroyed) {
+                                    renderCurrentGridFn()
+                                }
+                            }
+                        }
+                    }
+                }.start()
+            }
+
+            btnRescan.setOnClickListener {
+                if (isScanningNow) return@setOnClickListener
+                openScanSourceDialogAndScan(
+                    activity = activity,
+                    currentSources = selectedSources,
+                    onConfirmedToScan = {
+                        runAsyncScan(showToastAfter = true)
+                    }
+                )
+            }
+
+            btnTabAll.setOnClickListener {
+                if (isScanningNow) return@setOnClickListener
+                currentTab = MediaFilterTab.ALL
+                renderCurrentGridFn()
+            }
+            btnTabVideo.setOnClickListener {
+                if (isScanningNow) return@setOnClickListener
+                currentTab = MediaFilterTab.VIDEO
+                renderCurrentGridFn()
+            }
+            btnTabAudio.setOnClickListener {
+                if (isScanningNow) return@setOnClickListener
+                currentTab = MediaFilterTab.AUDIO
+                renderCurrentGridFn()
+            }
+
+            btnSelectConfirm.setOnClickListener {
+                val chosen = allMedia.filter { selectedUrls.contains(it.url) }
+                try {
+                    if (dialog.isShowing) dialog.dismiss()
+                } catch (_: Exception) {
+                }
+                onConfirmSelection(chosen)
+            }
+
+            btnClose.setOnClickListener {
+                try {
+                    if (dialog.isShowing) dialog.dismiss()
+                } catch (_: Exception) {
+                }
+            }
+
+            dialog.setContentView(rootLayout)
+            onDialogCreated(dialog)
+            dialog.show()
+            runAsyncScan(showToastAfter = false)
+        } catch (e: Exception) {
+            Log.e("KARA_PICKER", "Lỗi mở cửa sổ offline: ${e.message}")
+            onShowToast("⚠️ Không mở được cửa sổ chọn nhạc offline")
+        }
+    }
+
+    private fun applyCardStyle(activity: ComponentActivity, card: LinearLayout, checked: Boolean) {
+        card.background = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = 8.dp(activity).toFloat()
+            setColor(
+                if (checked) Color.parseColor("#1D4E3E")
+                else Color.parseColor("#1C212B")
+            )
+            setStroke(
+                if (checked) 2.dp(activity) else 1.dp(activity),
+                if (checked) Color.parseColor("#00E6A8")
+                else Color.parseColor("#323B4A")
+            )
+        }
+    }
+
+    private fun rebuildGrid(
+        activity: ComponentActivity,
+        gridContainer: LinearLayout,
+        items: List<ScannedLocalMedia>,
+        selectedUrls: LinkedHashSet<String>,
+        columns: Int,
+        onSelectionChanged: () -> Unit
+    ) {
+        gridContainer.removeAllViews()
+
+        if (items.isEmpty()) {
+            val emptyTv = TextView(activity).apply {
+                text = "Không có tệp nào trong nguồn/mục này."
+                setTextColor(Color.parseColor("#B0B8C4"))
+                textSize = 14f
+                gravity = Gravity.CENTER
+                setPadding(16.dp(activity), 40.dp(activity), 16.dp(activity), 40.dp(activity))
+            }
+            gridContainer.addView(emptyTv)
+            return
+        }
+
+        val cappedItems = if (items.size > MAX_RENDER_CARDS) items.take(MAX_RENDER_CARDS) else items
+
+        var rowIndex = 0
+        while (rowIndex * columns < cappedItems.size) {
+            val rowLayout = LinearLayout(activity).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.START or Gravity.TOP
+                layoutParams = LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                ).apply { bottomMargin = 8.dp(activity) }
+            }
+
+            for (col in 0 until columns) {
+                val itemIndex = rowIndex * columns + col
+                val cellParams = LinearLayout.LayoutParams(
+                    0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    1f
+                ).apply {
+                    if (col > 0) leftMargin = 6.dp(activity)
+                    if (col < columns - 1) rightMargin = 6.dp(activity)
+                }
+
+                if (itemIndex < cappedItems.size) {
+                    val media = cappedItems[itemIndex]
+                    val isChecked = selectedUrls.contains(media.url)
+
+                    val card = LinearLayout(activity).apply {
+                        orientation = LinearLayout.VERTICAL
+                        gravity = Gravity.CENTER_HORIZONTAL
+                        isClickable = true
+                        isFocusable = true
+                        setPadding(6.dp(activity), 8.dp(activity), 6.dp(activity), 8.dp(activity))
+                        layoutParams = cellParams
+                    }
+                    applyCardStyle(activity, card, isChecked)
+
+                    val topRow = LinearLayout(activity).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        gravity = Gravity.CENTER_VERTICAL
+                        layoutParams = LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT
+                        )
+                    }
+
+                    val cbItem = CheckBox(activity).apply {
+                        this.isChecked = isChecked
+                        setPadding(0, 0, 0, 0)
+                        layoutParams = LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.WRAP_CONTENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT
+                        )
+                    }
+
+                    val tvIcon = TextView(activity).apply {
+                        text = if (media.isVideo) "🎬" else "🎵"
+                        textSize = 18f
+                        gravity = Gravity.CENTER
+                        layoutParams = LinearLayout.LayoutParams(
+                            0,
+                            ViewGroup.LayoutParams.WRAP_CONTENT,
+                            1f
+                        )
+                    }
+
+                    topRow.addView(cbItem)
+                    topRow.addView(tvIcon)
+
+                    val tvTitle = TextView(activity).apply {
+                        text = media.title
+                        setTextColor(Color.WHITE)
+                        textSize = 11f
+                        maxLines = 2
+                        ellipsize = TextUtils.TruncateAt.END
+                        gravity = Gravity.CENTER
+                        setPadding(2.dp(activity), 4.dp(activity), 2.dp(activity), 0)
+                    }
+
+                    card.addView(topRow)
+                    card.addView(tvTitle)
+
+                    val toggleSelection = {
+                        val nowChecked = if (selectedUrls.contains(media.url)) {
+                            selectedUrls.remove(media.url)
+                            false
+                        } else {
+                            selectedUrls.add(media.url)
+                            true
+                        }
+                        cbItem.isChecked = nowChecked
+                        applyCardStyle(activity, card, nowChecked)
+                        onSelectionChanged()
+                    }
+
+                    card.setOnClickListener { toggleSelection() }
+                    cbItem.setOnClickListener { toggleSelection() }
+
+                    rowLayout.addView(card)
+                } else {
+                    val emptySlot = View(activity).apply {
+                        layoutParams = cellParams
+                    }
+                    rowLayout.addView(emptySlot)
+                }
+            }
+
+            gridContainer.addView(rowLayout)
+            rowIndex++
+        }
+
+        if (items.size > MAX_RENDER_CARDS) {
+            gridContainer.addView(TextView(activity).apply {
+                text = "Đang hiển thị ${MAX_RENDER_CARDS}/${items.size} tệp đầu tiên để cuộn mượt (dùng Quản lý file nếu cần tìm sâu hơn)."
+                setTextColor(Color.parseColor("#FFEB3B"))
+                textSize = 11.5f
+                gravity = Gravity.CENTER
+                setPadding(8.dp(activity), 6.dp(activity), 8.dp(activity), 4.dp(activity))
+            })
+        }
+    }
+}
