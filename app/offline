@@ -1,0 +1,903 @@
+package com.chuong.karahana
+
+import android.app.Activity
+import android.app.Dialog
+import android.content.Context
+import android.content.Intent
+import android.database.Cursor
+import android.graphics.Color
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
+import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.os.Handler
+import android.os.Looper
+import android.os.storage.StorageManager
+import android.provider.MediaStore
+import android.text.TextUtils
+import android.util.Log
+import android.view.Gravity
+import android.view.View
+import android.view.Window
+import android.widget.FrameLayout
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import android.widget.TextView
+import androidx.activity.result.ActivityResultLauncher
+import java.io.File
+import java.util.Locale
+import java.util.concurrent.Executors
+
+data class ScannedLocalMedia(
+    val title: String,
+    val url: String,
+    val isVideo: Boolean,
+    val sourceId: String = "internal",
+    val sourceLabel: String = "Bộ nhớ trong"
+)
+
+private data class StorageSource(
+    val id: String,
+    val label: String,
+    val rootPaths: List<String>,
+    val forbiddenPaths: List<String> = emptyList(),
+    val isAllDisks: Boolean = false
+)
+
+object OfflineFolderPicker {
+    private val AUDIO_EXTS = setOf(
+        "mp3", "wav", "m4a", "aac", "ogg", "flac", "wma", "opus", "amr", "aiff", "mid", "midi", "3ga", "ac3", "dts"
+    )
+    private val VIDEO_EXTS = setOf(
+        "mp4", "mkv", "webm", "avi", "mov", "flv", "3gp", "m4v", "ts", "mpg", "mpeg", "vob", "divx", "rmvb", "wmv"
+    )
+
+    // Né tuyệt đối thư mục hệ thống, quản lý dữ liệu ứng dụng và thư mục đặc quyền trên Android 10-11
+    private val BLOCKED_DIR_NAMES = setOf(
+        "android", "data", "obb", "proc", "sys", "dev", "acct", "config", "cache",
+        "lost+found", "system", "vendor", "product", "odm", "root", "etc", "bin",
+        "sbin", "lib", "lib64", "mnt", "storage", "firmware", "security", "recovery"
+    )
+
+    private val PREFERRED_USER_DIRS = listOf(
+        "Music", "Movies", "Movie", "Video", "Videos", "Download", "Downloads",
+        "DCIM", "Pictures", "Karaoke", "Nhac", "Phim", "Audio"
+    )
+
+    private const val MAX_SCAN_DEPTH = 5
+
+    private val scanExecutor = Executors.newSingleThreadExecutor()
+    private val mainHandler = Handler(Looper.getMainLooper())
+
+    private fun Int.dp(ctx: Context): Int = (this * ctx.resources.displayMetrics.density).toInt()
+
+    private fun safeCanonical(raw: String): String {
+        val noScheme = raw.trim().removePrefix("file://").trimEnd('/')
+        if (noScheme.isEmpty()) return ""
+        return try {
+            File(noScheme).canonicalPath.trimEnd('/')
+        } catch (_: Exception) {
+            try {
+                File(noScheme).absolutePath.trimEnd('/')
+            } catch (_: Exception) {
+                noScheme
+            }
+        }
+    }
+
+    private fun normLower(raw: String): String = safeCanonical(raw).lowercase(Locale.US)
+
+    private fun isUnderAnyRoot(filePath: String, roots: List<String>): Boolean {
+        if (roots.isEmpty()) return false
+        val f = normLower(filePath)
+        if (f.isEmpty()) return false
+        return roots.any { r ->
+            val root = normLower(r)
+            root.isNotEmpty() && (f == root || f.startsWith("$root/"))
+        }
+    }
+
+    private fun isBlockedSystemOrHiddenPath(fileOrDir: File, rootCanon: String): Boolean {
+        val nameLower = fileOrDir.name.lowercase(Locale.US)
+        if (nameLower.isBlank() || nameLower.startsWith(".") || nameLower in BLOCKED_DIR_NAMES) {
+            return true
+        }
+        val canon = safeCanonical(fileOrDir.absolutePath)
+        val normCanon = canon.lowercase(Locale.US)
+        val normRoot = safeCanonical(rootCanon).lowercase(Locale.US)
+        if (normRoot.isNotEmpty() && normCanon.startsWith("$normRoot/")) {
+            val rel = normCanon.removePrefix("$normRoot/")
+            for (seg in rel.split("/")) {
+                if (seg.startsWith(".") || seg in BLOCKED_DIR_NAMES) {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    private fun detectMediaType(nameOrPath: String, mimeType: String?): Boolean? {
+        val mime = mimeType?.lowercase(Locale.US).orEmpty()
+        if (mime.startsWith("video/")) return true
+        if (mime.startsWith("audio/")) return false
+
+        val clean = nameOrPath.substringBefore("?").lowercase(Locale.US)
+        val ext = clean.substringAfterLast('.', "")
+        if (ext in VIDEO_EXTS) return true
+        if (ext in AUDIO_EXTS) return false
+        return null
+    }
+
+    /**
+     * Khử trùng lặp tuyệt đối theo đường dẫn chuẩn hóa viết thường:
+     * có N file thật -> trả về đúng N file, không nhân bản.
+     */
+    private fun deduplicateMediaStrict(items: List<ScannedLocalMedia>): List<ScannedLocalMedia> {
+        val uniqueByPath = LinkedHashMap<String, ScannedLocalMedia>()
+        for (item in items) {
+            val canonKey = normLower(item.url)
+            val fallbackKey = if (canonKey.isNotEmpty()) {
+                canonKey
+            } else {
+                "${item.title.trim().lowercase(Locale.US)}|${item.isVideo}|${item.url.trim().lowercase(Locale.US)}"
+            }
+            if (!uniqueByPath.containsKey(fallbackKey)) {
+                uniqueByPath[fallbackKey] = item
+            }
+        }
+        return uniqueByPath.values.toList()
+    }
+
+    /**
+     * Luôn trả về đủ 4 nguồn độc lập:
+     * 1. all_disks: Quét ổ đĩa
+     * 2. internal: Bộ nhớ trong
+     * 3. sdcard: Thẻ nhớ
+     * 4. usb: USB
+     */
+    private fun discoverStorageSources(context: Context): List<StorageSource> {
+        val internalRoots = LinkedHashSet<String>()
+        val sdCardRoots = LinkedHashSet<String>()
+        val usbRoots = LinkedHashSet<String>()
+
+        try {
+            @Suppress("DEPRECATION")
+            val primaryDir = Environment.getExternalStorageDirectory()
+            val c = primaryDir?.absolutePath?.let { safeCanonical(it) }.orEmpty()
+            if (c.isNotEmpty()) internalRoots.add(c)
+        } catch (_: Exception) {}
+
+        internalRoots.add("/storage/emulated/0")
+
+        try {
+            val sm = context.getSystemService(Context.STORAGE_SERVICE) as? StorageManager
+            if (sm != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                for (vol in sm.storageVolumes) {
+                    if (vol.state != Environment.MEDIA_MOUNTED && vol.state != Environment.MEDIA_MOUNTED_READ_ONLY) {
+                        continue
+                    }
+                    var rawVolPath: String? = null
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        rawVolPath = vol.directory?.absolutePath
+                    }
+                    if (rawVolPath.isNullOrBlank()) {
+                        try {
+                            val m = vol.javaClass.getMethod("getPath")
+                            rawVolPath = m.invoke(vol)?.toString()
+                        } catch (_: Exception) {}
+                    }
+                    val canonPath = rawVolPath?.let { safeCanonical(it) }.orEmpty()
+                    if (canonPath.isEmpty()) continue
+
+                    if (vol.isPrimary) {
+                        internalRoots.add(canonPath)
+                    } else {
+                        val desc = vol.getDescription(context)?.lowercase(Locale.US).orEmpty()
+                        val pathLower = canonPath.lowercase(Locale.US)
+                        val isRemovable = try { vol.isRemovable } catch (_: Exception) { true }
+                        if (desc.contains("usb") || pathLower.contains("usb")) {
+                            usbRoots.add(canonPath)
+                        } else if (isRemovable) {
+                            sdCardRoots.add(canonPath)
+                        } else {
+                            internalRoots.add(canonPath)
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("KARA_SCAN", "StorageVolumes error: ${e.message}")
+        }
+
+        val knownAll = LinkedHashSet<String>().apply {
+            addAll(internalRoots)
+            addAll(sdCardRoots)
+            addAll(usbRoots)
+        }
+
+        for (mountBase in listOf("/storage", "/mnt/media_rw")) {
+            val dir = File(mountBase)
+            if (!dir.exists() || !dir.isDirectory) continue
+            try {
+                dir.listFiles()?.forEach { child ->
+                    if (!child.isDirectory) return@forEach
+                    val lowerName = child.name.lowercase(Locale.US)
+                    if (lowerName == "emulated" || lowerName == "self" || lowerName == "sdcard0") return@forEach
+                    val canon = safeCanonical(child.absolutePath)
+                    if (canon.isEmpty() || canon in knownAll) return@forEach
+
+                    if (lowerName.contains("usb") || mountBase.contains("usb")) {
+                        usbRoots.add(canon)
+                    } else {
+                        sdCardRoots.add(canon)
+                    }
+                    knownAll.add(canon)
+                }
+            } catch (_: Exception) {}
+        }
+
+        val intList = internalRoots.toList()
+        val sdList = sdCardRoots.filter { !isUnderAnyRoot(it, intList) }.distinct()
+        val usbList = usbRoots.filter { !isUnderAnyRoot(it, intList) && !isUnderAnyRoot(it, sdList) }.distinct()
+        val allList = (intList + sdList + usbList).distinct()
+
+        return listOf(
+            StorageSource(
+                id = "all_disks",
+                label = "Quét ổ đĩa",
+                rootPaths = allList,
+                forbiddenPaths = emptyList(),
+                isAllDisks = true
+            ),
+            StorageSource(
+                id = "internal",
+                label = "Bộ nhớ trong",
+                rootPaths = intList,
+                forbiddenPaths = sdList + usbList,
+                isAllDisks = false
+            ),
+            StorageSource(
+                id = "sdcard",
+                label = "Thẻ nhớ",
+                rootPaths = sdList,
+                forbiddenPaths = intList + usbList,
+                isAllDisks = false
+            ),
+            StorageSource(
+                id = "usb",
+                label = "USB",
+                rootPaths = usbList,
+                forbiddenPaths = intList + sdList,
+                isAllDisks = false
+            )
+        )
+    }
+
+    private fun belongsStrictlyToSource(filePath: String, source: StorageSource): Boolean {
+        if (source.rootPaths.isEmpty()) return false
+        if (!isUnderAnyRoot(filePath, source.rootPaths)) return false
+        if (!source.isAllDisks && source.forbiddenPaths.isNotEmpty()) {
+            if (isUnderAnyRoot(filePath, source.forbiddenPaths)) return false
+        }
+        return true
+    }
+
+    private fun scanSingleSourceOnce(context: Context, source: StorageSource): List<ScannedLocalMedia> {
+        if (source.rootPaths.isEmpty()) return emptyList()
+
+        val foundMap = LinkedHashMap<String, ScannedLocalMedia>()
+
+        fun addIfValid(rawPath: String, rawTitle: String?, mimeType: String?) {
+            if (rawPath.isBlank()) return
+            val canon = safeCanonical(rawPath)
+            if (canon.isEmpty() || !belongsStrictlyToSource(canon, source)) return
+
+            val fileObj = File(canon)
+            if (fileObj.exists() && fileObj.isDirectory) return
+
+            val isVid = detectMediaType(canon, mimeType) ?: return
+            val title = fileObj.nameWithoutExtension
+                .ifBlank { rawTitle?.substringBeforeLast('.')?.trim().orEmpty() }
+                .ifBlank { "Không rõ tên" }
+
+            val dedupKey = normLower(canon)
+            if (dedupKey.isNotEmpty() && !foundMap.containsKey(dedupKey)) {
+                foundMap[dedupKey] = ScannedLocalMedia(
+                    title = title,
+                    url = Uri.fromFile(fileObj).toString(),
+                    isVideo = isVid,
+                    sourceId = source.id,
+                    sourceLabel = source.label
+                )
+            }
+        }
+
+        // 1. Quét MediaStore và lọc chặt theo đúng nguồn đang chọn
+        val mediaUris = listOf(
+            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+            MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+        )
+        for (contentUri in mediaUris) {
+            var cursor: Cursor? = null
+            try {
+                val projection = arrayOf(
+                    MediaStore.MediaColumns.DISPLAY_NAME,
+                    MediaStore.MediaColumns.TITLE,
+                    MediaStore.MediaColumns.MIME_TYPE,
+                    MediaStore.MediaColumns.DATA
+                )
+                cursor = context.contentResolver.query(contentUri, projection, null, null, null)
+                if (cursor != null) {
+                    val iName = cursor.getColumnIndex(MediaStore.MediaColumns.DISPLAY_NAME)
+                    val iTitle = cursor.getColumnIndex(MediaStore.MediaColumns.TITLE)
+                    val iMime = cursor.getColumnIndex(MediaStore.MediaColumns.MIME_TYPE)
+                    val iData = cursor.getColumnIndex(MediaStore.MediaColumns.DATA)
+
+                    while (cursor.moveToNext()) {
+                        val dataPath = if (iData >= 0) cursor.getString(iData).orEmpty() else ""
+                        val name = if (iName >= 0) cursor.getString(iName) else null
+                        val title = if (iTitle >= 0) cursor.getString(iTitle) else name
+                        val mime = if (iMime >= 0) cursor.getString(iMime) else null
+
+                        if (dataPath.isNotBlank()) {
+                            addIfValid(dataPath, title ?: name, mime)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("KARA_SCAN", "MediaStore query error: ${e.message}")
+            } finally {
+                try { cursor?.close() } catch (_: Exception) {}
+            }
+        }
+
+        // 2. Duyệt trực tiếp đúng rootPaths của nguồn đang chọn (né thư mục hệ thống & giới hạn độ sâu)
+        val visitedDirs = HashSet<String>()
+        fun walkUserDirectory(dir: File, rootCanon: String, depth: Int) {
+            if (depth > MAX_SCAN_DEPTH) return
+            try {
+                if (!dir.exists() || !dir.isDirectory) return
+                if (isBlockedSystemOrHiddenPath(dir, rootCanon)) return
+
+                val canonDir = safeCanonical(dir.absolutePath)
+                if (canonDir.isEmpty() || !belongsStrictlyToSource(canonDir, source)) return
+
+                val keyDir = normLower(canonDir)
+                if (!visitedDirs.add(keyDir)) return
+
+                val entries = dir.listFiles() ?: return
+                for (entry in entries) {
+                    try {
+                        if (entry.isDirectory) {
+                            if (!isBlockedSystemOrHiddenPath(entry, rootCanon)) {
+                                walkUserDirectory(entry, rootCanon, depth + 1)
+                            }
+                        } else if (entry.isFile) {
+                            if (!entry.name.startsWith(".")) {
+                                addIfValid(entry.absolutePath, entry.nameWithoutExtension, null)
+                            }
+                        }
+                    } catch (_: SecurityException) {
+                    } catch (_: Exception) {}
+                }
+            } catch (_: SecurityException) {
+            } catch (_: Exception) {}
+        }
+
+        for (root in source.rootPaths) {
+            val rootCanon = safeCanonical(root)
+            if (rootCanon.isEmpty()) continue
+            val rootFile = File(rootCanon)
+            if (!rootFile.exists() || !rootFile.isDirectory) continue
+
+            for (prefName in PREFERRED_USER_DIRS) {
+                val prefDir = File(rootFile, prefName)
+                if (prefDir.exists() && prefDir.isDirectory) {
+                    walkUserDirectory(prefDir, rootCanon, 1)
+                }
+            }
+
+            try {
+                rootFile.listFiles()?.forEach { child ->
+                    if (child.isDirectory && !isBlockedSystemOrHiddenPath(child, rootCanon)) {
+                        walkUserDirectory(child, rootCanon, 1)
+                    } else if (child.isFile && !child.name.startsWith(".")) {
+                        addIfValid(child.absolutePath, child.nameWithoutExtension, null)
+                    }
+                }
+            } catch (_: SecurityException) {
+            } catch (_: Exception) {}
+        }
+
+        return deduplicateMediaStrict(foundMap.values.toList())
+    }
+
+    fun parsePickedUris(context: Context, uris: List<Uri>): List<ScannedLocalMedia> {
+        val rawList = ArrayList<ScannedLocalMedia>(uris.size)
+        for (uri in uris) {
+            val uriStr = uri.toString().trim()
+            if (uriStr.isEmpty()) continue
+            val mime = try {
+                context.contentResolver.getType(uri)
+            } catch (_: Exception) {
+                null
+            }
+            val displayName = try {
+                context.contentResolver.query(
+                    uri,
+                    arrayOf(MediaStore.MediaColumns.DISPLAY_NAME),
+                    null,
+                    null,
+                    null
+                )?.use { c ->
+                    if (c.moveToFirst()) c.getString(0) else null
+                }
+            } catch (_: Exception) {
+                null
+            } ?: (uri.lastPathSegment?.substringAfterLast('/') ?: "Tệp đa phương tiện")
+
+            val cleanTitle = displayName.substringBeforeLast('.').ifBlank { displayName }
+            val isVid = detectMediaType(displayName, mime) ?: detectMediaType(uriStr, mime) ?: false
+            rawList.add(
+                ScannedLocalMedia(
+                    title = cleanTitle,
+                    url = uriStr,
+                    isVideo = isVid,
+                    sourceId = "picked",
+                    sourceLabel = "Đã chọn"
+                )
+            )
+        }
+        return deduplicateMediaStrict(rawList)
+    }
+
+    fun launchExternalFileManagerChooser(
+        activity: Activity,
+        launcher: ActivityResultLauncher<Intent>,
+        onUnavailable: () -> Unit
+    ) {
+        try {
+            val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                addCategory(Intent.CATEGORY_OPENABLE)
+                type = "*/*"
+                putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("audio/*", "video/*"))
+                putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+            }
+            launcher.launch(intent)
+        } catch (_: Exception) {
+            onUnavailable()
+        }
+    }
+
+    fun showFullscreenPicker(
+        activity: Activity,
+        currentDialogRef: Dialog?,
+        onDialogCreated: (Dialog) -> Unit,
+        onOpenFileManager: () -> Unit,
+        onShowToast: (String) -> Unit,
+        onConfirmSelection: (List<ScannedLocalMedia>) -> Unit
+    ) {
+        if (activity.isFinishing || activity.isDestroyed) return
+        try {
+            currentDialogRef?.dismiss()
+        } catch (_: Exception) {}
+
+        val dialog = Dialog(activity, android.R.style.Theme_Black_NoTitleBar_Fullscreen).apply {
+            requestWindowFeature(Window.FEATURE_NO_TITLE)
+            setCancelable(true)
+            setCanceledOnTouchOutside(true)
+        }
+
+        val root = FrameLayout(activity).apply {
+            setBackgroundColor(Color.parseColor("#18181A"))
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
+        }
+
+        val mainColumn = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(14.dp(activity), 12.dp(activity), 14.dp(activity), 14.dp(activity))
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
+        }
+
+        val filterRow = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, 0, 0, 8.dp(activity))
+        }
+
+        var filterMode = "all"
+        val sources = discoverStorageSources(activity)
+        var activeSource: StorageSource = sources.firstOrNull { it.id == "internal" } ?: sources.first()
+        var scannedItems: List<ScannedLocalMedia> = emptyList()
+        val selectedUrls = LinkedHashSet<String>()
+        var isScanningNow = false
+
+        val btnFilterAll = TextView(activity).apply {
+            text = "Tất cả"
+            textSize = 12f
+            setTypeface(null, Typeface.BOLD)
+            setPadding(12.dp(activity), 5.dp(activity), 12.dp(activity), 5.dp(activity))
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { rightMargin = 8.dp(activity) }
+        }
+
+        val btnFilterVideo = TextView(activity).apply {
+            text = "Video"
+            textSize = 12f
+            setTypeface(null, Typeface.BOLD)
+            setPadding(12.dp(activity), 5.dp(activity), 12.dp(activity), 5.dp(activity))
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { rightMargin = 8.dp(activity) }
+        }
+
+        val btnFilterAudio = TextView(activity).apply {
+            text = "Âm thanh"
+            textSize = 12f
+            setTypeface(null, Typeface.BOLD)
+            setPadding(12.dp(activity), 5.dp(activity), 12.dp(activity), 5.dp(activity))
+        }
+
+        filterRow.addView(btnFilterAll)
+        filterRow.addView(btnFilterVideo)
+        filterRow.addView(btnFilterAudio)
+        mainColumn.addView(filterRow)
+
+        val sourceRow = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, 0, 0, 8.dp(activity))
+        }
+        val sourceButtons = ArrayList<Pair<StorageSource, TextView>>()
+
+        val tvStatusBanner = TextView(activity).apply {
+            text = "Đang quét: ${activeSource.label}..."
+            setTextColor(Color.parseColor("#CFD8DC"))
+            textSize = 12f
+            setPadding(0, 0, 0, 8.dp(activity))
+        }
+
+        val scrollArea = ScrollView(activity).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                0,
+                1f
+            )
+        }
+        val listContainer = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        }
+        scrollArea.addView(listContainer)
+
+        val bottomBar = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, 10.dp(activity), 0, 0)
+        }
+
+        val btnFileManager = TextView(activity).apply {
+            text = "📁 Quản lý file"
+            setTextColor(Color.WHITE)
+            textSize = 12f
+            setTypeface(null, Typeface.BOLD)
+            setPadding(11.dp(activity), 7.dp(activity), 11.dp(activity), 7.dp(activity))
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { rightMargin = 8.dp(activity) }
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 6.dp(activity).toFloat()
+                setColor(Color.parseColor("#383A42"))
+            }
+            setOnClickListener {
+                dialog.dismiss()
+                onOpenFileManager()
+            }
+        }
+
+        val btnRescan = TextView(activity).apply {
+            text = "🔄 Quét lại"
+            setTextColor(Color.WHITE)
+            textSize = 12f
+            setTypeface(null, Typeface.BOLD)
+            setPadding(11.dp(activity), 7.dp(activity), 11.dp(activity), 7.dp(activity))
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { rightMargin = 8.dp(activity) }
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 6.dp(activity).toFloat()
+                setColor(Color.parseColor("#383A42"))
+            }
+        }
+
+        val btnSelectAll = TextView(activity).apply {
+            text = "Chọn tất cả"
+            setTextColor(Color.WHITE)
+            textSize = 12f
+            setTypeface(null, Typeface.BOLD)
+            setPadding(11.dp(activity), 7.dp(activity), 11.dp(activity), 7.dp(activity))
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 6.dp(activity).toFloat()
+                setColor(Color.parseColor("#2B303A"))
+            }
+        }
+
+        val spacer = View(activity).apply {
+            layoutParams = LinearLayout.LayoutParams(0, 1, 1f)
+        }
+
+        val btnSend = TextView(activity).apply {
+            text = "✓ Gửi đi"
+            setTextColor(Color.WHITE)
+            textSize = 12.5f
+            setTypeface(null, Typeface.BOLD)
+            setPadding(14.dp(activity), 7.dp(activity), 14.dp(activity), 7.dp(activity))
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { rightMargin = 8.dp(activity) }
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 6.dp(activity).toFloat()
+                setColor(Color.parseColor("#26A67A"))
+            }
+        }
+
+        val btnClose = TextView(activity).apply {
+            text = "✕ Đóng"
+            setTextColor(Color.WHITE)
+            textSize = 12.5f
+            setTypeface(null, Typeface.BOLD)
+            setPadding(14.dp(activity), 7.dp(activity), 14.dp(activity), 7.dp(activity))
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 6.dp(activity).toFloat()
+                setColor(Color.parseColor("#C64A4A"))
+            }
+            setOnClickListener { dialog.dismiss() }
+        }
+
+        fun getFilteredList(): List<ScannedLocalMedia> {
+            val base = when (filterMode) {
+                "video" -> scannedItems.filter { it.isVideo }
+                "audio" -> scannedItems.filter { !it.isVideo }
+                else -> scannedItems
+            }
+            return deduplicateMediaStrict(base)
+        }
+
+        fun updateFilterButtonsStyle() {
+            fun styleTab(tv: TextView, active: Boolean) {
+                tv.setTextColor(if (active) Color.BLACK else Color.WHITE)
+                tv.background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = 6.dp(activity).toFloat()
+                    setColor(if (active) Color.parseColor("#26A67A") else Color.parseColor("#2C2F38"))
+                }
+            }
+            styleTab(btnFilterAll, filterMode == "all")
+            styleTab(btnFilterVideo, filterMode == "video")
+            styleTab(btnFilterAudio, filterMode == "audio")
+        }
+
+        fun updateSourceButtonsStyle() {
+            sourceButtons.forEach { (src, tv) ->
+                val active = src.id == activeSource.id
+                tv.setTextColor(if (active) Color.BLACK else Color.WHITE)
+                tv.background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = 6.dp(activity).toFloat()
+                    setColor(if (active) Color.parseColor("#FFDD00") else Color.parseColor("#2C2F38"))
+                }
+            }
+        }
+
+        fun renderItemsList() {
+            listContainer.removeAllViews()
+            val shown = getFilteredList()
+
+            if (isScanningNow) {
+                tvStatusBanner.text = "⏳ Đang quét ${activeSource.label}..."
+                return
+            }
+
+            if (shown.isEmpty()) {
+                val msg = if (activeSource.rootPaths.isEmpty()) {
+                    "Không phát hiện ${activeSource.label} hoặc chưa có tệp nào trong ${activeSource.label}."
+                } else {
+                    "Không có tệp nào trong ${activeSource.label}."
+                }
+                tvStatusBanner.text = msg
+                val emptyTv = TextView(activity).apply {
+                    text = msg
+                    setTextColor(Color.parseColor("#9E9E9E"))
+                    textSize = 13f
+                    gravity = Gravity.CENTER
+                    setPadding(0, 48.dp(activity), 0, 24.dp(activity))
+                }
+                listContainer.addView(emptyTv)
+                return
+            }
+
+            tvStatusBanner.text = "${activeSource.label}: ${shown.size} tệp (đã chọn ${selectedUrls.size})"
+
+            shown.forEachIndexed { idx, item ->
+                val isChecked = selectedUrls.contains(item.url)
+                val row = LinearLayout(activity).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    setPadding(10.dp(activity), 7.dp(activity), 10.dp(activity), 7.dp(activity))
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply { bottomMargin = 6.dp(activity) }
+                    background = GradientDrawable().apply {
+                        shape = GradientDrawable.RECTANGLE
+                        cornerRadius = 7.dp(activity).toFloat()
+                        setColor(if (isChecked) Color.parseColor("#294D3E") else Color.parseColor("#242730"))
+                        setStroke(1, if (isChecked) Color.parseColor("#26A67A") else Color.parseColor("#38FFFFFF"))
+                    }
+                }
+
+                val tvCheck = TextView(activity).apply {
+                    text = if (isChecked) "☑" else "☐"
+                    setTextColor(if (isChecked) Color.parseColor("#00E699") else Color.parseColor("#CFD8DC"))
+                    textSize = 15f
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply { rightMargin = 8.dp(activity) }
+                }
+
+                val badge = if (item.isVideo) "🎬" else "🎵"
+                val tvTitle = TextView(activity).apply {
+                    text = "${idx + 1}. $badge ${item.title}"
+                    setTextColor(Color.WHITE)
+                    textSize = 12.5f
+                    maxLines = 1
+                    ellipsize = TextUtils.TruncateAt.END
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                }
+
+                row.addView(tvCheck)
+                row.addView(tvTitle)
+                row.setOnClickListener {
+                    if (selectedUrls.contains(item.url)) {
+                        selectedUrls.remove(item.url)
+                    } else {
+                        selectedUrls.add(item.url)
+                    }
+                    renderItemsList()
+                }
+                listContainer.addView(row)
+            }
+        }
+
+        fun runScanForActiveSource() {
+            if (isScanningNow || scanExecutor.isShutdown) return
+            isScanningNow = true
+            selectedUrls.clear()
+            scannedItems = emptyList()
+            renderItemsList()
+
+            val targetSource = activeSource
+            scanExecutor.execute {
+                val rawFound = try {
+                    scanSingleSourceOnce(activity, targetSource)
+                } catch (e: Exception) {
+                    Log.e("KARA_SCAN", "Scan error (${targetSource.label}): ${e.message}")
+                    emptyList()
+                }
+
+                val finalList = deduplicateMediaStrict(rawFound)
+
+                mainHandler.post {
+                    if (!dialog.isShowing || activity.isFinishing || activity.isDestroyed) return@post
+                    isScanningNow = false
+                    scannedItems = finalList
+                    renderItemsList()
+                }
+            }
+        }
+
+        sources.forEach { src ->
+            val srcBtn = TextView(activity).apply {
+                text = src.label
+                textSize = 11.5f
+                setTypeface(null, Typeface.BOLD)
+                setPadding(10.dp(activity), 5.dp(activity), 10.dp(activity), 5.dp(activity))
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { rightMargin = 6.dp(activity) }
+                setOnClickListener {
+                    if (isScanningNow) return@setOnClickListener
+                    activeSource = src
+                    updateSourceButtonsStyle()
+                    runScanForActiveSource()
+                }
+            }
+            sourceButtons.add(src to srcBtn)
+            sourceRow.addView(srcBtn)
+        }
+
+        btnFilterAll.setOnClickListener {
+            filterMode = "all"
+            updateFilterButtonsStyle()
+            renderItemsList()
+        }
+        btnFilterVideo.setOnClickListener {
+            filterMode = "video"
+            updateFilterButtonsStyle()
+            renderItemsList()
+        }
+        btnFilterAudio.setOnClickListener {
+            filterMode = "audio"
+            updateFilterButtonsStyle()
+            renderItemsList()
+        }
+        btnRescan.setOnClickListener {
+            runScanForActiveSource()
+        }
+        btnSelectAll.setOnClickListener {
+            val shown = getFilteredList()
+            if (shown.isEmpty()) return@setOnClickListener
+            val allSelected = shown.all { selectedUrls.contains(it.url) }
+            if (allSelected) {
+                shown.forEach { selectedUrls.remove(it.url) }
+            } else {
+                shown.forEach { selectedUrls.add(it.url) }
+            }
+            renderItemsList()
+        }
+        btnSend.setOnClickListener {
+            val picked = deduplicateMediaStrict(scannedItems.filter { selectedUrls.contains(it.url) })
+            if (picked.isEmpty()) {
+                onShowToast("⚠️ Vui lòng chọn ít nhất 1 bài")
+                return@setOnClickListener
+            }
+            dialog.dismiss()
+            onConfirmSelection(picked)
+        }
+
+        mainColumn.addView(sourceRow)
+        mainColumn.addView(tvStatusBanner)
+        mainColumn.addView(scrollArea)
+
+        bottomBar.addView(btnFileManager)
+        bottomBar.addView(btnRescan)
+        bottomBar.addView(btnSelectAll)
+        bottomBar.addView(spacer)
+        bottomBar.addView(btnSend)
+        bottomBar.addView(btnClose)
+        mainColumn.addView(bottomBar)
+
+        root.addView(mainColumn)
+        dialog.setContentView(root)
+
+        updateFilterButtonsStyle()
+        updateSourceButtonsStyle()
+
+        dialog.show()
+        onDialogCreated(dialog)
+        runScanForActiveSource()
+    }
+}
