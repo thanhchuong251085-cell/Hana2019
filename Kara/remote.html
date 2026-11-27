@@ -26,6 +26,11 @@
       --primary-hover: #bf4200;
     }
 
+    body.source-tv {
+      --primary-color: #00796b;
+      --primary-hover: #005b50;
+    }
+
     body {
       font-family: sans-serif;
       background: #f7f7f7;
@@ -204,6 +209,9 @@
     .btn-source-sc {
         background: #ff6600;
     }
+    .btn-source-tv {
+        background: #00796b;
+    }
     .btn-source-close {
         background: #888888;
     }
@@ -289,6 +297,107 @@
       accent-color: #ff6600;
       cursor: pointer;
       margin: 0;
+    }
+
+    /* --- Dải nút lọc danh mục ngang tự động theo link IPTV --- */
+    .tv-category-bar {
+      display: none;
+      gap: 8px;
+      overflow-x: auto;
+      white-space: nowrap;
+      padding: 8px 4px;
+      margin-bottom: 12px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .tv-category-bar.active {
+      display: flex;
+    }
+    .tv-cat-btn {
+      padding: 8px 14px;
+      font-size: 14px;
+      font-weight: bold;
+      border-radius: 999px;
+      border: 1px solid #b2dfdb;
+      background: #ffffff;
+      color: #004d40;
+      cursor: pointer;
+      flex-shrink: 0;
+      margin-right: 0;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .tv-cat-btn.active {
+      background: #00796b;
+      color: #ffffff;
+      border-color: #00796b;
+    }
+
+    /* --- Danh sách kênh Tivi online (logo sáng sủa, không bọc nền đen) --- */
+    .tv-channel-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: #ffffff;
+      margin-bottom: 10px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+      cursor: pointer;
+      transition: transform 0.1s, background 0.15s, box-shadow 0.15s;
+    }
+    .tv-channel-item:hover {
+      background: #f0faf8;
+    }
+    .tv-channel-item:active {
+      transform: scale(0.99);
+      background: #e0f2f1;
+    }
+    .tv-channel-item.playing {
+      border-left: 5px solid #00796b;
+      background: #e8f5e9;
+    }
+    .tv-logo-box {
+      width: 64px;
+      height: 40px;
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    .tv-logo-box img {
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      background: transparent;
+      display: block;
+    }
+    .tv-channel-title-wrap {
+      flex: 1;
+      min-width: 0;
+    }
+    .tv-channel-title {
+      font-size: 18px;
+      font-weight: bold;
+      color: #1f2937;
+      line-height: 1.3;
+    }
+    .tv-channel-group-sub {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 2px;
+    }
+    .tv-channel-badge {
+      font-size: 12px;
+      font-weight: bold;
+      color: #00796b;
+      background: #e0f2f1;
+      padding: 4px 8px;
+      border-radius: 6px;
+      flex-shrink: 0;
     }
 
     /* --- Thanh điều khiển cố định dưới cùng --- */
@@ -481,6 +590,17 @@
         font-size: 14px;
         padding: 6px 10px;
       }
+      .tv-cat-btn {
+        font-size: 13px;
+        padding: 6px 12px;
+      }
+      .tv-logo-box {
+        width: 52px;
+        height: 34px;
+      }
+      .tv-channel-title {
+        font-size: 15px;
+      }
       .video-item img {
         width: 30%; 
         max-height: 80px; 
@@ -515,7 +635,7 @@
     </button>
   </div>
 
-  <!-- Modal Chọn Nguồn Tìm Kiếm (YouTube / SoundCloud) -->
+  <!-- Modal Chọn Nguồn Tìm Kiếm (YouTube / SoundCloud / Tivi online) -->
   <div id="sourceModal" onclick="if(event.target===this) toggleSourceModal()">
     <div class="modal-content">
       <h3 style="margin: 0 0 8px 0; color: #222; text-align: center;">Chọn nguồn tìm kiếm</h3>
@@ -524,6 +644,9 @@
       </button>
       <button type="button" class="source-choice-btn btn-source-sc" onclick="selectMusicSource('soundcloud')">
         ☁️ SoundCloud
+      </button>
+      <button type="button" class="source-choice-btn btn-source-tv" onclick="selectMusicSource('tv')">
+        📺 Tivi online
       </button>
       <button type="button" class="source-choice-btn btn-source-close" onclick="toggleSourceModal()">
         Đóng
@@ -550,13 +673,13 @@
   <h2>DANH SÁCH CHỜ</h2>
   <ul id="playlist" style="list-style: none; padding: 0;"></ul>
 
-  <!-- Thanh chuyển đổi giữa chế độ Online (YouTube/SoundCloud) và Offline (Nhạc trong máy) -->
+  <!-- Thanh chuyển đổi giữa chế độ Online (YouTube/SoundCloud/Tivi online) và Offline (Nhạc trong máy) -->
   <div class="mode-tab-bar">
     <button id="onlineTabBtn" class="mode-tab active" onclick="switchMode('online')">▶ YouTube Online</button>
     <button id="offlineTabBtn" class="mode-tab" onclick="switchMode('offline')">📂 Nhạc Offline</button>
   </div>
 
-  <!-- PANEL ONLINE (YOUTUBE / SOUNDCLOUD) -->
+  <!-- PANEL ONLINE (YOUTUBE / SOUNDCLOUD / TIVI ONLINE) -->
   <div id="panel-online" class="mode-panel active">
     <h1 id="mainSourceTitle">YouTube Jukebox</h1>
 
@@ -604,6 +727,9 @@
       <button onclick="newSearch()">Tìm kiếm</button>
     </div>
 
+    <!-- Dải nút lọc nhóm ngang tự động sinh theo danh sách kênh IPTV -->
+    <div id="tvCategoryBar" class="tv-category-bar"></div>
+
     <div id="searchResults"></div>
     <button id="loadMoreBtn" style="display: none;" onclick="loadMore()">TẢI TIẾP</button>
   </div>
@@ -650,7 +776,7 @@
     
     const ADMIN_ROOM_CODE = '99999'; 
     
-    let currentMusicSource = 'youtube'; // 'youtube' | 'soundcloud'
+    let currentMusicSource = 'youtube'; // 'youtube' | 'soundcloud' | 'tv'
     let currentRoom = null;
     let currentPlaylistId = null;
     let nextPageToken = null; 
@@ -665,6 +791,13 @@
     let scSuggestionCache = [];
     let scSuggestionStartIndex = 0;
     let scCurrentTracksMap = {};
+
+    // Dữ liệu & listener cho Tivi online (IPTV)
+    let iptvChannelsList = [];
+    let iptvChannelsRef = null;
+    let iptvChannelsListener = null;
+    let activePlayingChannelNumber = null;
+    let selectedIptvCategory = 'ALL';
 
     // Lưu trữ tạm danh sách nhạc offline để lấy tiêu đề chính xác, an toàn tuyệt đối với ký tự đặc biệt
     let remoteLocalSongsMap = {};
@@ -746,7 +879,234 @@
       }
     });
 
-    // --- CHỌN NGUỒN NHẠC (YOUTUBE / SOUNDCLOUD) ---
+    document.getElementById('searchInput').addEventListener('input', function () {
+      if (currentMusicSource === 'tv') {
+        renderIptvChannels(this.value.trim());
+      }
+    });
+
+    // --- TIVI ONLINE (IPTV) ---
+    function detachIptvChannelsListener() {
+      if (iptvChannelsRef && iptvChannelsListener) {
+        try {
+          iptvChannelsRef.off('value', iptvChannelsListener);
+        } catch (e) {}
+      }
+      iptvChannelsRef = null;
+      iptvChannelsListener = null;
+    }
+
+    function getUniqueIptvCategories(channels) {
+      const seen = new Set();
+      const cats = [];
+      channels.forEach(ch => {
+        const g = (ch.group || '').toString().trim();
+        if (g && !seen.has(g)) {
+          seen.add(g);
+          cats.push(g);
+        }
+      });
+      return cats;
+    }
+
+    function renderIptvCategoryBar(channels) {
+      const bar = document.getElementById('tvCategoryBar');
+      if (!bar) return;
+
+      if (currentMusicSource !== 'tv' || !currentRoom || !channels || channels.length === 0) {
+        bar.classList.remove('active');
+        bar.innerHTML = '';
+        return;
+      }
+
+      const categories = getUniqueIptvCategories(channels);
+      if (selectedIptvCategory !== 'ALL' && !categories.includes(selectedIptvCategory)) {
+        selectedIptvCategory = 'ALL';
+      }
+
+      bar.classList.add('active');
+      bar.innerHTML = '';
+
+      const allBtn = document.createElement('button');
+      allBtn.type = 'button';
+      allBtn.className = 'tv-cat-btn' + (selectedIptvCategory === 'ALL' ? ' active' : '');
+      allBtn.textContent = `TẤT CẢ (${channels.length})`;
+      allBtn.onclick = () => {
+        selectedIptvCategory = 'ALL';
+        renderIptvChannels(document.getElementById('searchInput').value.trim());
+      };
+      bar.appendChild(allBtn);
+
+      categories.forEach(catName => {
+        const countInCat = channels.filter(ch => (ch.group || '').trim() === catName).length;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'tv-cat-btn' + (selectedIptvCategory === catName ? ' active' : '');
+        btn.textContent = `${catName} (${countInCat})`;
+        btn.onclick = () => {
+          selectedIptvCategory = catName;
+          renderIptvChannels(document.getElementById('searchInput').value.trim());
+        };
+        bar.appendChild(btn);
+      });
+    }
+
+    function listenToIptvChannels() {
+      detachIptvChannelsListener();
+      iptvChannelsList = [];
+      selectedIptvCategory = 'ALL';
+
+      if (!currentRoom) {
+        renderIptvCategoryBar([]);
+        if (currentMusicSource === 'tv') {
+          document.getElementById('searchResults').innerHTML =
+            "<p style='text-align:center; color:#666;'>⚠️ Vui lòng kết nối TV trước để xem danh sách kênh!</p>";
+        }
+        return;
+      }
+
+      iptvChannelsRef = db.ref(`rooms/${currentRoom}/iptv_channels`);
+      iptvChannelsListener = iptvChannelsRef.on('value', (snapshot) => {
+        const raw = snapshot.val();
+        const parsed = [];
+
+        if (raw && typeof raw === 'object') {
+          Object.keys(raw).forEach((k, idx) => {
+            const ch = raw[k];
+            if (!ch || typeof ch !== 'object') return;
+            const numberVal = typeof ch.number === 'number' ? ch.number : (parseInt(ch.number, 10) || (idx + 1));
+            const indexVal = typeof ch.index === 'number' ? ch.index : (parseInt(ch.index, 10) || idx);
+            const nameVal = (ch.name || `Kênh ${numberVal}`).toString().trim();
+            parsed.push({
+              index: indexVal,
+              number: numberVal,
+              name: nameVal,
+              logo: (ch.logo || '').toString().trim(),
+              url: (ch.url || '').toString().trim(),
+              group: (ch.group || '').toString().trim(),
+              clearKey: (ch.clearKey || '').toString().trim(),
+              date: (ch.date || '').toString().trim()
+            });
+          });
+        }
+
+        parsed.sort((a, b) => a.number - b.number);
+        iptvChannelsList = parsed;
+
+        if (currentMusicSource === 'tv') {
+          const currentFilter = document.getElementById('searchInput').value.trim();
+          renderIptvChannels(currentFilter);
+        }
+      });
+    }
+
+    function renderIptvChannels(filterText = '') {
+      const container = document.getElementById('searchResults');
+      const loadMoreBtn = document.getElementById('loadMoreBtn');
+      loadMoreBtn.style.display = 'none';
+
+      renderIptvCategoryBar(iptvChannelsList);
+
+      if (!currentRoom) {
+        container.innerHTML = "<p style='text-align:center; color:#666;'>⚠️ Vui lòng kết nối mã TV trước!</p>";
+        return;
+      }
+
+      if (!iptvChannelsList || iptvChannelsList.length === 0) {
+        container.innerHTML = "<p style='text-align:center; color:#666;'>Chưa có danh sách kênh IPTV. Hãy nhập link IPTV trên TV và bấm Kết nối.</p>";
+        return;
+      }
+
+      const byCategory = selectedIptvCategory === 'ALL'
+        ? iptvChannelsList
+        : iptvChannelsList.filter(ch => (ch.group || '').trim() === selectedIptvCategory);
+
+      const q = filterText.toLowerCase();
+      const filtered = q
+        ? byCategory.filter(ch =>
+            ch.name.toLowerCase().includes(q) ||
+            String(ch.number).includes(q) ||
+            ch.group.toLowerCase().includes(q)
+          )
+        : byCategory;
+
+      if (filtered.length === 0) {
+        const scopeText = selectedIptvCategory === 'ALL' ? '' : ` trong mục "${selectedIptvCategory}"`;
+        container.innerHTML = `<p style='text-align:center; color:#666;'>Không tìm thấy kênh nào${scopeText}${q ? ` khớp "${filterText}"` : ''}.</p>`;
+        return;
+      }
+
+      container.innerHTML = '';
+      filtered.forEach((ch) => {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'tv-channel-item' + (activePlayingChannelNumber === ch.number ? ' playing' : '');
+
+        if (ch.logo) {
+          const logoBox = document.createElement('div');
+          logoBox.className = 'tv-logo-box';
+
+          const img = document.createElement('img');
+          img.src = ch.logo;
+          img.alt = ch.name;
+          img.onerror = () => {
+            logoBox.style.display = 'none';
+          };
+
+          logoBox.appendChild(img);
+          itemDiv.appendChild(logoBox);
+        }
+
+        const titleWrap = document.createElement('div');
+        titleWrap.className = 'tv-channel-title-wrap';
+
+        const titleDiv = document.createElement('div');
+        titleDiv.className = 'tv-channel-title';
+        titleDiv.textContent = `${ch.number}. ${ch.name}`;
+        titleWrap.appendChild(titleDiv);
+
+        if (selectedIptvCategory === 'ALL' && ch.group) {
+          const groupSub = document.createElement('div');
+          groupSub.className = 'tv-channel-group-sub';
+          groupSub.textContent = ch.group;
+          titleWrap.appendChild(groupSub);
+        }
+
+        const badgeDiv = document.createElement('div');
+        badgeDiv.className = 'tv-channel-badge';
+        badgeDiv.textContent = activePlayingChannelNumber === ch.number ? '▶ Đang phát' : '📺 Phát';
+
+        itemDiv.appendChild(titleWrap);
+        itemDiv.appendChild(badgeDiv);
+
+        itemDiv.onclick = () => playIptvChannelOnTv(ch);
+        container.appendChild(itemDiv);
+      });
+    }
+
+    function playIptvChannelOnTv(channel) {
+      if (!currentRoom) return showToast("⚠️ Bạn chưa kết nối TV!");
+      if (!channel) return;
+
+      activePlayingChannelNumber = channel.number;
+      db.ref(`rooms/${currentRoom}/iptv_command`).set({
+        action: 'play',
+        index: channel.index,
+        number: channel.number,
+        name: channel.name,
+        logo: channel.logo || '',
+        url: channel.url || '',
+        clearKey: channel.clearKey || '',
+        date: channel.date || '',
+        timestamp: Date.now()
+      }).then(() => {
+        showToast(`📺 Đang phát: ${channel.number}. ${channel.name}`);
+        renderIptvChannels(document.getElementById('searchInput').value.trim());
+      }).catch((err) => {
+        showToast("⚠️ Lỗi gửi kênh TV: " + err.message);
+      });
+    }
+
+    // --- CHỌN NGUỒN NHẠC (YOUTUBE / SOUNDCLOUD / TIVI ONLINE) ---
     function toggleSourceModal() {
       const modal = document.getElementById('sourceModal');
       modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
@@ -763,29 +1123,50 @@
 
     function applyMusicSourceUI() {
       const isSC = currentMusicSource === 'soundcloud';
+      const isTV = currentMusicSource === 'tv';
+
       document.body.classList.toggle('source-soundcloud', isSC);
+      document.body.classList.toggle('source-tv', isTV);
 
       const onlineTabBtn = document.getElementById('onlineTabBtn');
       const mainTitle = document.getElementById('mainSourceTitle');
       const ytBox = document.getElementById('youtubeOptionsBox');
       const scBox = document.getElementById('soundcloudOptionsBox');
+      const tvCatBar = document.getElementById('tvCategoryBar');
       const playlistInput = document.getElementById('playlistLinkInput');
       const searchInput = document.getElementById('searchInput');
+      const voiceBtn = document.getElementById('voiceSearchBtn');
 
-      if (isSC) {
-        onlineTabBtn.textContent = '☁️ SoundCloud';
-        mainTitle.textContent = 'SoundCloud Jukebox';
+      if (isTV) {
+        onlineTabBtn.textContent = '📺 Tivi online';
+        mainTitle.textContent = 'Tivi online';
         ytBox.style.display = 'none';
-        scBox.style.display = 'flex';
-        playlistInput.style.display = 'none';
-        searchInput.placeholder = 'Nhập tên bài hát SoundCloud...';
-      } else {
-        onlineTabBtn.textContent = '▶ YouTube Online';
-        mainTitle.textContent = 'YouTube Jukebox';
-        ytBox.style.display = 'flex';
         scBox.style.display = 'none';
-        searchInput.placeholder = 'Nhập tên bài hát...';
-        updateSearchMode(false);
+        playlistInput.style.display = 'none';
+        voiceBtn.style.display = 'none';
+        searchInput.placeholder = 'Tìm kênh VTV1, SCTV, HBO, HTV...';
+        renderIptvCategoryBar(iptvChannelsList);
+      } else {
+        tvCatBar.classList.remove('active');
+        tvCatBar.innerHTML = '';
+
+        if (isSC) {
+          onlineTabBtn.textContent = '☁️ SoundCloud';
+          mainTitle.textContent = 'SoundCloud Jukebox';
+          ytBox.style.display = 'none';
+          scBox.style.display = 'flex';
+          playlistInput.style.display = 'none';
+          voiceBtn.style.display = 'flex';
+          searchInput.placeholder = 'Nhập tên bài hát SoundCloud...';
+        } else {
+          onlineTabBtn.textContent = '▶ YouTube Online';
+          mainTitle.textContent = 'YouTube Jukebox';
+          ytBox.style.display = 'flex';
+          scBox.style.display = 'none';
+          voiceBtn.style.display = 'flex';
+          searchInput.placeholder = 'Nhập tên bài hát...';
+          updateSearchMode(false);
+        }
       }
     }
 
@@ -988,7 +1369,7 @@
     
     window.onload = function () {
       const savedSource = localStorage.getItem("musicSource");
-      if (savedSource === 'soundcloud' || savedSource === 'youtube') {
+      if (savedSource === 'soundcloud' || savedSource === 'youtube' || savedSource === 'tv') {
         currentMusicSource = savedSource;
       }
 
@@ -1041,7 +1422,9 @@
           currentPlaylistId = extractPlaylistId(storedPlaylistLink);
       }
       
-      if (currentSearchQuery.length === 0) {
+      if (currentMusicSource === 'tv') {
+          renderIptvChannels(document.getElementById('searchInput').value.trim());
+      } else if (currentSearchQuery.length === 0) {
           if (currentMusicSource === 'soundcloud') {
             loadSoundCloudSuggestions(true);
           } else {
@@ -1058,9 +1441,13 @@
       if (mode === 'online') {
         document.querySelector('.mode-tab:nth-child(1)').classList.add('active');
         document.getElementById('panel-online').classList.add('active');
+        if (currentMusicSource === 'tv') {
+          renderIptvChannels(document.getElementById('searchInput').value.trim());
+        }
       } else {
         document.querySelector('.mode-tab:nth-child(2)').classList.add('active');
         document.getElementById('panel-offline').classList.add('active');
+        document.getElementById('tvCategoryBar').classList.remove('active');
         loadLocalSongsFromTV();
       }
     }
@@ -1195,6 +1582,10 @@
     }
 
     function updateSearchMode(initSearch = false) {
+        if (currentMusicSource === 'tv') {
+          if (initSearch) renderIptvChannels(document.getElementById('searchInput').value.trim());
+          return;
+        }
         if (currentMusicSource === 'soundcloud') {
           if (initSearch) newSearch();
           return;
@@ -1254,9 +1645,12 @@
       updateConnectUI(true);
       showToast("🔗 Đã kết nối mã " + code);
       loadPlaylist();
+      listenToIptvChannels();
       toggleConnectModal(); 
       
-      if (currentSearchQuery.length === 0) {
+      if (currentMusicSource === 'tv') {
+          renderIptvChannels(document.getElementById('searchInput').value.trim());
+      } else if (currentSearchQuery.length === 0) {
           if (currentMusicSource === 'soundcloud') {
             loadSoundCloudSuggestions(true);
           } else {
@@ -1286,13 +1680,19 @@
 
     function clearRoomCode() {
       localStorage.removeItem("lastRoom");
+      detachIptvChannelsListener();
+      iptvChannelsList = [];
+      selectedIptvCategory = 'ALL';
+      activePlayingChannelNumber = null;
       currentRoom = null;
       document.getElementById('userCodeInput').value = '';
       updateConnectUI(false);
       showToast("🚪 Đã đăng xuất");
       document.getElementById('playlist').innerHTML = '';
       toggleConnectModal();
-      if (currentMusicSource === 'soundcloud') {
+      if (currentMusicSource === 'tv') {
+        renderIptvChannels('');
+      } else if (currentMusicSource === 'soundcloud') {
         loadSoundCloudSuggestions(true);
       } else {
         loadInitialSuggestions();
@@ -1400,10 +1800,16 @@
 
     function newSearch() {
         currentSearchQuery = document.getElementById("searchInput").value.trim();
-        document.getElementById('searchResults').innerHTML = ''; 
         document.getElementById('loadMoreBtn').style.display = 'none';
         nextPageToken = null; 
         playlistCache = []; 
+
+        if (currentMusicSource === 'tv') {
+          renderIptvChannels(currentSearchQuery);
+          return;
+        }
+
+        document.getElementById('searchResults').innerHTML = '';
 
         if (currentMusicSource === 'soundcloud') {
           if (currentSearchQuery.length > 0) {
@@ -1458,6 +1864,9 @@
     }
 
     function loadMore() {
+        if (currentMusicSource === 'tv') {
+          return;
+        }
         if (currentMusicSource === 'soundcloud') {
           loadSoundCloudSuggestions(false);
           return;
