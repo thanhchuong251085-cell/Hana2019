@@ -255,7 +255,7 @@ https://vtvgolive-sctvdrm.vtvdigital.vn/lOuYe3GnC5E28Xffu3dK0g/1784457742/manife
 #EXTVLCOPT:http-user-agent=Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36
 https://vtvgolive-sctvdrm.vtvdigital.vn/5iZS4rZxkRWvuOBN0DdQ1A/1781553571/manifest/sctv4/master.m3u8
 
-EXTINF:-1 tvg-id="sctv5hd" group-title="SCTV" tvg-logo="https://raw.githubusercontent.com/vuminhthanh12/Logo/refs/heads/main/SCTV5.jpg", SCTV5
+#EXTINF:-1 tvg-id="sctv5hd" group-title="SCTV" tvg-logo="https://raw.githubusercontent.com/vuminhthanh12/Logo/refs/heads/main/SCTV5.jpg", SCTV5
 #EXTVLCOPT:http-user-agent=Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36
 https://vmttv.dpdns.org/VTVGo/?sctv5
 
