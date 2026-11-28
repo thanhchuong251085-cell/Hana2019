@@ -274,6 +274,12 @@ https://vtvgolive-sctvdrm.vtvdigital.vn/8BowesyiXHG8EeUHp4VHjg/1784458223/manife
 #EXTINF:-1 tvg-id="sctv8hd" group-title="SCTV" tvg-logo="https://raw.githubusercontent.com/giangnam0201/All-In-One-IPTV/refs/heads/main/logos/sctv/8_efcc1082.jpg", SCTV8
 #EXTVLCOPT:http-user-agent=Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36
 https://vmttv.dpdns.org/VTVGo/?sctv8
+#EXTINF:-1 tvg-id="sctv8hd" group-title="SCTV" tvg-logo="https://vietanhtv.id.vn/logo/sctv8.png", SCTV8 HD
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36
+#KODIPROP:inputstream.adaptive.manifest_type=mpd
+#KODIPROP:inputstream.adaptive.license_type=clearkey
+#KODIPROP:inputstream.adaptive.license_key=https://tv.vietanhtv.top/sctv/cleankey.php?id=sctv8
+https://liveatmvng.vtvprime.vn/live/data8/SCTV8/Live_DASHDRM/SCTV8.mpd
 #EXTINF:-1 tvg-id="sctv9hd" group-title="SCTV" tvg-logo="https://raw.githubusercontent.com/vuminhthanh12/vuminhthanh12/refs/heads/main/SCTV9.png", SCTV9
 https://vtvgolive-sctvdrm.vtvdigital.vn/bmHLF3dn-HJ1kD4qsNLTOw/1784458511/manifest/sctv9/master.m3u8
 #EXTINF:-1 tvg-id="sctv10hd" group-title="SCTV" tvg-logo="https://raw.githubusercontent.com/giangnam0201/All-In-One-IPTV/refs/heads/main/logos/sctv/10_dd39c053.jpg", SCTV10
