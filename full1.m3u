@@ -1,4 +1,4 @@
-ixe#EXTM3U url-tvg="https://epg.io.vn/epgu.xml"
+#EXTM3U url-tvg="https://epg.io.vn/epgu.xml"
 #EXTINF:-1 tvg-logo="https://i.ytimg.com/vi/BU6MW4VzT7U/hqdefault.jpg" group-title="Giọng ca để đời",Giọng ca để đời
 http://dvrfl05.bozztv.com/vch_vchannel5/tracks-v1a1/mono.m3u8
 #EXTINF:-1 tvg-logo="https://vn.xemtv.net/image/vtv1.png" group-title="VTV", (VTV1) This file is come from thành chương. Please do not reup. - VTV1
